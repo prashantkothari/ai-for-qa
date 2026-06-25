@@ -11,7 +11,10 @@
  *                         THROWS until calibration (P2) exists.
  */
 (function (root) {
-  const S = (typeof require !== 'undefined') ? require('../../selfheal-core.js') : root.SELFHEAL;
+  // prefer an already-loaded global (browser); fall back to CommonJS require (Node). [review finding #3]
+  let S = (root && root.SELFHEAL) || null;
+  if (!S && typeof module !== 'undefined' && module.exports) { try { S = require('../../selfheal-core.js'); } catch (e) { /* fall through */ } }
+  S = S || (root && root.SELFHEAL);
 
   // Deterministic: the chosen target's strongest locator must match exactly one element in scope.
   function uniqueness(doc, ex) {

@@ -96,6 +96,34 @@ desktop+mobile copies → correctly abstain). Lab regression test (`divSoup_cont
    product grid: gap = 73% of clickables, raw cursor:pointer 0.08 precision vs pointer-root **0.65**.)
 3. **Recordability ~0–5% on every tab** — Gong has essentially no stable anchors anywhere; anchor coverage is the ceiling (re-confirms K23).
 
+## Amplitude — chart builder deep-dive (interaction-driven) `measured · live · 2026-06-24`
+
+| state | laid-out | recordability | dup sets | distinguishable% | notable |
+|---|---|---|---|---|---|
+| funnel chart (baseline) | 124 | **65%** | 3 | 0% | testid 70 of 124 |
+| + Add Segment | 142 | 60% | **12** | 0% | new identical-twin ties |
+
+**Three findings:**
+1. **Recordability varies hugely by VIEW within one app — not uniformly low (corrects K23).** Amplitude
+   chart-builder = **60–65%** (testid 70–75), vs Amplitude *billing* 13%, vs Gong 0%. The core product
+   surface is heavily test-id-instrumented; peripheral pages aren't. The views that matter for testing may
+   be far more healable than the peripheral-page sweep suggested.
+2. **TWO ambiguity regimes (measured):**
+   - *Distinct-content* repeats (Gong Outline per-section) → row-text disambiguates (95%).
+   - *Identical-content* repeats (Amplitude segments / funnel steps: `row::"All Users 67.1%"`×2,
+     `div::"Any Active Event"`×2, `button::"More Options"`×2 — all `distinct:1`) → row-text **FAILS** →
+     **ordinal/position is the only deterministic lever.** Config-builder UIs are full of identical-twin
+     ambiguity → strongest case yet for activating the captured-but-unused `ordinal`.
+3. **Portaled menus are toggle-stateful + timing-sensitive.** "Saved"/"Build-with-AI" menus close in the
+   round-trip between a click call and a scan call → click-then-scan-later misses them entirely. Reliable
+   capture needs open → await-mount → scan-before-close in one tick (TEMPORAL/reveal; P2 runtime).
+4. **Portal options are role-less (measured across 3 portals):** `div[role=listbox]` with options that have
+   NO role/testid/`cursor:pointer` — only the container has a testid. The big property/event PICKERS (most
+   test-critical controls) are the same shape. The `cursor:pointer` widener does NOT generalize here.
+   **→ Interaction strategy (since every Amplitude portal has a Search box):**
+   - **Search-and-pick [preferred]:** the search `<input>` is anchorable → type target → list filters to one → click result (N→1, sidesteps role-less options).
+   - **Container-scoped text-click [fallback]:** find container by testid → match option by text → click clickable ancestor.
+
 ## Honest caveats
 - **SPA undercount (confirmed large):** static visible-only scan misses hover/lazy/portaled controls — Gong
   showed a 63% miss. Treat all sweep counts as lower bounds.

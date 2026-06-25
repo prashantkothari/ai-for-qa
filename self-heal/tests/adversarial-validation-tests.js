@@ -118,15 +118,56 @@ function runAdversarial() {
     } finally { unmount(d); }
   });
 
-  test('genuine disambig SAFETY: identical row text → cannot distinguish → stays abstain (false-heal=0)', () => {
+  test('div-soup (Gong-shape): 3 identical "Add" in repeated <div> cards → container detection heals correct card', () => {
+    // Ledger K25: real SPAs are div-soup, not <td>. containerOf must find the repeating sibling unit
+    // (the .card div), not climb to the shared grid. This FAILS with the old semantic-only containerOf.
+    const d = mount(`<div class="grid">
+      <div class="card"><div class="hd">AirPods Pro</div><div>$249</div><button name="add">Add</button></div>
+      <div class="card"><div class="hd">AirPods 3rd gen</div><div>$179</div><button name="add">Add</button></div>
+      <div class="card"><div class="hd">AirPods Max</div><div>$549</div><button name="add">Add</button></div>
+    </div>`);
+    try {
+      const proBtn = d.querySelectorAll('button')[0];
+      const step = captureStep(proBtn, d, { action:'click' });
+      step.context = CG.captureContext(proBtn);
+      ok(/AirPods\s*Pro/.test(step.context.rowText), 'captured per-card row text (div-soup): '+step.context.rowText);
+      const base = matchStep(d, step, { gate:false });
+      ok(base.verdict !== 'heal', '3 identical buttons → matcher abstains');
+      const heal = CG.disambiguateByContext(d, step, { gate:true });
+      eq(heal.verdict, 'heal', 'div-soup context disambiguates'); ok(heal.disambiguated === true);
+      eq(heal.best.el, proBtn, 'healed to the AirPods Pro card button specifically');
+      metrics.divSoup_contextHeal = { value: 1, unit: 'correct-heal in div-soup (no semantic rows)', tag: 'measured' };
+    } finally { unmount(d); }
+  });
+
+  test('identical twins + unchanged set → ordinal heals the recorded element (K30; row-text alone would abstain)', () => {
+    // Genuine twins (byte-identical row-text) + same count → position is the sole, outcome-safe signal.
     const d = mount(`<table><tr>
       <td><h3>Item</h3><button name="add">Add</button></td>
       <td><h3>Item</h3><button name="add">Add</button></td></tr></table>`);
     try {
-      const b = d.querySelectorAll('button')[0];
-      const step = captureStep(b, d, { action:'click' }); step.context = CG.captureContext(b);
+      const first = d.querySelectorAll('button')[0];
+      const step = captureStep(first, d, { action:'click' }); step.context = CG.captureContext(first);
       const heal = CG.disambiguateByContext(d, step, { gate:false });
-      ok(heal.verdict !== 'heal', 'identical context → no guess'); ok(!heal.disambiguated, 'no disambiguation claimed');
+      eq(heal.verdict, 'heal'); eq(heal.via, 'ordinal'); eq(heal.best.el, first, 'heals the recorded position');
+    } finally { unmount(d); }
+  });
+
+  test('genuine disambig SAFETY (identity floor): removed target + matching row-text → NO false-heal', () => {
+    // Review finding #1: a strong-identity target (testid) is GONE at replay; two low-conf <a> junk
+    // candidates tie, and one sits in a row whose text matches the recorded row. Row-text alone would
+    // pick it — but the identity floor (top < TH.heal) must block any heal. This is the false-heal guard.
+    const recDoc = parse(`<table><tr><td><h3>Order Summary</h3><button data-testid="place-order" name="po">Place Order</button></td></tr></table>`);
+    const recEl = recDoc.querySelector('button');
+    const step = captureStep(recEl, recDoc, { action:'click' });
+    step.context = CG.captureContext(recEl);
+    const d = mount(`<table>
+      <tr><td><h3>Order Summary</h3><a href="#">details</a></td></tr>
+      <tr><td><h3>Shipping Info</h3><a href="#">details</a></td></tr></table>`);
+    try {
+      const r = CG.disambiguateByContext(d, step, { gate:false });
+      ok(r.verdict !== 'heal', 'removed strong-identity target must NOT be rescued by row-text on weak candidates');
+      metrics.identityFloor_blocksFalseHeal = { value: 1, unit: 'false-heal blocked by identity floor', tag: 'measured' };
     } finally { unmount(d); }
   });
 
@@ -136,6 +177,36 @@ function runAdversarial() {
       const step = captureStep(d.querySelector('button'), d, { action:'click' });   // step.context NOT set
       const heal = CG.disambiguateByContext(d, step, { gate:false });
       ok(heal.verdict !== 'heal'); ok(!heal.disambiguated);
+    } finally { unmount(d); }
+  });
+
+  // ================= ORDINAL fallback (K30) — identical-content twins =================
+  test('ordinal fallback: identical twins (Amplitude funnel-step shape) → ordinal heals recorded position', () => {
+    const d = mount(`<div class="builder">
+      <div class="step"><span>Any Active Event</span><button name="opt">More Options</button></div>
+      <div class="step"><span>Any Active Event</span><button name="opt">More Options</button></div>
+    </div>`);
+    try {
+      const secondBtn = d.querySelectorAll('button')[1];
+      const step = captureStep(secondBtn, d, { action:'click' });
+      step.context = CG.captureContext(secondBtn);
+      eq(step.context.count, 2, 'two same-sig peers'); eq(step.context.ordinal, 1, 'recorded the 2nd');
+      const base = matchStep(d, step, { gate:false });
+      ok(base.verdict !== 'heal', 'identical twins → matcher abstains');
+      const heal = CG.disambiguateByContext(d, step, { gate:true });
+      eq(heal.verdict, 'heal'); eq(heal.via, 'ordinal'); eq(heal.best.el, secondBtn, 'healed the recorded ordinal (2nd)');
+      metrics.ordinal_identicalTwin = { value:1, unit:'identical-twin heal via ordinal', tag:'measured' };
+    } finally { unmount(d); }
+  });
+
+  test('ordinal SAFETY: duplicate set changed (count 2→3) → ordinal abstains (no false-heal)', () => {
+    const rec = mount(`<div><div class="step"><span>Ev</span><button name="o">X</button></div><div class="step"><span>Ev</span><button name="o">X</button></div></div>`);
+    let step;
+    try { const b=rec.querySelectorAll('button')[1]; step=captureStep(b,rec,{action:'click'}); step.context=CG.captureContext(b); } finally { unmount(rec); }
+    const d = mount(`<div><div class="step"><span>Ev</span><button name="o">X</button></div><div class="step"><span>Ev</span><button name="o">X</button></div><div class="step"><span>Ev</span><button name="o">X</button></div></div>`);
+    try {
+      const heal = CG.disambiguateByContext(d, step, { gate:false });
+      ok(heal.verdict !== 'heal', 'set grew (2→3) → ordinal untrustworthy → abstain');
     } finally { unmount(d); }
   });
 

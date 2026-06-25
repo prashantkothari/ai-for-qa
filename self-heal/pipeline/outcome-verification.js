@@ -13,7 +13,10 @@
  *   (`selfheal-runtime.js`). `verifyConfidence` mirrors the I24/OV#4 guard so P2 can filter.
  */
 (function (root) {
-  const S = (typeof require !== 'undefined') ? require('../../selfheal-core.js') : root.SELFHEAL;
+  // prefer an already-loaded global (browser); fall back to CommonJS require (Node). [review finding #3]
+  let S = (root && root.SELFHEAL) || null;
+  if (!S && typeof module !== 'undefined' && module.exports) { try { S = require('../../selfheal-core.js'); } catch (e) { /* fall through */ } }
+  S = S || (root && root.SELFHEAL);
 
   // Confidence of a verification approach (Ledger OV#4 / doc2 Step 5). Only HIGH should ever bump
   // learning stats; everything else is advisory until a real runtime confirms it.

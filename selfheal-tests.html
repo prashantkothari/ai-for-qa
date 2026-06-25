@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/><title>self-healing — Phase 1 tests & before/after metrics</title>
+<style>
+ body{font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:900px;margin:24px auto;padding:0 16px;color:#1a1a18;background:#fff;}
+ h1{font-size:20px;} h2{font-size:15px;margin-top:24px;border-bottom:1px solid #eee;padding-bottom:4px;}
+ .ok{color:#3b6d11;} .bad{color:#a32d2d;font-weight:600;}
+ .case{padding:3px 0;font-size:13px;} .case .n{font-family:ui-monospace,Menlo,monospace;}
+ table{border-collapse:collapse;width:100%;margin:8px 0;font-size:13px;} th,td{border:1px solid #e5e5e5;padding:5px 8px;text-align:left;}
+ th{background:#f6f5f0;} .delta-good{color:#3b6d11;} .delta-bad{color:#a32d2d;}
+ .summary{font-size:16px;padding:8px 12px;border-radius:8px;background:#f6f5f0;}
+ code{background:#f0efe9;padding:1px 4px;border-radius:3px;}
+</style></head>
+<body>
+<h1>Self-healing locators — Phase 1 test &amp; metrics report</h1>
+<p>Loads <code>selfheal-core.js</code>, runs the hermetic suite, and renders before/after metrics per step.
+Aggregate heal-rate numbers come from the live runs (Appendix C / PHASE1-tasks E7); this page proves the mechanisms.</p>
+<div id="summary" class="summary">Running…</div>
+<h2>Cases</h2><div id="cases"></div>
+<h2>Before / after metrics</h2><div id="metrics"></div>
+<script src="selfheal-core.js?v=5"></script>
+<script src="selfheal-tests.js?v=5"></script>
+<script>
+  const r = runAll();
+  document.getElementById('summary').innerHTML =
+    `<b class="${r.failed?'bad':'ok'}">${r.passed}/${r.total} passed</b>` + (r.failed?` · <span class="bad">${r.failed} failed</span>`:' · all green');
+  document.getElementById('cases').innerHTML = r.cases.map(c=>
+    `<div class="case"><span class="${c.ok?'ok':'bad'}">${c.ok?'✓':'✗'}</span> <span class="n">${c.name}</span>${c.err?` — <span class="bad">${c.err}</span>`:''}</div>`).join('');
+  const rows = Object.entries(r.metrics).map(([k,m])=>{
+    const better = (typeof m.after==='number'&&typeof m.before==='number') ? (k.includes('falseHeal')? m.after<=m.before : m.after>=m.before) : true;
+    return `<tr><td><code>${k}</code></td><td>${m.before}</td><td>${m.after}</td><td class="${better?'delta-good':'delta-bad'}">${better?'improved/held':'regressed'}</td><td>${m.unit||''}</td></tr>`;
+  }).join('');
+  document.getElementById('metrics').innerHTML = `<table><tr><th>metric</th><th>before</th><th>after</th><th>direction</th><th>unit</th></tr>${rows}</table>`;
+  window.__results = r;
+  // mobile (iOS XCUITest) integration — async (fetches the real fixture)
+  runMobile().then(mr=>{
+    window.__mobileResults = mr;
+    const host=document.createElement('div');
+    host.innerHTML = `<h2>Mobile (iOS XCUITest) — real fixture, core adapter</h2>` +
+      (mr.error ? `<p class="bad">${mr.error}</p>` :
+        `<div class="summary"><b class="${mr.failed?'bad':'ok'}">${mr.passed}/${mr.passed+mr.failed} passed</b></div>` +
+        mr.cases.map(c=>`<div class="case"><span class="${c.ok?'ok':'bad'}">${c.ok?'✓':'✗'}</span> <span class="n">${c.name}</span></div>`).join(''));
+    document.body.appendChild(host);
+  });
+</script>
+</body></html>

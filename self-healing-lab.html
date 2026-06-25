@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Self-healing lab — descriptor matcher (real markup)</title>
+<style>
+  :root{
+    --bg:#fff; --bg2:#f6f5f0; --bg3:#eeece4; --text:#1a1a18; --text2:#5f5e5a; --text3:#8a8980;
+    --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.24);
+    --info-bg:#e6f1fb; --info:#185fa5; --success-bg:#eaf3de; --success:#3b6d11;
+    --danger-bg:#fcebeb; --danger:#a32d2d; --warn-bg:#faeeda; --warn:#854f0b;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; --radius:8px; --radius-lg:12px;
+  }
+  @media (prefers-color-scheme: dark){:root{
+    --bg:#201f1d; --bg2:#2a2926; --bg3:#34332f; --text:#f2f0ea; --text2:#b4b2a9; --text3:#888780;
+    --border:rgba(255,255,255,0.14); --border2:rgba(255,255,255,0.26);
+    --info-bg:#13365c; --info:#9cc5f0; --success-bg:#2a4216; --success:#a8d36a;
+    --danger-bg:#4a1f1f; --danger:#f0a0a0; --warn-bg:#4a3206; --warn:#f0c27a;
+  }}
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg3); color:var(--text); font-family:var(--font); line-height:1.6;}
+  .wrap{max-width:1060px; margin:0 auto; padding:26px 20px 70px;}
+  h1{font-size:22px; font-weight:600; margin:0 0 4px;}
+  .sub{font-size:14px; color:var(--text2); margin:0 0 20px; max-width:720px;}
+  .tabs{display:flex; gap:8px; margin-bottom:18px;}
+  .tab{background:var(--bg); border:0.5px solid var(--border2); border-radius:var(--radius); padding:9px 16px; font-size:14px; cursor:pointer; font-family:inherit; color:var(--text); display:flex; align-items:center; gap:8px;}
+  .tab.active{background:var(--info-bg); color:var(--info); border-color:transparent;}
+  .panel{display:none;} .panel.active{display:block;}
+  .controls{background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px; margin-bottom:14px;}
+  .clabel{font-size:12px; color:var(--text3); margin-bottom:9px;}
+  .chips{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip{background:var(--bg2); border:0.5px solid var(--border); border-radius:20px; padding:6px 13px; font-size:13px; cursor:pointer; color:var(--text2); font-family:inherit;}
+  .chip.on{background:var(--danger-bg); color:var(--danger); border-color:transparent;}
+  .chip.reset{background:transparent; color:var(--text2); border-color:var(--border2);}
+  .seg{display:inline-flex; border:0.5px solid var(--border2); border-radius:var(--radius); overflow:hidden; margin-left:6px;}
+  .seg button{background:var(--bg); border:none; padding:6px 12px; font-size:13px; cursor:pointer; color:var(--text2); font-family:inherit;}
+  .seg button.on{background:var(--info-bg); color:var(--info);}
+  .grid{display:grid; grid-template-columns:300px 1fr; gap:14px; align-items:start;}
+  .card{background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:16px;}
+  .plabel{font-size:12px; color:var(--text3); margin-bottom:10px; display:flex; align-items:center; gap:6px; justify-content:space-between;}
+  .screen{background:var(--bg2); border-radius:var(--radius); padding:14px;}
+  /* rendered form */
+  form{display:flex; flex-direction:column; gap:2px;}
+  form label{font-size:12px; color:var(--text2); margin-top:8px;}
+  form input[type=text],form input[type=password]{border:0.5px solid var(--border2); border-radius:6px; padding:8px 10px; font-size:13px; background:var(--bg); color:var(--text); width:100%;}
+  form input[type=submit],form input[type=button]{margin-top:12px; background:#1f6feb; color:#fff; border:none; border-radius:6px; padding:9px; font-size:13px; cursor:default;}
+  .flash-close{align-self:flex-end; background:transparent; border:none; color:var(--text3); font-size:16px; cursor:default; padding:0; width:20px;}
+  .ghost{border:0.5px solid var(--border); border-radius:6px; padding:8px; text-align:center; font-size:12px; color:var(--text2);}
+  .divider{text-align:center; font-size:11px; color:var(--text3); margin:4px 0;}
+  [data-truth]{outline:2px solid var(--info); outline-offset:1px;}
+  /* ios tree */
+  .axrow{display:flex; align-items:center; gap:8px; background:var(--bg); border:0.5px solid var(--border); border-radius:6px; padding:8px 10px; margin-bottom:6px; font-size:13px;}
+  .axrow .ax-i{font-size:11px; color:var(--text3); width:14px;}
+  .axrow .ax-n{flex:1;}
+  .axrow .ax-b{font-size:10px; padding:1px 7px; border-radius:10px; background:var(--bg2); color:var(--text3);}
+  .axrow .ax-id{font-size:10px; padding:1px 7px; border-radius:10px; background:var(--success-bg); color:var(--success); font-family:var(--mono);}
+  .axrow .ax-off{font-size:10px; padding:1px 7px; border-radius:10px; background:var(--danger-bg); color:var(--danger);}
+  .axrow[data-truth]{outline:2px solid var(--info); outline-offset:1px;}
+  /* results */
+  .results{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .res{border:0.5px solid var(--border); border-radius:var(--radius); padding:13px;}
+  .res h3{font-size:13px; font-weight:500; margin:0 0 8px; color:var(--text2);}
+  .verdict{border-radius:6px; padding:9px 11px; font-size:13px; margin-bottom:10px; display:flex; gap:7px; align-items:flex-start;}
+  .v-ok{background:var(--success-bg); color:var(--success);} .v-bad{background:var(--danger-bg); color:var(--danger);}
+  .v-warn{background:var(--warn-bg); color:var(--warn);} .v-info{background:var(--info-bg); color:var(--info);}
+  .bar{height:7px; border-radius:5px; background:var(--bg2); overflow:hidden; margin:4px 0 10px;}
+  .bar > i{display:block; height:100%;}
+  .sigrow{display:flex; align-items:center; gap:8px; font-size:12px; padding:3px 0;}
+  .sigrow .sg-k{width:96px; color:var(--text2); flex:none; font-family:var(--mono); font-size:11px;}
+  .sigrow .sg-v{flex:1; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .sigrow .sg-m{width:34px; text-align:right; flex:none; font-variant-numeric:tabular-nums;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  pre{background:var(--bg2); border-radius:var(--radius); padding:12px; font-size:11px; font-family:var(--mono); overflow:auto; margin:12px 0 0; line-height:1.5; color:var(--text);}
+  .note{font-size:12px; color:var(--text3); margin-top:10px; line-height:1.5;}
+  details summary{cursor:pointer; font-size:12px; color:var(--info); margin-top:12px;}
+  @media (max-width:780px){ .grid{grid-template-columns:1fr;} .results{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Self-healing lab — does the descriptor actually heal?</h1>
+  <p class="sub">A real matcher runs on real markup. Apply a "redesign," and compare the <strong>old way</strong> (one stored selector) against the <strong>new way</strong> (consensus across the recorded descriptor — Clue 1 identity + Clue 3 intent/stability). Verdict is honest: it heals, abstains, picks the wrong element, or fails.</p>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="web">Web — GitHub login (real HTML)</button>
+    <button class="tab" data-tab="ios">iOS — settings list (a11y tree)</button>
+  </div>
+
+  <!-- WEB -->
+  <div class="panel active" id="panel-web">
+    <div class="controls">
+      <div class="clabel">Target element
+        <span class="seg" id="web-target">
+          <button data-t="submit" class="on">“Sign in” button</button>
+          <button data-t="username">Username field</button>
+        </span>
+      </div>
+      <div class="clabel" style="margin-top:12px;">Apply a redesign (combine freely)</div>
+      <div class="chips" id="web-muts">
+        <button class="chip" data-m="restyle">Regenerate CSS classes</button>
+        <button class="chip" data-m="localize">Localize copy → German</button>
+        <button class="chip" data-m="restructure">Restructure + move</button>
+        <button class="chip" data-m="dropid">Drop stable id</button>
+        <button class="chip" data-m="duplicate">Add a duplicate button</button>
+        <button class="chip" data-m="strip">Strip all identity</button>
+        <button class="chip reset" data-m="reset">Reset</button>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="plabel"><span>rendered page (after redesign)</span></div>
+        <div class="screen" id="web-screen"></div>
+        <details><summary>recorded descriptor (JSON)</summary><pre id="web-desc"></pre></details>
+      </div>
+      <div class="card">
+        <div class="results">
+          <div class="res"><h3>Old way — one stored selector</h3><div id="web-old"></div></div>
+          <div class="res"><h3>New way — descriptor consensus</h3><div id="web-new"></div></div>
+        </div>
+        <div class="note" id="web-note"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IOS -->
+  <div class="panel" id="panel-ios">
+    <div class="controls">
+      <div class="clabel">Does the app expose an Accessibility ID on the target?
+        <span class="seg" id="ios-hasid">
+          <button data-v="yes">Yes</button>
+          <button data-v="no" class="on">No (text only)</button>
+        </span>
+      </div>
+      <div class="clabel" style="margin-top:12px;">Apply a change (combine freely)</div>
+      <div class="chips" id="ios-muts">
+        <button class="chip" data-m="localize">Shorten label → “Privacy”</button>
+        <button class="chip" data-m="rename">Rename → “Riservatezza”</button>
+        <button class="chip" data-m="reorder">Insert row at top</button>
+        <button class="chip" data-m="offscreen">Scroll off-screen (∞ coords)</button>
+        <button class="chip reset" data-m="reset">Reset</button>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="plabel"><span>accessibility tree (after change)</span></div>
+        <div class="screen" id="ios-screen"></div>
+        <details><summary>recorded descriptor (JSON)</summary><pre id="ios-desc"></pre></details>
+      </div>
+      <div class="card">
+        <div class="results">
+          <div class="res"><h3>Old way — exact-text locator</h3><div id="ios-old"></div></div>
+          <div class="res"><h3>New way — descriptor consensus</h3><div id="ios-new"></div></div>
+        </div>
+        <div class="note" id="ios-note"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const HEAL=0.62, MARGIN=0.12, FLOOR=0.45;
+const rnd=()=>Math.random().toString(36).slice(2,10);
+
+/* ---------- shared matcher ---------- */
+function tok(s){return (s==null?'':String(s)).toLowerCase().split(/[^a-z0-9]+/i).filter(Boolean);}
+function fuzzy(a,b){ if(a==null||b==null) return 0; a=String(a);b=String(b); if(a===b)return 1;
+  const A=new Set(tok(a)),B=new Set(tok(b)); if(!A.size||!B.size) return 0;
+  let inter=0; A.forEach(x=>{if(B.has(x))inter++;}); const uni=new Set([...A,...B]).size;
+  const contain=(a.toLowerCase().includes(b.toLowerCase())||b.toLowerCase().includes(a.toLowerCase()))?0.85:0;
+  return Math.max(inter/uni, contain);}
+function boxMatch(a,b){ if(!a||!b) return 0.5; if(!isFinite(a.x)||!isFinite(b.x)) return 0;
+  return Math.max(0,1-Math.hypot(a.x-b.x,a.y-b.y)/500);}
+function matchVal(k,cv,sv){ if(k==='name'||k==='label') return fuzzy(cv,sv); if(k==='box') return boxMatch(cv,sv);
+  return (cv!=null && String(cv)===String(sv))?1:0; }
+function score(cand, desc, extract){
+  let num=0,den=0,parts=[];
+  for(const k in desc.signals){ const {value,stability}=desc.signals[k];
+    const cv=extract(cand,k); const m=matchVal(k,cv,value);
+    num+=m*stability; den+=stability; parts.push({k,m,stability,cv,value}); }
+  return {cand, conf: den?num/den:0, parts};
+}
+function decide(best,second){
+  if(!best) return {v:'fail',msg:'no candidates'};
+  const margin=best.conf-(second?second.conf:0);
+  if(best.conf>=HEAL && margin>=MARGIN) return {v:'heal'};
+  if(best.conf>=HEAL && margin<MARGIN) return {v:'abstain',msg:'ambiguous — two elements score alike (margin '+(margin*100|0)+'%)'};
+  if(best.conf>=FLOOR) return {v:'abstain',msg:'confidence '+(best.conf*100|0)+'% below the safe threshold ('+(HEAL*100)+'%)'};
+  return {v:'fail',msg:'no surviving identity — top candidate only '+(best.conf*100|0)+'%'};
+}
+const C={ok:'var(--success)',bad:'var(--danger)',warn:'var(--warn)',info:'var(--info)'};
+function confColor(v){return v==='heal'?C.ok:v==='abstain'?C.warn:v==='blocked'?C.warn:C.bad;}
+function sigList(parts){ return parts.map(p=>{
+    const surv=p.m>=0.5; const col=surv?C.ok:(p.m>0?C.warn:C.bad);
+    let vtxt=p.value; if(p.value&&p.value.x!==undefined) vtxt=isFinite(p.value.x)?('@'+(p.value.x|0)+','+(p.value.y|0)):'∞';
+    return `<div class="sigrow"><span class="dot" style="background:${col}"></span><span class="sg-k">${p.k}</span><span class="sg-v">${(''+vtxt).slice(0,22)}</span><span class="sg-m" style="color:${col}">${Math.round(p.m*100)}%</span></div>`;
+  }).join(''); }
+
+function renderNew(container, res, gate){
+  const {decision, best, second} = res;
+  let v=decision.v, head='', cls='';
+  if(v==='heal'){ const correct=best.cand.__truth; v=correct?'heal':'wrong';
+    head = correct?'Healed ✓ correct element':'Healed ✗ WRONG element'; cls=correct?'v-ok':'v-bad'; }
+  else if(v==='blocked'){ head='Found, but NOT actionable → abstain'; cls='v-warn'; }
+  else if(v==='abstain'){ head='Abstained'; cls='v-warn'; }
+  else { head='Failed'; cls='v-bad'; }
+  const sub = gate ? gate : (decision.msg||'');
+  const conf = best? Math.round(best.conf*100):0;
+  container.innerHTML =
+    `<div class="verdict ${cls}"><div><div>${head}</div>${sub?`<div style="opacity:.85;font-size:12px;margin-top:2px;">${sub}</div>`:''}</div></div>
+     <div style="font-size:12px;color:var(--text3);">confidence ${conf}%${second?` · runner-up ${Math.round(second.conf*100)}%`:''}</div>
+     <div class="bar"><i style="width:${conf}%;background:${confColor(decision.v)}"></i></div>
+     ${best?sigList(best.parts):''}`;
+}
+function renderOld(container, status, sel, hitName){
+  let cls,txt;
+  if(status==='ok'){cls='v-ok';txt='Still matches';}
+  else if(status==='wrong'){cls='v-bad';txt='Matches the WRONG element ('+hitName+')';}
+  else {cls='v-bad';txt='Broken — selector matches nothing';}
+  container.innerHTML=`<div class="verdict ${cls}"><div><div>${txt}</div><div style="opacity:.8;font-size:11px;margin-top:3px;font-family:var(--mono)">${sel}</div></div></div>`;
+}
+
+/* =======================================================
+   WEB
+======================================================= */
+let webTarget='submit', webMuts=new Set(), webDesc=null;
+function webRole(el){ const tag=el.tagName.toLowerCase(), ty=(el.getAttribute('type')||'').toLowerCase();
+  if(tag==='a')return'link'; if(tag==='button')return'button';
+  if(tag==='input'){ if(['submit','button','reset','image'].includes(ty))return'button'; return 'textbox'; }
+  return el.getAttribute('role')||tag; }
+function webName(el){ const root=$('#web-screen');
+  const al=el.getAttribute('aria-label'); if(al)return al;
+  const id=el.id; if(id){const lb=root.querySelector('label[for="'+CSS.escape(id)+'"]'); if(lb)return lb.textContent.trim();}
+  const v=el.getAttribute('value'); if(v)return v;
+  const t=el.textContent.trim(); if(t)return t;
+  return el.getAttribute('placeholder')||''; }
+function webExtract(el,k){ switch(k){
+  case 'role': return webRole(el);
+  case 'name': return webName(el);
+  case 'nameAttr': return el.getAttribute('name');
+  case 'type': return el.getAttribute('type');
+  case 'autocomplete': return el.getAttribute('autocomplete');
+  case 'inForm': return !!el.closest('form');
+  case 'formAction': { const f=el.closest('form'); return f?f.getAttribute('action'):null; }
+  case 'box': { const r=el.getBoundingClientRect(); return {x:r.x,y:r.y}; }
+  default: return null; } }
+
+function buildWebHTML(m){
+  const restyle=m.has('restyle'), loc=m.has('localize'), restr=m.has('restructure'),
+        dropid=m.has('dropid'), dup=m.has('duplicate'), strip=m.has('strip');
+  const hashCls = restyle||strip;                 // a redesign that strips hooks also restyles
+  const uClass=hashCls?'css-'+rnd():'form-control js-login-field';
+  const sClass=hashCls?'css-'+rnd():'btn btn-primary btn-block js-sign-in-button';
+  const uLabel=loc?'Benutzername oder E-Mail-Adresse':'Username or email address';
+  const pLabel=loc?'Passwort':'Password';
+  const sVal=loc?'Anmelden':'Sign in';
+  const tU=webTarget==='username'?' data-truth="1"':'', tS=webTarget==='submit'?' data-truth="1"':'';
+  const wO=restr?'<div class="FormGroup-'+rnd()+'">':'', wC=restr?'</div>':'';
+  const google=restr?'<div class="ghost">Continue with Google</div><div class="divider">or</div>':'';
+  const noId = dropid||strip;
+  const uId = noId?'':' id="login_field"';
+  const uFor = noId?'':' for="login_field"';
+  const uName = (strip&&webTarget==='username')?'':' name="login"';
+  const uAuto = (strip&&webTarget==='username')?'':' autocomplete="username"';
+  const dupBtn = dup ? '<input type="submit" name="commit" value="'+sVal+'" class="'+(hashCls?'css-'+rnd():'btn btn-primary')+'">' : '';
+  let inner =
+    '<button id="icon-button-'+rnd()+'" type="button" aria-label="Dismiss" class="flash-close">×</button>'+
+    '<input type="hidden" name="authenticity_token" value="'+rnd()+rnd()+'">'+
+    google+
+    wO+'<label'+uFor+'>'+uLabel+'</label>'+
+    '<input type="text"'+uName+uId+uAuto+' class="'+uClass+'"'+tU+'>'+wC+
+    wO+'<label for="password">'+pLabel+'</label>'+
+    '<input type="password" name="password" id="password" autocomplete="current-password" class="form-control">'+wC;
+  if(strip&&webTarget==='submit'){
+    inner += dupBtn;
+    return '<form action="/session" method="post">'+inner+'</form>'+
+           '<input type="button" value="" class="'+sClass+'"'+tS+'>';   // stripped, outside the form
+  }
+  inner += dupBtn;                                  // duplicate sits BEFORE the real submit
+  inner += '<input type="submit" name="commit" value="'+sVal+'" class="'+sClass+'" data-signin-label="'+sVal+'"'+tS+'>';
+  return '<form action="/session" method="post">'+inner+'</form>';
+}
+function captureWeb(){
+  $('#web-screen').innerHTML=buildWebHTML(new Set());
+  const el=$('#web-screen').querySelector('[data-truth="1"]');
+  const stabs= webTarget==='submit'
+    ? {role:.9,name:.5,nameAttr:.85,type:.85,inForm:.8,formAction:.75,box:.25}
+    : {role:.9,name:.5,nameAttr:.85,type:.55,autocomplete:.8,inForm:.7,box:.25};
+  const sig={}; for(const k in stabs) sig[k]={value:webExtract(el,k),stability:stabs[k]};
+  webDesc={ intent: webTarget==='submit'
+      ? "Primary submit button of the sign-in form, labeled 'Sign in'."
+      : "Username / email text field at the top of the sign-in form.",
+    target:webTarget, oldSelector: webTarget==='submit'?'.btn-primary':'#login_field',
+    visual:'(record-time crop + pHash — simulated)', signals:sig };
+}
+function runWeb(){
+  if(webMuts.size===0) captureWeb();           // record from pristine v1
+  $('#web-screen').innerHTML=buildWebHTML(webMuts);   // render mutated v2
+  const root=$('#web-screen');
+  // old way
+  let oldEl=null; try{oldEl=root.querySelector(webDesc.oldSelector);}catch(e){}
+  if(!oldEl) renderOld($('#web-old'),'broken',webDesc.oldSelector);
+  else renderOld($('#web-old'), oldEl.hasAttribute('data-truth')?'ok':'wrong', webDesc.oldSelector, webName(oldEl));
+  // new way
+  const cands=[...root.querySelectorAll('input,button,a')].filter(el=>(el.getAttribute('type')||'')!=='hidden' && el.className!=='flash-close');
+  const scored=cands.map(el=>{const s=score(el,webDesc,webExtract); s.cand.__truth=el.hasAttribute('data-truth'); return s;})
+                    .sort((a,b)=>b.conf-a.conf);
+  const best=scored[0],second=scored[1];
+  let decision=decide(best,second);
+  let gate='';
+  if(decision.v==='heal' && best){ const r=best.cand.getBoundingClientRect();
+    if(!(r.width>0&&r.height>0&&best.cand.offsetParent!==null)){decision={v:'blocked'}; gate='element resolved but has no usable box / is detached';} }
+  renderNew($('#web-new'),{decision,best,second},gate);
+  $('#web-desc').textContent=JSON.stringify(descView(webDesc),null,2);
+  $('#web-note').innerHTML=webNote(decision,best);
+}
+function descView(d){ const o={intent:d.intent,target:d.target,oldSelector:d.oldSelector,visual:d.visual,signals:{}};
+  for(const k in d.signals){const s=d.signals[k]; let v=s.value; if(v&&v.x!==undefined)v='@'+(v.x|0)+','+(v.y|0); o.signals[k]={value:v,stability:s.stability};} return o; }
+function webNote(dec,best){
+  const map={
+    heal:'Identity signals (role, name-attr, type, form context) outvoted the broken ones. The old single selector died; consensus survived.',
+    wrong:'Two elements were indistinguishable on identity, and the matcher guessed. This is the dangerous case the margin check exists to prevent — tighten thresholds.',
+    abstain:'Correct call: not confident enough to act. Better a loud skip than a wrong heal.',
+    blocked:'Identity matched, but the element is not actionable. “Found” ≠ “healed” — the actionability gate stops a confident click into nothing (this is iOS bug D-2 on web).',
+    fail:'All position-invariant identity was stripped. Nothing reliable to heal on — exactly the limit from the analysis. Fix is upstream (add a test-id / accessible name).'};
+  return map[dec.v]||'';
+}
+
+/* =======================================================
+   IOS  (same matcher over an accessibility tree)
+======================================================= */
+let iosHasId=false, iosMuts=new Set(), iosDesc=null;
+const IOS_BASE=()=>[
+  {role:'cell',name:'Account',section:'General',index:0,box:{x:20,y:120}},
+  {role:'cell',name:'Notifiche',section:'General',index:1,box:{x:20,y:180}},
+  {role:'cell',name:'Privacy e sicurezza',section:'General',index:2,box:{x:20,y:240},truth:true},
+  {role:'cell',name:'Aiuto',section:'Support',index:3,box:{x:20,y:300}},
+];
+function iosExtract(n,k){ switch(k){
+  case 'accessId': return n.accessId||null;
+  case 'role': return n.role; case 'name': return n.name; case 'section': return n.section;
+  case 'index': return n.index; case 'box': return n.box; default:return null; } }
+function iosBuild(){
+  let nodes=IOS_BASE();
+  if(iosHasId) nodes.forEach(n=>{if(n.truth)n.accessId='row_privacy';});
+  if(iosMuts.has('localize')) nodes.forEach(n=>{if(n.truth)n.name='Privacy';});
+  if(iosMuts.has('rename')) nodes.forEach(n=>{if(n.truth)n.name='Riservatezza';});
+  if(iosMuts.has('dropid')) nodes.forEach(n=>{if(n.truth)delete n.accessId;});
+  if(iosMuts.has('reorder')){ nodes.unshift({role:'cell',name:'Novità',section:'General',index:-1,box:{x:20,y:120}});
+    nodes.forEach((n,i)=>{n.index=i; if(n.box&&isFinite(n.box.x))n.box.y=120+i*60;}); }
+  if(iosMuts.has('offscreen')) nodes.forEach(n=>{if(n.truth)n.box={x:Infinity,y:Infinity};});
+  return nodes;
+}
+function captureIos(){
+  const nodes=IOS_BASE(); if(iosHasId) nodes.forEach(n=>{if(n.truth)n.accessId='row_privacy';});
+  const t=nodes.find(n=>n.truth);
+  const stabs = iosHasId
+    ? {accessId:.95,role:.85,name:.5,section:.7,index:.2,box:.2}
+    : {role:.85,name:.5,section:.7,index:.2,box:.2};
+  const sig={}; for(const k in stabs) sig[k]={value:iosExtract(t,k),stability:stabs[k]};
+  iosDesc={ intent:"The Privacy & security row in the General settings section.",
+    target:'privacy_row', oldSelector:"//cell[@name='Privacy e sicurezza']",
+    visual:'(record-time crop — simulated)', signals:sig };
+}
+function runIos(){
+  captureIos();
+  const nodes=iosBuild();
+  renderIosTree(nodes);
+  // old way: exact text
+  const oldHit=nodes.find(n=>n.name==='Privacy e sicurezza');
+  if(!oldHit) renderOld($('#ios-old'),'broken',iosDesc.oldSelector);
+  else renderOld($('#ios-old'), oldHit.truth?'ok':'wrong', iosDesc.oldSelector, oldHit.name);
+  // new way
+  const scored=nodes.map(n=>{const s=score(n,iosDesc,iosExtract); s.cand.__truth=!!n.truth; return s;})
+                    .sort((a,b)=>b.conf-a.conf);
+  const best=scored[0],second=scored[1];
+  let decision=decide(best,second);
+  let gate='';
+  if(decision.v==='heal' && best && !isFinite(best.cand.box.x)){ decision={v:'blocked'}; gate='row is off-screen / recycled — coordinates are ∞, cannot swipe it'; }
+  renderNew($('#ios-new'),{decision,best,second},gate);
+  $('#ios-desc').textContent=JSON.stringify(descView(iosDesc),null,2);
+  $('#ios-note').innerHTML=webNote(decision,best);
+}
+function renderIosTree(nodes){
+  $('#ios-screen').innerHTML=nodes.map(n=>{
+    const off=n.box&&!isFinite(n.box.x);
+    return `<div class="axrow"${n.truth?' data-truth=""':''}>
+      <span class="ax-i">${n.index}</span>
+      <span class="ax-n">${n.name}</span>
+      <span class="ax-b">${n.role}·${n.section}</span>
+      ${n.accessId?`<span class="ax-id">${n.accessId}</span>`:''}
+      ${off?`<span class="ax-off">∞ off-screen</span>`:''}
+    </div>`; }).join('');
+}
+
+/* ---------- wiring ---------- */
+$('#web-target').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b)); webTarget=b.dataset.t; webMuts.clear(); syncChips('#web-muts',webMuts); runWeb();});
+$('#web-muts').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return; const m=b.dataset.m;
+  if(m==='reset'){webMuts.clear();} else {webMuts.has(m)?webMuts.delete(m):webMuts.add(m);} syncChips('#web-muts',webMuts); runWeb();});
+$('#ios-hasid').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b)); iosHasId=b.dataset.v==='yes'; runIos();});
+$('#ios-muts').addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return; const m=b.dataset.m;
+  if(m==='reset'){iosMuts.clear();} else {iosMuts.has(m)?iosMuts.delete(m):iosMuts.add(m);} syncChips('#ios-muts',iosMuts); runIos();});
+function syncChips(sel,set){ [...$(sel).children].forEach(c=>{ if(c.dataset.m!=='reset') c.classList.toggle('on',set.has(c.dataset.m)); }); }
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+t.dataset.tab));
+});
+runWeb(); runIos();
+</script>
+</body>
+</html>

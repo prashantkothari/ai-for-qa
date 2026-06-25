@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Gong E2E — record→drift→match→heal→diagnose→report</title>
+<style>
+  body{font:13px/1.5 ui-monospace,Menlo,monospace;margin:16px;color:#111}
+  #gongHost{position:absolute;left:-99999px;top:0;width:1200px}  /* render off-screen but laid-out */
+  h1{font-size:16px} .ok{color:#137333}.bad{color:#c5221f;font-weight:bold}.warn{color:#b06000}
+  table{border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ccc;padding:3px 7px;font-size:12px;text-align:left}
+  pre{background:#f6f6f6;padding:8px;white-space:pre-wrap;max-height:50vh;overflow:auto}
+</style></head>
+<body>
+<h1>Gong E2E loop — real captured DOM (via window.name) · gate-true round-trip + synthetic drift</h1>
+<div id="status">loading…</div>
+<div id="gongHost"></div>
+<div id="out"></div>
+<!-- load order mirrors adversarial-validation.html: pristine core first, then pipeline, then runner -->
+<script src="../../selfheal-core.js"></script>
+<script src="../pipeline/candidate-generation.js"></script>
+<script src="../pipeline/change-diagnosis.js"></script>
+<script src="../pipeline/candidate-validation.js"></script>
+<script src="../pipeline/failure-reporter.js"></script>
+<script src="../pipeline/outcome-verification.js"></script>
+<script src="gong-e2e-runner.js"></script>
+<script>
+(function(){
+  const status = document.getElementById('status');
+  const out = document.getElementById('out');
+  try {
+    const html = window.name || '';
+    if (html.length < 1000) { status.innerHTML = '<b class="bad">window.name has no Gong DOM ('+html.length+' bytes). Stash it in the Gong tab first.</b>'; return; }
+    // Parse into a detached DOMParser doc (NOT rendered — rendering 4.4MB of div-soup froze the tab).
+    // No layout here → run with gate OFF (the gate is validated on real layout in the adversarial suite).
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+    window.__GONG_DOC = parsed;
+    status.textContent = 'parsed Gong DOM ('+html.length+' bytes). running pipeline… (async)';
+
+    // run async (yields between steps) so the page stays responsive and the CDP eval that reads
+    // results/progress isn't blocked by a multi-second synchronous scan of the huge SPA DOM.
+    (async function(){
+     try {
+      const res = await window.__GONG_E2E.run();
+      window.__GONG_RESULT = res;
+
+    // ---- render report ----
+    const fmtTally = t => Object.entries(t).filter(([,v])=>v).map(([k,v])=>k+':'+v).join('  ') || '—';
+    let h = '<p><b class="'+(res.falseHealTotal===0?'ok':'bad')+'">FALSE-HEAL total across all regimes: '+res.falseHealTotal+'</b> (pre-registered ceiling = 0)</p>';
+    h += '<p>round-trip ['+fmtTally(res.roundtrip.tally)+'] · restyle ['+fmtTally(res.restyle.tally)+'] · localize ['+fmtTally(res.localize.tally)+']</p>';
+    h += '<table><tr><th>case</th><th>regime</th><th>locTier</th><th>flag</th><th>round-trip</th><th>restyle</th><th>localize</th><th>via:context?</th><th>category</th></tr>';
+    res.cases.forEach((c,i)=>{
+      const rt=res.roundtrip.results[i], rs=res.restyle.results[i], lo=res.localize.results[i];
+      const cls = o => o==='false-heal'?'bad':(o==='correct-heal'?'ok':'');
+      const via = [rt,rs,lo].some(x=>x.viaContext) ? 'YES' : '—';
+      h += '<tr><td>'+c.id+' '+c.label+'</td><td>'+c.regime+'</td><td>'+c.locTier+'</td><td>'+(c.flag||'')+'</td>'+
+           '<td class="'+cls(rt.outcome)+'">'+rt.outcome+'</td>'+
+           '<td class="'+cls(rs.outcome)+'">'+rs.outcome+'</td>'+
+           '<td class="'+cls(lo.outcome)+'">'+lo.outcome+'</td>'+
+           '<td>'+via+'</td><td>'+rt.category+'</td></tr>';
+    });
+    h += '</table>';
+    h += '<pre>'+JSON.stringify(res, (k,v)=> (k==='step'?undefined:v), 2)+'</pre>';
+    out.innerHTML = h;
+    status.innerHTML = '<b class="ok">done.</b> Full result in window.__GONG_RESULT';
+     } catch(e){ window.__GONG_ERR = String(e&&e.stack||e); status.innerHTML = '<b class="bad">RUN ERROR: '+(e&&e.stack||e)+'</b>'; }
+    })();
+  } catch(e){ status.innerHTML = '<b class="bad">SETUP ERROR: '+(e&&e.stack||e)+'</b>'; }
+})();
+</script>
+</body></html>

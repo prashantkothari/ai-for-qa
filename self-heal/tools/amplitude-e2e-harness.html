@@ -1,0 +1,67 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Amplitude E2E v2 — auto-gen · property-fuzz · search-and-pick · HITL</title>
+<style>
+  body{font:13px/1.5 ui-monospace,Menlo,monospace;margin:16px;color:#111}
+  #ampHost{position:absolute;left:-99999px;top:0;width:1280px}  /* render off-screen but laid-out */
+  h1{font-size:16px} .ok{color:#137333}.bad{color:#c5221f;font-weight:bold}.warn{color:#b06000}
+  table{border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ccc;padding:3px 7px;font-size:12px;text-align:left}
+  pre{background:#f6f6f6;padding:8px;white-space:pre-wrap;max-height:50vh;overflow:auto}
+  .strat{font-weight:bold;background:#f0f4ff}
+</style></head>
+<body>
+<h1>Amplitude chart-builder E2E v2 — real captured DOM (via window.name) · auto-generated cases · property-based drift fuzzing</h1>
+<div id="status">loading…</div>
+<div id="ampHost"></div>
+<div id="out"></div>
+<!-- load order mirrors adversarial-validation.html: pristine core first, then pipeline, then HITL + runner -->
+<script src="../../selfheal-core.js"></script>
+<script src="../pipeline/candidate-generation.js"></script>
+<script src="../pipeline/change-diagnosis.js"></script>
+<script src="../pipeline/candidate-validation.js"></script>
+<script src="../pipeline/failure-reporter.js"></script>
+<script src="../pipeline/outcome-verification.js"></script>
+<script src="hitl-overlay.js"></script>
+<script src="amplitude-e2e-runner.js"></script>
+<script>
+(function(){
+  const status = document.getElementById('status');
+  const out = document.getElementById('out');
+  try {
+    const html = window.name || '';
+    if (html.length < 1000) { status.innerHTML = '<b class="bad">window.name has no Amplitude DOM ('+html.length+' bytes). Run the stash snippet in the Amplitude tab first.</b>'; return; }
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+    window.__AMP_DOC = parsed;
+    // HITL overlay: non-interactive by default so a headless run completes; set window.__hitl.interactive=true to drive live.
+    if (window.__hitl) window.__hitl.interactive = false;
+    status.textContent = 'parsed Amplitude DOM ('+html.length+' bytes). running auto-gen + property-fuzz pipeline… (async)';
+
+    (async function(){
+     try {
+      const res = await window.__AMP_E2E.run();
+      window.__AMP_RESULT = res;
+
+      const fmtTally = t => Object.entries(t).filter(([,v])=>v).map(([k,v])=>k+':'+v).join('  ') || '—';
+      let h = '';
+      h += '<p><b class="'+(res.falseHealTotal===0?'ok':'bad')+'">FALSE-HEAL total across all regimes: '+res.falseHealTotal+'</b> / '+res.cellsTotal+' cells (pre-registered ceiling = 0)</p>';
+      h += '<p>recordability(view) = <b>'+res.meta.recordability+'%</b> · cands='+res.meta.totalCands+' · portals='+res.meta.portals+' · portal-search-inputs='+res.meta.portalSearchInputs+'</p>';
+      h += '<p>strata: '+Object.entries(res.meta.counts).map(([k,v])=>k+':'+v).join(' · ')+'</p>';
+      h += '<p>HITL: record cards='+res.hitl.recordCards+' · execute cards='+res.hitl.executeCards+'</p>';
+      h += '<p>expectation mismatches: <b class="'+(res.expectationMismatches.length===0?'ok':'warn')+'">'+res.expectationMismatches.length+'</b></p>';
+      h += '<p>'+res.regimes.map(g=>g+' ['+fmtTally(res.results[g].tally)+']').join('<br>')+'</p>';
+      // per-case table
+      h += '<table><tr><th>case</th><th>stratum</th><th>locTier</th><th>flag</th>'+res.regimes.map(g=>'<th>'+g+'</th>').join('')+'</tr>';
+      res.cases.forEach((c,i)=>{
+        const cls = o => o==='false-heal'?'bad':(o==='correct-heal'?'ok':'');
+        h += '<tr><td>'+c.id+' '+c.label+'</td><td class="strat">'+c.stratum+'</td><td>'+c.locTier+'</td><td>'+(c.flag||'')+'</td>'+
+          res.regimes.map(g=>{const o=res.results[g].results[i].outcome; return '<td class="'+cls(o)+'">'+o+'</td>';}).join('')+'</tr>';
+      });
+      h += '</table>';
+      h += '<pre>'+JSON.stringify(res, (k,v)=> (k==='step'?undefined:v), 2)+'</pre>';
+      out.innerHTML = h;
+      status.innerHTML = '<b class="'+(res.falseHealTotal===0?'ok':'bad')+'">done.</b> Full result in window.__AMP_RESULT';
+     } catch(e){ window.__AMP_ERR = String(e&&e.stack||e); status.innerHTML = '<b class="bad">RUN ERROR: '+(e&&e.stack||e)+'</b>'; }
+    })();
+  } catch(e){ status.innerHTML = '<b class="bad">SETUP ERROR: '+(e&&e.stack||e)+'</b>'; }
+})();
+</script>
+</body></html>

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Self-healing test cases — how it works</title>
+<style>
+  :root{
+    --bg:#ffffff; --bg2:#f6f5f0; --bg3:#eeece4;
+    --text:#1a1a18; --text2:#5f5e5a; --text3:#8a8980;
+    --border:rgba(0,0,0,0.12); --border2:rgba(0,0,0,0.24);
+    --info-bg:#e6f1fb; --info:#185fa5;
+    --success-bg:#eaf3de; --success:#3b6d11;
+    --danger-bg:#fcebeb; --danger:#a32d2d;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --radius:8px; --radius-lg:12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#201f1d; --bg2:#2a2926; --bg3:#34332f;
+      --text:#f2f0ea; --text2:#b4b2a9; --text3:#888780;
+      --border:rgba(255,255,255,0.14); --border2:rgba(255,255,255,0.26);
+      --info-bg:#13365c; --info:#9cc5f0;
+      --success-bg:#2a4216; --success:#a8d36a;
+      --danger-bg:#4a1f1f; --danger:#f0a0a0;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg3); color:var(--text); font-family:var(--font); line-height:1.6; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px; margin:0 auto; padding:28px 20px 60px;}
+  header h1{font-size:22px; font-weight:600; margin:0 0 4px;}
+  header p{font-size:14px; color:var(--text2); margin:0 0 24px; max-width:640px;}
+  .app{display:grid; grid-template-columns:230px 1fr; gap:18px; align-items:start;}
+  /* sidebar */
+  .rail{background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:12px;}
+  .rail .lbl{font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--text3); padding:6px 10px 10px;}
+  .navbtn{display:flex; align-items:center; gap:11px; width:100%; text-align:left; background:transparent; border:none; border-radius:var(--radius); padding:11px 12px; font-size:14px; color:var(--text); cursor:pointer; font-family:inherit; margin-bottom:2px;}
+  .navbtn:hover{background:var(--bg2);}
+  .navbtn.active{background:var(--info-bg); color:var(--info);}
+  .navbtn .ic{display:flex; color:var(--text3);}
+  .navbtn.active .ic{color:var(--info);}
+  .navbtn .meta{display:block; font-size:11px; color:var(--text3);}
+  .navbtn.active .meta{color:var(--info);}
+  /* main */
+  .main{background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:22px;}
+  .topbar{display:flex; align-items:center; gap:10px; margin-bottom:20px;}
+  .iconbtn{width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:transparent; border:0.5px solid var(--border2); border-radius:var(--radius); cursor:pointer; color:var(--text);}
+  .iconbtn:hover{background:var(--bg2);}
+  .iconbtn:disabled{opacity:.35; cursor:default;}
+  .dots{display:flex; gap:6px; flex:1; justify-content:center;}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--border2);}
+  .pill{font-size:12px; font-weight:500; color:var(--info); background:var(--info-bg); padding:2px 10px; border-radius:var(--radius);}
+  .stephead{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+  .steptitle{font-size:16px; font-weight:500;}
+  .stepcap{font-size:14px; color:var(--text2); margin:0 0 20px;}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+  .panel-lbl{font-size:12px; color:var(--text3); margin-bottom:10px; display:flex; align-items:center; gap:6px;}
+  .stage{background:var(--bg2); border-radius:var(--radius-lg); padding:16px;}
+  .screen{background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius); padding:16px;}
+  /* mockup atoms */
+  .inp{border:0.5px solid var(--border2); border-radius:6px; padding:9px 11px; font-size:13px; color:var(--text3); margin-bottom:10px;}
+  .btn{background:var(--text); color:var(--bg); text-align:center; padding:9px; border-radius:6px; font-size:13px;}
+  .ghost{border:0.5px solid var(--border); border-radius:6px; padding:9px; text-align:center; font-size:12px; color:var(--text2); margin-bottom:10px; display:flex; align-items:center; justify-content:center; gap:6px;}
+  .divider{text-align:center; font-size:11px; color:var(--text3); margin:8px 0;}
+  .bar{border:0.5px solid var(--border); border-radius:6px; padding:10px 12px; font-size:13px; color:var(--text2); margin-bottom:8px;}
+  .banner{background:var(--info-bg); color:var(--info); border-radius:6px; padding:8px 12px; font-size:12px; margin-bottom:8px; display:flex; align-items:center; gap:6px;}
+  .row{display:flex; align-items:center; justify-content:space-between; border:0.5px solid var(--border); border-radius:6px; padding:11px 12px; font-size:13px; margin-bottom:8px;}
+  .phone{max-width:220px; margin:0 auto; background:var(--bg); border:2px solid var(--border2); border-radius:22px; padding:14px 12px;}
+  .phead{font-size:13px; font-weight:500; text-align:center; margin-bottom:12px; color:var(--text);}
+  .found{font-size:11px; color:var(--success); display:inline-flex; align-items:center; gap:3px;}
+  /* signals */
+  .sig{display:flex; align-items:center; gap:9px; background:var(--bg2); border-radius:6px; padding:8px 11px; margin-bottom:7px;}
+  .sig .ic{display:flex; flex:none;}
+  .sig .k{flex:1; font-size:13px;}
+  .sig .r{font-size:11px; color:var(--text3); flex:none;}
+  .verdict{margin-top:14px; border-radius:6px; padding:11px 13px; font-size:13px; display:flex; align-items:center; gap:8px;}
+  .v-fail{background:var(--danger-bg); color:var(--danger);}
+  .v-info{background:var(--info-bg); color:var(--info);}
+  .v-ok{background:var(--success-bg); color:var(--success);}
+  @media (max-width:760px){
+    .app{grid-template-columns:1fr;}
+    .rail{display:flex; overflow-x:auto; gap:6px; padding:8px;}
+    .rail .lbl{display:none;}
+    .navbtn{width:auto; white-space:nowrap; margin-bottom:0;}
+    .navbtn .meta{display:none;}
+    .cols{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Self-healing test cases — how it works</h1>
+    <p>Pick a test action on the left. The walkthrough on the right shows how a test that remembers <em>several clues</em> about an element survives a redesign — instead of breaking when one clue changes.</p>
+  </header>
+
+  <div class="app">
+    <nav class="rail" id="rail"><div class="lbl">Test actions</div></nav>
+
+    <section class="main">
+      <div class="topbar">
+        <button class="iconbtn" id="prev" aria-label="Previous step"></button>
+        <div class="dots" id="dots"></div>
+        <button class="iconbtn" id="next" aria-label="Next step"></button>
+      </div>
+      <div class="stephead"><span class="pill" id="stepnum"></span><span class="steptitle" id="steptitle"></span></div>
+      <p class="stepcap" id="stepcap"></p>
+      <div class="cols">
+        <div class="stage">
+          <div class="panel-lbl" id="pagelabel"></div>
+          <div class="screen" id="pagebody"></div>
+        </div>
+        <div>
+          <div class="panel-lbl"><span id="ic-fp"></span><span>what the test remembers about the element</span></div>
+          <div id="signals"></div>
+          <div id="verdict"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ---------- icons ---------- */
+const P = {
+  "chevron-left":'<polyline points="15 18 9 12 15 6"/>',
+  "chevron-right":'<polyline points="9 18 15 12 9 6"/>',
+  "check-circle":'<circle cx="12" cy="12" r="9"/><polyline points="16 10 11 15 8 12"/>',
+  "x-circle":'<circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+  "circle-dashed":'<circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3"/>',
+  "check":'<polyline points="20 6 9 17 4 12"/>',
+  "alert":'<path d="M12 3l9 16H3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  "scale":'<path d="M12 3v18"/><path d="M4 7h16"/><path d="M6 7l-3 6h6z"/><path d="M18 7l-3 6h6z"/>',
+  "heart":'<path d="M19.5 13.5c1.4-1.5 2.5-3.2 2.5-5A4 4 0 0 0 12 6 4 4 0 0 0 2 8.5c0 1.8 1.1 3.5 2.5 5l7.5 7z"/>',
+  "fingerprint":'<path d="M5 12a7 7 0 0 1 14 0"/><path d="M8 14v-1a4 4 0 0 1 8 0v1a8 8 0 0 0 1 4"/><path d="M12 13v1a6 6 0 0 0 1.2 3.6"/>',
+  "browser":'<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>',
+  "mobile":'<rect x="7" y="3" width="10" height="18" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/>',
+  "google":'<circle cx="12" cy="12" r="8"/><path d="M12 12h6"/>',
+  "click":'<path d="M5 3l5 16 2.5-6.5L19 10z"/>',
+  "enter":'<polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/>',
+  "scroll":'<rect x="6" y="3" width="12" height="18" rx="6"/><line x1="12" y1="7" x2="12" y2="10"/>',
+  "tap":'<path d="M9 11V6a2 2 0 1 1 4 0v4"/><path d="M13 8a2 2 0 1 1 4 0v3"/><path d="M17 9a2 2 0 1 1 4 0v5a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-3l-3-5a1.6 1.6 0 0 1 2.7-1.7L9 13"/>',
+  "swipe":'<line x1="2" y1="12" x2="22" y2="12"/><polyline points="6 8 2 12 6 16"/><polyline points="18 8 22 12 18 16"/>'
+};
+function icon(n, s=16, color){return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color||'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]||''}</svg>`;}
+
+/* ---------- mockup helpers ---------- */
+function ring(phase){
+  if(phase==='capture'||phase==='heal') return 'box-shadow:0 0 0 2px var(--info); border-color:var(--info);';
+  if(phase==='healed') return 'box-shadow:0 0 0 2px var(--success); border-color:var(--success);';
+  return '';
+}
+function badge(phase){ return phase==='healed' ? `<span class="found">${icon('check',13)} found</span>` : ''; }
+
+/* ---------- scenarios ---------- */
+const TPL_TITLES = ["Record the test","Developers change the app","The old way breaks","Self-healing checks every clue","It heals and remembers"];
+
+const SCENARIOS = {
+  click:{
+    label:"Click", meta:"web · a button", icon:"click", platLbl:"the sign-in page",
+    caps:[
+      "QA records a test that clicks the Sign in button. The tool saves several true facts about the button — not just its CSS class.",
+      "A release restyles the button (new class name) and moves it below a new 'Continue with Google' option. Looks fine to a user.",
+      "The old test saved only the CSS class .btn-kFxhln. That class is gone, so the click lands on nothing and the test fails.",
+      "The healing test re-checks its facts. Class and position are gone — but it's still a button, still labelled 'Sign in', still has the same automation id.",
+      "Four strong matches — easily enough. It clicks the right button, updates its saved clue, and moves on."
+    ],
+    signals:[
+      {k:"Its job: a button", w:"strong", s:true},
+      {k:"Its label: “Sign in”", w:"strong", s:true},
+      {k:"Its automation id: submit-login", w:"strong", s:true},
+      {k:"Its visible text: “Sign in”", w:"medium", s:true},
+      {k:"Its CSS class: .btn-kFxhln", w:"fragile", s:false, old:true},
+      {k:"Where it sits on screen", w:"fragile", s:false}
+    ],
+    before:p=>`<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Welcome back</div>
+      <div class="inp">name@company.com</div><div class="inp">Password</div>
+      <div class="btn" style="${ring(p)}">Sign in${badge(p)}</div>`,
+    after:p=>`<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Welcome back</div>
+      <div class="ghost">${icon('google',15)} Continue with Google</div><div class="divider">or</div>
+      <div class="inp">name@company.com</div><div class="inp">Password</div>
+      <div class="btn" style="${ring(p)}">Sign in${badge(p)}</div>`
+  },
+  enter:{
+    label:"Enter", meta:"web · type in a field", icon:"enter", platLbl:"the login page",
+    caps:[
+      "The test types into the email box. Instead of one fragile clue, the tool records several facts about the field.",
+      "A redesign regenerates the class names and moves the email box below a new 'Continue with Google' button.",
+      "The old test saved only the class .sc-kAyceB. It no longer exists, so the test types into nothing and fails.",
+      "The healing test re-checks its facts. Class and position are gone — but it's still an email box, named 'email', with the label 'Email' beside it.",
+      "Four matches is plenty. It types into the right field, updates its saved clue, and carries on."
+    ],
+    signals:[
+      {k:"Its job: an email text box", w:"strong", s:true},
+      {k:"Its form name: “email”", w:"strong", s:true},
+      {k:"The label beside it: “Email”", w:"strong", s:true},
+      {k:"Its hint text: “you@example.com”", w:"medium", s:true},
+      {k:"Its CSS class: .sc-kAyceB", w:"fragile", s:false, old:true},
+      {k:"Where it sits on screen", w:"fragile", s:false}
+    ],
+    before:p=>`<div style="font-size:13px;color:var(--text2);margin-bottom:6px;">Email</div>
+      <div class="inp" style="margin-bottom:12px;${ring(p)}">you@example.com${badge(p)}</div>
+      <div class="btn">Continue</div>`,
+    after:p=>`<div class="ghost">${icon('google',15)} Continue with Google</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:6px;">Email</div>
+      <div class="inp" style="margin-bottom:12px;${ring(p)}">you@example.com${badge(p)}</div>
+      <div class="btn">Continue</div>`
+  },
+  scroll:{
+    label:"Scroll", meta:"web · scroll to element", icon:"scroll", platLbl:"a long landing page",
+    caps:[
+      "The test scrolls down to the Pricing section before checking it. The tool remembers what Pricing is, not just how far down it was.",
+      "Marketing adds a 'What's new' banner and a Customers section above Pricing — so Pricing is now further down the page.",
+      "The old test saved a fixed scroll offset (1200px down). The new content pushed Pricing past that point, so it stops at the wrong place and fails.",
+      "The healing test ignores the offset. The heading still says 'Pricing', still has id #pricing, still lives in the pricing section.",
+      "It finds Pricing by identity, scrolls exactly to it wherever it now sits, updates its clue, and continues."
+    ],
+    signals:[
+      {k:"Its job: a section heading", w:"strong", s:true},
+      {k:"Its anchor id: #pricing", w:"strong", s:true},
+      {k:"Its text: “Pricing”", w:"medium", s:true},
+      {k:"It lives in the pricing section", w:"strong", s:true},
+      {k:"Its scroll offset: 1200px down", w:"fragile", s:false, old:true},
+      {k:"It was the 3rd section", w:"fragile", s:false}
+    ],
+    before:p=>`<div class="bar">Home</div><div class="bar">Features</div>
+      <div class="bar" style="color:var(--text);${ring(p)}">Pricing${badge(p)}</div>
+      <div class="bar">FAQ</div>`,
+    after:p=>`<div class="bar">Home</div><div class="banner">${icon('alert',14)} What's new</div>
+      <div class="bar">Features</div><div class="bar">Customers</div>
+      <div class="bar" style="color:var(--text);${ring(p)}">Pricing${badge(p)}</div>
+      <div class="bar">FAQ</div>`
+  },
+  tap:{
+    label:"Tap", meta:"mobile · tap a control", icon:"tap", platLbl:"the cart screen",
+    caps:[
+      "On a phone, the test taps the Checkout button. The tool records the button's identity, not just where a finger landed.",
+      "The app adds a promo banner at the top of the cart, pushing every element down one position.",
+      "The old test tapped element number 3 by position. With the banner inserted, position 3 is now something else — wrong tap, test fails.",
+      "The healing test re-checks identity. The index and coordinates shifted — but it's still a button, accessibility id checkout_btn, labelled 'Checkout'.",
+      "It taps the real Checkout button wherever it moved, updates its clue, and keeps going."
+    ],
+    signals:[
+      {k:"Its job: a button", w:"strong", s:true},
+      {k:"Its accessibility id: checkout_btn", w:"strong", s:true},
+      {k:"Its label: “Checkout”", w:"medium", s:true},
+      {k:"It sits inside the cart screen", w:"strong", s:true},
+      {k:"It was element [3] in the list", w:"fragile", s:false, old:true},
+      {k:"Its tap coordinates: 320, 780", w:"fragile", s:false}
+    ],
+    before:p=>`<div class="phone"><div class="phead">Cart</div>
+      <div class="row">Sneakers<span style="color:var(--text2)">$60</span></div>
+      <div class="row">T-shirt<span style="color:var(--text2)">$25</span></div>
+      <div class="row">Cap<span style="color:var(--text2)">$15</span></div>
+      <div class="btn" style="${ring(p)}">Checkout${badge(p)}</div></div>`,
+    after:p=>`<div class="phone"><div class="phead">Cart</div>
+      <div class="banner">${icon('alert',14)} Free shipping today</div>
+      <div class="row">Sneakers<span style="color:var(--text2)">$60</span></div>
+      <div class="row">T-shirt<span style="color:var(--text2)">$25</span></div>
+      <div class="row">Cap<span style="color:var(--text2)">$15</span></div>
+      <div class="btn" style="${ring(p)}">Checkout${badge(p)}</div></div>`
+  },
+  swipe:{
+    label:"Swipe", meta:"mobile · swipe a row", icon:"swipe", platLbl:"the shopping list",
+    caps:[
+      "The test swipes the 'Groceries' row to reveal Delete. The tool remembers which row it is, not just the swipe coordinates.",
+      "A new 'Rent' row is added at the top of the list, so every existing row shifts down one.",
+      "The old test swiped row number 2 by position. Now row 2 is 'Rent' — it swipes the wrong row and fails.",
+      "The healing test re-checks identity. The row index and coordinates moved — but it's still the row with id row_groceries, labelled 'Groceries'.",
+      "It swipes the correct Groceries row wherever it now sits, updates its clue, and carries on."
+    ],
+    signals:[
+      {k:"Its job: a list row", w:"strong", s:true},
+      {k:"Its accessibility id: row_groceries", w:"strong", s:true},
+      {k:"Its text: “Groceries”", w:"medium", s:true},
+      {k:"It lives in the shopping list", w:"strong", s:true},
+      {k:"It was row [2]", w:"fragile", s:false, old:true},
+      {k:"Its swipe path coordinates", w:"fragile", s:false}
+    ],
+    before:p=>`<div class="phone"><div class="phead">Shopping list</div>
+      <div class="row">Gym</div>
+      <div class="row" style="color:var(--text);${ring(p)}"><span>Groceries</span><span style="color:var(--text3)">${icon('swipe',16)}</span>${badge(p)}</div>
+      <div class="row">Books</div></div>`,
+    after:p=>`<div class="phone"><div class="phead">Shopping list</div>
+      <div class="row" style="background:var(--info-bg);color:var(--info);border:none;">Rent</div>
+      <div class="row">Gym</div>
+      <div class="row" style="color:var(--text);${ring(p)}"><span>Groceries</span><span style="color:var(--text3)">${icon('swipe',16)}</span>${badge(p)}</div>
+      <div class="row">Books</div></div>`
+  }
+};
+const ORDER = ["click","enter","scroll","tap","swipe"];
+
+/* ---------- step model ---------- */
+const STEP_DEF = [
+  {state:'before', phase:'capture', mode:'capture'},
+  {state:'after',  phase:'plain',   mode:'plain'},
+  {state:'after',  phase:'plain',   mode:'oldfail'},
+  {state:'after',  phase:'heal',    mode:'match'},
+  {state:'after',  phase:'healed',  mode:'healed'}
+];
+
+function sigRow(sig, mode){
+  let i='check-circle', col='var(--text3)', bg='var(--bg2)', r='';
+  const wl = sig.w==='strong'?'strong clue':(sig.w==='medium'?'medium clue':'fragile clue');
+  if(mode==='capture'){ i='check-circle'; col='var(--text2)'; r=wl; }
+  else if(mode==='match'||mode==='healed'){
+    if(sig.s){ i='check-circle'; col='var(--success)'; bg='var(--success-bg)'; r='still matches'; }
+    else{ i='x-circle'; col='var(--danger)'; bg='var(--danger-bg)'; r='gone'; }
+  }
+  else if(mode==='oldfail'){
+    if(sig.old){ i='x-circle'; col='var(--danger)'; bg='var(--danger-bg)'; r='only clue saved — broken'; }
+    else{ i='circle-dashed'; col='var(--text3)'; r='not saved'; }
+  }
+  else { i='check-circle'; col='var(--text3)'; r=wl; }
+  return `<div class="sig" style="background:${bg}"><span class="ic" style="color:${col}">${icon(i,17)}</span><span class="k">${sig.k}</span><span class="r" style="color:${col==='var(--text3)'||col==='var(--text2)'?'var(--text3)':col}">${r}</span></div>`;
+}
+function verdict(mode){
+  if(mode==='oldfail') return `<div class="verdict v-fail">${icon('alert',16)} Test failed — element not found</div>`;
+  if(mode==='match')   return `<div class="verdict v-info">${icon('scale',16)} 4 of 6 clues match — confident this is the element</div>`;
+  if(mode==='healed')  return `<div class="verdict v-ok">${icon('heart',16)} Healed — clue updated to the new page, test passes</div>`;
+  return '';
+}
+
+/* ---------- render ---------- */
+let curScn = "click", curStep = 0;
+const rail = document.getElementById('rail');
+ORDER.forEach(id=>{
+  const sc = SCENARIOS[id];
+  const b = document.createElement('button');
+  b.className='navbtn'; b.dataset.id=id;
+  b.innerHTML = `<span class="ic">${icon(sc.icon,20)}</span><span>${sc.label}<span class="meta">${sc.meta}</span></span>`;
+  b.onclick=()=>{ curScn=id; curStep=0; render(); };
+  rail.appendChild(b);
+});
+const dots = document.getElementById('dots');
+STEP_DEF.forEach(()=>{ const d=document.createElement('div'); d.className='dot'; dots.appendChild(d); });
+document.getElementById('prev').innerHTML = icon('chevron-left',18);
+document.getElementById('next').innerHTML = icon('chevron-right',18);
+document.getElementById('ic-fp').innerHTML = icon('fingerprint',15);
+document.getElementById('prev').onclick=()=>{ if(curStep>0){curStep--;render();} };
+document.getElementById('next').onclick=()=>{ if(curStep<STEP_DEF.length-1){curStep++;render();} };
+
+function render(){
+  const sc = SCENARIOS[curScn];
+  const st = STEP_DEF[curStep];
+  document.getElementById('stepnum').textContent = "Step "+(curStep+1);
+  document.getElementById('steptitle').textContent = TPL_TITLES[curStep];
+  document.getElementById('stepcap').textContent = sc.caps[curStep];
+  const platIcon = (curScn==='tap'||curScn==='swipe') ? 'mobile' : 'browser';
+  document.getElementById('pagelabel').innerHTML = `${icon(platIcon,15)}<span>${sc.platLbl} — ${st.state==='before'?'today':'after the change'}</span>`;
+  document.getElementById('pagebody').innerHTML = st.state==='before' ? sc.before(st.phase) : sc.after(st.phase);
+  document.getElementById('signals').innerHTML = sc.signals.map(s=>sigRow(s, st.mode)).join('');
+  document.getElementById('verdict').innerHTML = verdict(st.mode);
+  [...rail.querySelectorAll('.navbtn')].forEach(b=>b.classList.toggle('active', b.dataset.id===curScn));
+  [...dots.children].forEach((d,i)=>{ d.style.background = i===curStep ? 'var(--info)' : 'var(--border2)'; });
+  document.getElementById('prev').disabled = curStep===0;
+  document.getElementById('next').disabled = curStep===STEP_DEF.length-1;
+}
+render();
+</script>
+</body>
+</html>

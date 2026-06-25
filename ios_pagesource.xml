@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><AppiumAUT><XCUIElementTypeApplication type="XCUIElementTypeApplication" name="Confirm Rx™" label="Confirm Rx™" enabled="true" visible="true" x="0" y="0" width="375" height="667">
+  <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="true" x="0" y="0" width="375" height="667">
+    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="0" y="0" width="375" height="667">
+      <XCUIElementTypeNavigationBar type="XCUIElementTypeNavigationBar" name="Bluetooth Pairing" enabled="true" visible="true" x="0" y="20" width="375" height="44">
+        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Bluetooth® Pairing" name="Toolbar_TitleLabel" label="Bluetooth® Pairing" enabled="true" visible="true" x="103" y="30" width="169" height="24"/>
+        <XCUIElementTypeButton type="XCUIElementTypeButton" name="      " label="      " enabled="true" visible="true" x="331" y="27" width="28" height="30"/>
+      </XCUIElementTypeNavigationBar>
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="0" y="0" width="375" height="667">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="0" y="0" width="375" height="667">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="0" y="0" width="375" height="667">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" name="PairDevice_PairingProgressBar" enabled="true" visible="true" x="26" y="114" width="323" height="40">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="26" y="114" width="323" height="40">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="34" y="124" width="307" height="20">
+                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="34" y="124" width="307" height="20"/>
+               </XCUIElementTypeOther>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+            <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Bluetooth® pairing may take several minutes." name="PairDevice_PairInfoLabel" label="Bluetooth® pairing may take several minutes." enabled="true" visible="true" x="30" y="204" width="315" height="48"/>
+            <XCUIElementTypeImage type="XCUIElementTypeImage" name="PairDevice_KeepImage" enabled="true" visible="false" x="30" y="274" width="35" height="35"/>
+            <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="During this time, keep your mobile device within 1.5 m (5 ft) of you." name="PairDevice_KeepLabel" label="During this time, keep your mobile device within 1.5 m (5 ft) of you." enabled="true" visible="true" x="80" y="272" width="265" height="39"/>
+            <XCUIElementTypeButton type="XCUIElementTypeButton" name="PairDevice_PairNowButton" label="Pair Now" enabled="true" visible="true" x="26" y="602" width="323" height="45"/>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeOther>
+  </XCUIElementTypeWindow>
+  <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" x="0" y="0" width="375" height="667">
+    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" x="0" y="0" width="375" height="667"/>
+  </XCUIElementTypeWindow>
+  <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="true" x="0" y="0" width="375" height="667">
+    <XCUIElementTypeStatusBar type="XCUIElementTypeStatusBar" enabled="true" visible="true" x="0" y="0" width="375" height="20">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" x="0" y="0" width="375" height="20"/>
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" x="0" y="0" width="375" height="20">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" name="No SIM" label="No SIM" enabled="true" visible="true" x="6" y="0" width="41" height="20"/>
+        <XCUIElementTypeOther type="XCUIElementTypeOther" value="SSID" name="2 of 3 Wi-Fi bars" label="2 of 3 Wi-Fi bars" enabled="true" visible="true" x="52" y="0" width="15" height="20"/>
+        <XCUIElementTypeOther type="XCUIElementTypeOther" name="00:20" label="00:20" enabled="true" visible="true" x="171" y="0" width="36" height="20"/>
+        <XCUIElementTypeOther type="XCUIElementTypeOther" name="Bluetooth connected" label="Bluetooth connected" enabled="true" visible="true" x="322" y="0" width="7" height="20"/>
+        <XCUIElementTypeOther type="XCUIElementTypeOther" name="96% battery power, Charging" label="96% battery power, Charging" enabled="true" visible="true" x="335" y="0" width="35" height="20"/>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeStatusBar>
+  </XCUIElementTypeWindow>
+</XCUIElementTypeApplication></AppiumAUT>
+
+

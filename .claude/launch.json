@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "autoPort": true,
+  "configurations": [
+    {
+      "name": "static",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-c", "import os,http.server,socketserver,functools; P=int(os.environ.get('PORT','8765')); H=functools.partial(http.server.SimpleHTTPRequestHandler, directory='/Users/prashant.kothari/Documents/claude'); socketserver.TCPServer(('127.0.0.1',P),H).serve_forever()"],
+      "port": 8765
+    }
+  ]
+}
