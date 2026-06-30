@@ -100,6 +100,18 @@ Our loop maps 1:1 onto Testsigma's production **Analyzer 2.0** NSE flow (enhance
 
 **We contribute** what their doc lacks: explicit **false-heal=0 metric**, the **Q2 disambiguation engine**, **actionability-in-gate**, and SPA-reality calibration. **Watch:** keep VLM gated+cached (it's on the critical path of 42% of failures).
 
+## 3d. Execution-time Lifecycle alignment (production locator pool — K37)
+
+Heal at runtime is a **locator POOL with lifecycle**, not a single best. Architecture order:
+**Analyzer Gateway (diagnose) → Lifecycle auto-heal (pool + page-state).**
+
+- **Pool**: primary + working-auto-healed (DB) + ≤25 backups across 6 sources (S3), each with pass/fail/`consecutive_pass_count`/`was_primary`/quality/source. Ordered by **execution-history (passed→untested→failed) + quality tiebreak — NOT rank**.
+- **Top-three-agree consensus gate** (find-only JS, no action): top 3 candidates must resolve to the same element before acting → a proven safety lever (consensus) *complementary* to our margin+actionability.
+- **Page-state heal 7a/7b/7c** = Analyzer Q1 = our diagnosis (triangulated): 7a unchanged→precondition heal (no new locators); 7b partial→regenerate on new DOM; 7c complete→**visual re-anchor** (never blind-rebuild — legacy attribute-rebuild was deprecated at **~90% FP**).
+- **Conservative learning**: `consecutive_pass≥3`→auto-promote; `was_primary` sticky bit **freezes flip-flopping locators**; healed locators persisted **only on validated success** (OV#4). This is the self-evolving brain done safely.
+- **Validation-agent (UI/HITL) ≡ auto-heal-agent (autonomous)** — one capability, two intervention modes, tagged by source. Our `hitl-overlay` is the validation-agent.
+- **Scope, sharpened**: deterministic matching = disambiguate/validate FOUND candidates; **never re-anchor a LOST element** (→ visual/agent).
+
 ## 4. Honest stance — "patterns/gists, not whole libraries"
 
 **Agreed, with one split.** Most of this system's value is *deterministic, explainable matching + diagnosis*, which is exactly what you should NOT outsource to a heavy/opaque lib — borrow the **gist** (the algorithm), keep it small and ours. But two things are wasteful to reimplement and should be **adopted wholesale**: a **browser driver** (Playwright — auto-wait/locators/trace are years of work) and a **vision LLM** (hosted API). Everything else = patterns. This keeps the dependency surface tiny, the behavior deterministic/auditable, and the false-heal gate intact — while not wasting effort rebuilding a driver or a vision model. The 80% flow is reachable with the gists we already have + Playwright for execution + an LLM gate for the residue.

@@ -656,6 +656,36 @@ Reuse: `matchStep`, `disambiguateByContext`, `WEB.actionable`, `diagnoseFailure`
 
 ---
 
+# 16. Execution-time Lifecycle + Validation-Agent specs — alignment (K37)
+
+Source: production `Execution_Time_Locator_Lifecycle_Spec.pdf` + `Element_Detail_Validation_Agent_Spec.pdf`.
+
+- **K37** [production locator system — STRONGLY ENHANCES, does NOT diverge] These define the runtime substrate our heal logic lives inside; they confirm our hardest principles (notably: the legacy attribute-rebuild was deprecated for **~90% false positives** — our false-heal-0 thesis, with a production number; Gen-AI heals were never persisted due to **~3% FP** until validated). Architecture order: **Analyzer Gateway (diagnose Q1/Q2/Q3) → Lifecycle auto-heal (pool + page-state)** — our lab spans both. Key model shifts to adopt: heal = a **locator POOL with lifecycle** (not single-best); ordering by **execution-history (passed→untested→failed) + quality tiebreak, NOT rank**; **top-three-agree consensus gate** (find-only, 3 candidates must resolve to same element before acting); **per-source cap 5/25** for diversity; **page-state-aware heal 7a/7b/7c** (= Analyzer Q1 = our diagnosis, triangulated); conservative learning (`consecutive_pass≥3`→auto-promote, `was_primary` freezes flip-floppers, persist only validated). Validation-agent (UI/HITL) and auto-heal-agent (autonomous) = **one capability split by intervention mode** — our `hitl-overlay` is the validation-agent. **Sharpened scope:** deterministic matching = disambiguate/validate FOUND candidates; **never re-anchor a LOST element** (→ visual/agent).
+
+## 16.1 Updated approach (composes with §15 Analyzer)
+```
+THROW → Analyzer Gateway [Q1/Q2/Q3 diagnose] → if heal-eligible →
+  Lifecycle pool-heal:
+   entry: auto-healed → primary-retry → pool (≤25; ≤5/source; passed→untested→failed + Good→Weak→Fragile)
+   GATE: top-three-agree (find-only) + actionability → first validated acts
+   whole-pool-fail → page-state 7a precondition / 7b regenerate-on-new-DOM / 7c visual-reanchor (never blind-rebuild)
+   write-back: counts, consecutive_pass≥3→auto-promote, was_primary freeze, source tag, persist VALIDATED only
+```
+Our pieces map in: `disambiguateByContext`/ordinal = "tighten pool to one"; `WEB.actionable` = part of the gate; false-heal=0 governs all. Net-new vs §15: pool model + top-three-agree gate + per-source cap + promotion/demotion state + the page-state heal router (7a/b/c).
+
+## 16.2 How to test (extends the §15.2 analyzer harness)
+- **Pool ordering**: fixture pool (varied history/quality) → assert auto-healed→primary→pool sequence; passed→untested→failed; quality tiebreak; rank ignored.
+- **Top-three-agree gate**: agree→act, disagree→abstain; **false-heal=0 on disagreement**.
+- **Page-state 7a/7b/7c**: reuse Analyzer Q1 fixtures → correct branch; 7a no-new-locator; 7c→visual route; never blind-rebuild a lost element.
+- **Promotion/demotion**: `consecutive_pass≥3`→auto-replace; failure resets streak; `was_primary` freezes a flip-flopper.
+- **Per-source cap 5/25** diversity; **sink-and-skip + counter-driven deletion** (never on one failure).
+- **Invariants**: never act without top-three-agreement; never deterministically re-anchor a lost element; false-heal=0 throughout. Core 14/14 + suites green.
+
+## 16.3 Open items they flag (we share)
+Their O6 (DOM-query mechanism) gates page-state classification; counter-reset policy; the promote state-machine reconciling "healed becomes working DB row" vs "backup 3-pass replaces primary" — must not conflict (same care we apply).
+
+---
+
 # 15. Amplitude E2E v2 — DONE (K36)  `measured · live · 2026-06-25` · `self-heal/docs/AMPLITUDE-E2E-RUN.md`
 
 - **K36 [BUILT + PROVEN LIVE]** Full loop ran on real Amplitude chart-builder: **40 auto-generated +
