@@ -7,6 +7,19 @@ reimplementing is wasteful** — aim a *basic good flow at ~80%*, route the hard
 
 ---
 
+## In plain words (read this first)
+
+A test clicks a button. One day the button moves, gets renamed, or disappears, and the click fails.
+This system figures out **why** it failed and decides what to do:
+
+- The button just **moved or got renamed** → quietly re-point the locator and keep going.
+- The button is **genuinely gone**, or the **app flow changed** → stop and tell the human exactly what's
+  wrong. Don't guess.
+
+**The golden rule: never click the WRONG thing to make a test pass.** A clear, honest failure beats a wrong
+fix every time. Everything below is *how* we do that safely. (Jargon like Q1/Q2/Q3, T0–T3, K-numbers is just
+shorthand — each is explained where it's used.)
+
 ## 1. The ideal autonomous loop
 
 ```mermaid

@@ -714,3 +714,70 @@ Their O6 (DOM-query mechanism) gates page-state classification; counter-reset po
   (deterministic); only the predictor was refined.
 - **Honest bound (unchanged from Gong):** synthetic + round-trip drift only → MECHANISM, not a natural
   heal-rate. Gate layout-free, verify modelled → live execution gated on P2 runtime (`selfheal-runtime.js`).
+
+- **K37 [BUILT + PROVEN HERMETIC] Analyzer-2.0 evidence-routing spine.** `measured · hermetic+modelled ·
+  2026-06-30` · `self-heal/docs/ANALYZER-ALIGNMENT-RUN.md`. Reorganised the existing pipeline onto Testsigma's
+  production NSE flow (Q1 page-identity gate → Q2 element-here / Q3 earlier-drift → tier T0–T3 → validation
+  gate (identity + ACTIONABILITY re-attempt = OQ-2) → `analyzer_root_cause` enum). NET-NEW in pipeline/tests
+  only: `pipeline/q1-page-identity.js` (deterministic fingerprint: URL-template+title/H1+a11y-hash+landmarks+
+  auth; net still-loading→Timeout; VLM tie-break SKIPPED hermetic), `pipeline/q3-divergence-walk.js`
+  (per-prior-step walk → FLOW_CHANGE vs PREREQUISITE+gap), `pipeline/analyzer-router.js` (the spine).
+  **OQ-3 labeled set = 15 fixtures (Q1/Q2/Q3 × 5); verdict==label on all 15; false-heal 0/15** (pre-reg
+  ceiling held). Core PRISTINE (`git diff selfheal-core.js` empty); suites **14/14 + 22/22 + 30/30** green.
+- **K37a [false-heal=0 under property-fuzz]** each Q2 case × {restyle, localize, reorder} = 15 runs →
+  **0 false-heals**, invariant correct-verdict-or-escalate held. `reorder` (reverses interactive sibling
+  groups) adversarially attacks the ordinal/context lever: Q2-d still heals the CORRECT row because
+  `disambiguateByContext` keys on row-text (moves with the row), position-independent → reorder-safe.
+- **K37b [honesty / what's modelled]** Q1-c net signal `{inflight,oldestAge,docReady}` = `modelled-net`;
+  Q3 a–e step histories = `modelled-history` (no live multi-step recording here). VLM never faked —
+  tied-within-margin → T3-escalate (`UNIDENTIFIED`), never guessed. Live click/scroll still P2 runtime.
+- **K37c [Q1 reliability read — SPA gap]** fingerprint DECISIVE on structurally-stable signals (auth-flip,
+  URL-template, content-anchor-loss → DIVERGED; additive overlay → SAME via landmark-superset). Soft signals
+  (title/a11y-hash/landmark counts) are SPA-noisy (Gong 2-poll settle, Amplitude portal mutations K29/K36) →
+  treated borderline→SAME, deferred to Q2's own false-heal=0 gate. Unproven against LIVE SPA noise → remaining
+  work = §15.2 step-3 live Gong/Amplitude fingerprint capture (not claimed in K37).
+
+---
+
+# 18. Redteam + metrics (plain language — after both chips ran)
+
+A holistic, honest review. Written plainly on purpose.
+
+## Where we actually are (so the review is fair)
+Both test sessions finished. **Proven so far: wrong-heal rate = 0** across 240 Amplitude cells + 15 analyzer
+cases + 22 lab tests. The diagnose→heal routing is built; the core matcher is untouched. So "we only
+planned, never built" is no longer true — a lot is built and safe.
+
+## The real problems that remain
+1. **Still no real-world heal number.** Everything tested used FAKE (synthetic) drift or hand-made fixtures.
+   We have never measured "does it fix a REAL broken test." That needs real failure data ("D1"), which still
+   hasn't arrived. **This is the gap.**
+2. **The "did the page change?" check is the linchpin and is unproven on real apps.** The whole flow starts
+   there (none / a little / a lot). The chip itself flagged it's shaky on messy apps (Gong/Amplitude). If it's
+   wrong, everything after it is wrong.
+3. **"3 locators must agree" isn't built yet — and could be fake safety.** Our candidates all come from one
+   scorer, so 3 agreeing might just mean 3 near-copies. Needs an "are they actually different?" check.
+4. **The full chain hasn't run as one system.** We've tested parts. The lifecycle chip is the first real
+   end-to-end test of the pieces working together.
+5. **"The product docs agree with us" is not proof.** Same company, same assumptions. Real proof = our code
+   on real breaks.
+6. **The docs got long and messy** (e.g. two sections numbered 15; lots of codes like K37 / Q1 / T0).
+   Hard for a new person or session to get the gist fast. Worth a cleanup pass.
+
+## Metrics to score against (always on a labeled set; mark real vs fake)
+- **Wrong-heal rate** → must be ~0. The one that matters most. (0 so far, but on fake drift.)
+- **Correct-heal rate** → of breaks that ARE fixable, how many we fix right.
+- **Honest-fail rate** → of the rest, how many fail with a clear, correct reason (no silent stops).
+- **Right-reason rate** → does our "why it broke" match the real cause.
+- **Coverage** → can we even see the element as a candidate (the anchorless / React-div gap).
+- **Cost / speed** → if an LLM or vision call is in the path.
+
+## Tests to add (to check the assumptions)
+- **Full end-to-end run** (all parts wired) — do they cooperate? (the lifecycle chip starts this)
+- **Trap set** — drifts built to TRICK a heal (reordered look-alikes; a removed button that looks like a
+  nearby one) → must refuse.
+- **Real-app page-change test** — feed real Gong/Amplitude pages → is "did the page change?" actually right?
+  (closes problem #2)
+- **"Are the 3 different?" check** before trusting their agreement. (problem #3)
+- **"Removed for real" set** — element genuinely gone → must never heal (the ~90%-FP catastrophe).
+- **HITL test** — pretend the user answers the prompts → does the heal rate actually go up?
