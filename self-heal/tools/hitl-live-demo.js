@@ -41,7 +41,11 @@ window.__hitlDemo = (function () {
       const el = locate(c);
       const found = el ? h.highlight(el, c.card.title || c.kind) : false;
       const card = Object.assign({}, c.card, { kind: c.kind });
-      if (!found) card.where = (card.where || '') + '  [LIVE ELEMENT NOT FOUND — open the right tab/portal]';
+      // thumbnail: prefer the LIVE located element's container (styled, same doc); else the frozen
+      // capture HTML (card.thumbHTML) flagged stale. Answers "which control?" even when not visible.
+      if (found) { const cont = (el.closest('[role=row],li,tr,section,fieldset') || el.parentElement || el); card._el = cont; card.thumbStale = false; }
+      else { card.thumbStale = true; }
+      if (!found) card.where = (card.where || '') + '  [LIVE ELEMENT NOT FOUND — showing frozen capture preview]';
       const d = await h.show(card);
       d.located = found; d.caseId = c.id || null;
       decisions.push(d);

@@ -57,6 +57,9 @@ flowchart LR
 | **Swarms.ai / OpenAI Swarm** ([github](https://github.com/openai/swarm)) | multi-agent orchestration frameworks | STUDY orchestration — fan-out explorer agents | **gist** — we already orchestrate via chips/workflows |
 | **Playwright** | modern browser driver: auto-wait, locators, trace | EXECUTE runtime | **ADOPT wholesale** (P2) — reimplementing a driver is wasteful |
 | **axe-core** | accessibility engine | LOCATE — accessible-name/role logic | **gist** (logic, ~50 LOC) not the dep |
+| **Healenium** ([healenium.io](https://healenium.io/), [github](https://github.com/healenium/healenium)) | OSS self-healing locators (Selenium): weighted **LCS tree-compare** picks a new locator on `NoSuchElement`; **Postgres history DB** of old→new locators + DOM + screenshots | LOCATE (alt structural algorithm); the **self-evolving brain** (history store) | **gist** (LCS tree-compare) + the **history-DB-as-brain** pattern — but add our **verify-gate** (it stores on heal; we store only verified/HITL-confirmed) |
+| **Skyvern** ([github](https://github.com/Skyvern-AI/skyvern), 22k★) | OSS vision+DOM+LLM browser agent; **Planner/Actor/Validator**; **route-memorization** → compiles a solved flow into a deterministic Playwright script | screen-based residue (INTENT/HEAL); **learn-once → cache-deterministic** | **adopt** for the visual residue (P3); **borrow route-memorization** (LLM solves once, deterministic after) |
+| **OmniParser / browser-use** ([browser-use](https://github.com/browser-use/browser-use)) | screen→structured-elements; OSS DOM+vision agents | screen-based LOCATE for the residue | gist/adopt for the vision gate |
 | **Vision-LLM** (Claude/GPT-V) | image→intent | INTENT, residue HEAL | **adopt hosted API** — don't train |
 
 ---
@@ -70,6 +73,32 @@ flowchart LR
 **Target:** a basic good flow at **~80%** — deterministic heal on the structured/anchored majority, **0 false-heals**, and the hard 20% (nameless icons, flow-change, full visual redesign) **routed to LLM/HITL, never force-healed**. Matches the project ethos: *a true 66–80% beats a fabricated 95%.*
 
 ---
+
+## 3b. Agentic layers (events/failures/locator-path · self-evolving brain · screen-learning)
+
+| Layer | What it is | Status | OSS to learn from |
+|---|---|---|---|
+| **Concepts the agent reasons over** | EVENTS (click/type/select/swipe/nav/assert) · FAILURE MODES (7-cat, `FAILURE-TAXONOMY.md`) · LOCATOR-PATH/ANCHOR TIERS (testid>stable-id>id-fragment>name-only>anchorless) + 11 signals + container/ordinal disambiguators | ✅ built | **Healenium** weighted LCS tree-compare (alt locator-path algorithm) |
+| **Self-evolving brain** | persist heal outcomes (recorded→healed + descriptor + context + verify-confidence); cross-tenant aggregation (I27) | ◻ stub (P2/P3) | **Healenium** Postgres locator-history+screenshots; **Skyvern** route-memorization (cache solved path as deterministic) |
+| **Agentic learning via screens** | vision+LLM for the residue (nameless icons, full visual redesign); Planner/Actor/**Validator** + memorize-as-deterministic | ◻ P3 / residue escape | **Skyvern**, **OmniParser**, **browser-use** |
+
+**Honest constraint (critical):** the brain updates **only on HIGH-confidence *verified* or *HITL-confirmed* heals — NOT every heal.** Storing unverified heals contaminates it (OV#4) and compounds wrong heals into "learned" patterns. Screen/vision learning is the **20% residue escape**, not the core: LLM proposes → deterministic gate + verify dispose → only the verified result is memorized (Skyvern-style → deterministic + cheap next time).
+
+## 3c. Analyzer 2.0 alignment (production convergence — K36)
+
+Our loop maps 1:1 onto Testsigma's production **Analyzer 2.0** NSE flow (enhances, does not diverge):
+
+| Analyzer stage | Our component | Net-new to build |
+|---|---|---|
+| **Q1 same page?** (fingerprint: URL-template+title+a11y-hash+landmarks+auth; VLM tie-break) | — | **NEW: Q1 fingerprint module** (the Step-0 front gate) |
+| still-loading → **Timeout** | — | **NEW: network-log signal** (in-flight count + oldest-pending age) — solves TEMPORAL |
+| **Q2 element here?** | `matchStep` → `disambiguateByContext` (context/ordinal/search-and-pick) → `WEB.actionable` | reuse (we're the Q2 specialist) |
+| **Q3 earlier drift?** → Flow-Change vs Prerequisite | — | **NEW: per-prior-step fingerprint walk** — splits the two (fixes R3) |
+| **Tiers T0–T3** | our HITL routing | adopt the T0–T3 vocabulary |
+| **Validation gate** | `WEB.actionable` (found≠usable) | strengthen to **identity + ACTIONABILITY** (answers their OQ-2) |
+| **Commit + reinforce + `analyzer_root_cause`** | `failure-reporter` + (P2) Element Registry | adopt the **root_cause enum** + reinforce-only-on-verified |
+
+**We contribute** what their doc lacks: explicit **false-heal=0 metric**, the **Q2 disambiguation engine**, **actionability-in-gate**, and SPA-reality calibration. **Watch:** keep VLM gated+cached (it's on the critical path of 42% of failures).
 
 ## 4. Honest stance — "patterns/gists, not whole libraries"
 

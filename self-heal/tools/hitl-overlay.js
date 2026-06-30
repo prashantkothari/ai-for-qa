@@ -95,6 +95,7 @@
          '<span class="__hitl_title">' + esc(card.title || (isRec ? 'Fragile control recorded' : 'Heal needs a decision')) + '</span>' +
          '<span class="__hitl_x" id="__hitl_close">&times;</span></div>';
     h += '<div class="__hitl_body">';
+    h += '<div id="__hitl_thumb"></div>';   // frozen DOM-clone preview of the control inserted post-innerHTML
     if (isRec) {
       if (card.flag)      h += row('flag', card.flag);
       if (card.locTier)   h += row('locator tier', card.locTier);
@@ -132,9 +133,28 @@
     h += '</div></div>';
     h += '<div class="__hitl_foot">decision → window.__hitl.decision · recorded as ground truth (' + (root.__hitl.log.length) + ' so far)</div>';
     p.innerHTML = h;
+    renderThumb(p, card);
     return p;
   }
   const row = (k, v) => '<div class="__hitl_row"><span class="__hitl_k">' + esc(k) + '</span><div class="__hitl_v">' + esc(v) + '</div></div>';
+
+  // ---------- frozen DOM-clone thumbnail (answers "WHICH control?" even when the app isn't visible) ----------
+  // A bitmap screenshot needs a library / cross-origin perms; a CLONE of the control's container rendered
+  // INSIDE the card (same document = inherits the app's stylesheets) looks like the real control, is
+  // frozen at capture (survives the app changing underneath), and is cross-origin-safe. card.thumbHTML
+  // is the frozen outerHTML captured at record-time; if absent we clone the live element passed as card._el.
+  function clipForThumb(html) { return (html || '').slice(0, 20000); }   // guard against giant subtrees
+  function renderThumb(p, card) {
+    const slot = p.querySelector('#__hitl_thumb'); if (!slot) return;
+    let html = card.thumbHTML || null;
+    if (!html && card._el && card._el.outerHTML) html = card._el.outerHTML;
+    if (!html) { slot.style.display = 'none'; return; }
+    slot.style.cssText = 'margin:8px 12px;border:1px solid #e3e3e3;border-radius:8px;padding:8px;background:#fff;overflow:hidden;max-height:140px;position:relative';
+    slot.innerHTML = '<div style="font-size:11px;text-transform:uppercase;color:#888;margin-bottom:4px">control preview' + (card.thumbStale ? ' · frozen at capture (app has changed)' : '') + '</div>' +
+      '<div style="transform:scale(.9);transform-origin:top left;pointer-events:none;max-width:111%">' + clipForThumb(html) + '</div>';
+    // neutralize ids in the clone so they don't collide with the live app's ids
+    slot.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+  }
 
   // ---------- the await-able show() ----------
   function show(card) {

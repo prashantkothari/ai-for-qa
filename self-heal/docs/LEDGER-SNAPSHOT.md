@@ -625,3 +625,62 @@ For role-less portal options: detect the portal's search `<input>` (anchorable) 
 - Big session — internally PHASE it: (A) explore+auto-generate+stratify cases + inject HITL overlay + capture with content-settle/viewport-scope; (B) run pipeline + property-fuzz + search-and-pick + HITL adjudication; (C) report. Don't try all at once silently.
 - Same env limits as Gong: no Node/Playwright → Chrome MCP executor; verify-by-effect modelled unless a live click is safe; portals timing/toggle-sensitive (one-tick capture).
 - Shared browser: two sessions → drive a distinct tab; coordinate so the user's clicks and the chip's injection don't collide.
+
+---
+
+# 15. Analyzer 2.0 alignment — updated approach + test design (K36)
+
+Source: Testsigma production docs `Analyzer_NO_SUCH_ELEMENT_Resolution_Flow_v0.3.pdf` + `analyzer_root_cause_field_spec.pdf`.
+
+- **K36** [production convergence — ENHANCES, does NOT diverge] The production Analyzer 2.0 NSE flow independently converges with our lab thesis (diagnosis-first, evidence-based, never-default, asymmetric-cost, tiered autonomy, semantic-gate). Routing spine: **Q1 page-identity → Q2 element-presence → Q3 earlier-divergence.** It **solves 3 of our gaps**: TEMPORAL via **network-logs**; FLOW_CHANGE-vs-PREREQUISITE via **per-prior-step fingerprint walk** (fixes R3); a **page-identity front gate** (the Step-0 idea). We **contribute** what it lacks: the Q2 disambiguation levers (= their "tighten by neighborhood"), an **explicit false-heal=0 metric**, and **actionability in the validation gate** (answers their OQ-2: gate must re-attempt the action, not just confirm identity). **Cautions (refinements, not divergence):** VLM is on the critical path of 42% of failures → keep it **gated + cached** (deterministic-first); **reinforce the Element Registry only on VERIFIED outcomes** (OV#4 contamination guard). Their **OQ-3 labeled tables (Q1/Q2/Q3 a–e) = a ready-made validation set.**
+
+## 15.1 Updated approach (map, don't rebuild)
+Reorganize top-level control flow to mirror the Analyzer; plug our components in; core stays pristine:
+```
+THROW → normalize + evidence bundle
+ → Q1 same page?  [NEW: page-fingerprint gate (URL-template+title+a11y-hash+landmarks+auth); network-log still-loading→Timeout; VLM tie-break only]
+     SAME    → Q2 element here?  [OURS: matchStep → disambiguateByContext (context/ordinal/search-and-pick) → WEB.actionable]
+                 → Locator-Changed (T0/T1) · Element-Not-Found (T2) · Not-Interactable
+     DIVERGED→ Q3 earlier drift?  [NEW: per-prior-step fingerprint walk]
+                 → Flow-Change (T2) · Prerequisite (T1)
+ → tier (T0 auto / T1 confirm / T2 advisory / T3 escalate) → validation gate (identity + ACTIONABILITY) → commit + analyzer_root_cause + failure-card
+```
+Reuse: `matchStep`, `disambiguateByContext`, `WEB.actionable`, `diagnoseFailure`, `failure-reporter`. Net-new: Q1 fingerprint module · Q3 walk · network-log signal · tier router · `analyzer_root_cause` output. Vocabulary to adopt: **T0–T3**, **Q1/Q2/Q3**, **analyzer_root_cause enum** (Locator-Changed / Element-Not-Found / Flow-Change / Prerequisite / Timeout / UNIDENTIFIED).
+
+## 15.2 How to test it (the chip's job)
+1. Build the **OQ-3 labeled set (~15 cases: Q1-a..e, Q2-a..e, Q3-a..e)** as hermetic fixtures (recorded baseline + drifted runtime + expected verdict) — extend `adversarial-validation.html`. Assert **verdict == label AND false-heal == 0**.
+2. **Property-fuzz** each (restyle/localize/reorder) → invariant: correct-verdict-or-escalate, never false-heal.
+3. **Live SPA check** (Gong/Amplitude via Chrome MCP): capture real page fingerprints + network signals → test Q1/still-loading against **SPA noise** (the one place their fingerprint approach is unproven).
+4. Emit each case as an **`analyzer_root_cause`** value → the measured funnel.
+- **Pass bar:** labeled set resolves to the right verdict; false-heal 0; Q1 survives real-SPA noise. Core 14/14 + adversarial suite green.
+
+---
+
+# 15. Amplitude E2E v2 — DONE (K36)  `measured · live · 2026-06-25` · `self-heal/docs/AMPLITUDE-E2E-RUN.md`
+
+- **K36 [BUILT + PROVEN LIVE]** Full loop ran on real Amplitude chart-builder: **40 auto-generated +
+  stratified cases × 6 regimes = 240 cells, false-heal = 0/240** (pre-registered ceiling held). Core
+  PRISTINE (`git diff` empty); suites **14/14 web + 4/4 mobile + 22/22 adversarial** green after.
+  New tools-layer artifacts: `amplitude-e2e-runner.js`, `amplitude-e2e-harness.html`, `amplitude-stash.js`,
+  `hitl-overlay.js`, `hitl-live-demo.js`. All 6 Gong lessons baked in (content-settle 2 polls,
+  viewport-scope 142 tagged, recordability per-view, flag-driven HITL, capture-settle, HITL unlock).
+- **K36a [heal reach > Gong, structural reason]** testid is an ATTRIBUTE → **survives `localize`** →
+  every testid'd case heals through text-reversal (the regime that zeroed Gong's heals). 19 localize
+  heals vs Gong's 0. recordability **63% closed / 48% portal-open** (per-view, K29 confirmed).
+- **K36b [search-and-pick works, modelled]** role-less Events portal (K32: 0 `role=option`) + search
+  input → search-and-pick collapsed **n₀87→n₁1** on all 6 portal cases; localize → no collapse → safe
+  abstain. Live execution = P2 runtime; collapse + detector exercised here (`ranLive:false`).
+- **K36c [property-based fuzzing — Antithesis]** 5 seeded mutators (restyle/localize/attr-shuffle/
+  **reorder**/add-remove-twin). `reorder`/`add-remove-twin` adversarially test the ordinal lever (K34);
+  byte-identical twins scored **outcome-equivalent** (any sibling = correct) — the one place "correct-heal"
+  ≠ exact node, flagged. Guard boundary proven (TWI5 abstains under localize/count-change).
+- **K36d [HITL — the "which control?" fix]** Cards on the harness page are unanchorable (window.name nav
+  leaves the app). Fix shipped (`hitl-live-demo.js`): render cards **in the live app tab + highlight the
+  real element** (outline+scrollIntoView+label). User drove both card types live (record: 12 decisions;
+  execute: AMBIGUITY + candidate list on "+ Filter by" twins). Decisions → `window.__hitl.log` = ground truth.
+- **K36e [pre-registration honesty]** naive pre-reg diverged 47/240 → corrected predictor (testid-survives-
+  localize · search-and-pick-fails-safe-on-localize · twins-outcome-equivalent) → **19/240, all SAFE**
+  (over-conservative or uniquely-identifiable-nameless heals; never a false-heal). Outcomes never changed
+  (deterministic); only the predictor was refined.
+- **Honest bound (unchanged from Gong):** synthetic + round-trip drift only → MECHANISM, not a natural
+  heal-rate. Gate layout-free, verify modelled → live execution gated on P2 runtime (`selfheal-runtime.js`).

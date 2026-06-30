@@ -253,7 +253,8 @@ window.__AMP_E2E = (function () {
         id: c.id, stratum: c.stratum, label: c.role + ' "' + c.name + '"', role: c.role, name: c.name, testid: c.testid,
         locTier: c.locTier, flag: step.flag, twinN: c.twinN || null, twinSel: c.twinSel || null,
         portalText: c.portalText || null, hasSearch: !!c.searchInput, byteIdentical, twinOracleSet,
-        oracle: c.id, step, recRowText: norm(step.context.rowText).slice(0, 50), recCount: step.context.count, recOrdinal: step.context.ordinal
+        oracle: c.id, step, recRowText: norm(step.context.rowText).slice(0, 50), recCount: step.context.count, recOrdinal: step.context.ordinal,
+        thumbHTML: (function () { try { return CG.containerOf(c.el).outerHTML.slice(0, 20000); } catch (e) { return (c.el.outerHTML || '').slice(0, 20000); } })()  // frozen control preview for the HITL card
       });
     }
     SNAPSHOT = doc.documentElement.outerHTML;
@@ -349,7 +350,7 @@ window.__AMP_E2E = (function () {
     const human = (rec.name && rec.name.trim()) ? (rec.role + ' "' + rec.name + '"')
       : ('nameless ' + rec.role + (rec.recRowText ? ' in “' + rec.recRowText + '”' : ''));
     const card = {
-      kind: 'record', cardId: 'rec-' + rec.id, title: rec.id + ' · ' + human,
+      kind: 'record', cardId: 'rec-' + rec.id, title: rec.id + ' · ' + human, thumbHTML: rec.thumbHTML,
       flag: rec.flag, locTier: rec.locTier,
       descriptor: Object.keys(rec.step.target.descriptor).join(', '),
       rowText: rec.recRowText, suggestedAnchor: rec.testid ? "data-testid='" + rec.testid + "'" : (rec.locTier === 'role+name' ? 'role+name (weak) — add a testid' : rec.locTier)
@@ -381,7 +382,7 @@ window.__AMP_E2E = (function () {
     const human = (rec.name && rec.name.trim()) ? (rec.role + ' "' + rec.name + '"')
       : ('nameless ' + rec.role + (rec.recRowText ? ' in “' + rec.recRowText + '”' : ''));
     const card = {
-      kind: 'execute', cardId: 'exe-' + rec.id, title: rec.id + ' · ' + human,
+      kind: 'execute', cardId: 'exe-' + rec.id, title: rec.id + ' · ' + human, thumbHTML: rec.thumbHTML,
       where: human + (rec.testid ? '  [testid=' + rec.testid + ']' : ''),
       stratum: rec.stratum, locTier: rec.locTier,
       descriptor: Object.keys(rec.step.target.descriptor).join(', '),
