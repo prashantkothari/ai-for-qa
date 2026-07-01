@@ -300,6 +300,33 @@ reads as one cluster) that the shallower pretotype reports (`amplitude-report.js
      still green). Also hardened the test harness's `deepEqual` (`Object.is` for NaN/±0, key-symmetry check).
 - Built: `self-heal/report/{report.js, tests.html}`; tightened `self-heal/schemas/flywheel-event.schema.js`.
 
+## S4 — benchmark corpus + eval-gate (`measured · 2026-07-01` — `self-heal/benchmark/`)
+
+The guardrail (F2: "false-heal cannot regress"). Built in a parallel background worktree, then
+**re-verified against the real schemas/fixtures in the master worktree** (the agent only had uncommitted
+copies) before merge. Reuses the S0 fixtures as its corpus — no new fixtures authored.
+
+- **`corpus.js`** — 13 cases: 7 login (from `PRETOTYPE_FIXTURES.EXPECTED.report.finals`) + 6 payment
+  (`PAYMENT_FIXTURES.CASES`). One documented exclusion: `T1|appbug` is a post-heal assertion case, not a
+  `matchStep` case, so asserting a matcher verdict for it would be fabricated.
+- **`eval-gate.js`** — `runBenchmark(corpus, doc, baseline?)`: per case mount→capture→drift→match/diagnose→
+  compare {verdict, category, resolved-element identity}. **False-heal is defined precisely**: verdict=heal &
+  expected=heal → false-heal iff resolved `data-oracle` ≠ ground-truth oracle (wrong element); verdict=heal &
+  expected≠heal → always a false-heal (healed when it should have abstained). Regression detection flags both
+  a match-status flip AND silent failure-mode drift between two already-non-matching states.
+- **`baseline.json`** — last-known-good snapshot, generated from the first clean run (not hand-authored).
+- **Gate: `self-heal/benchmark/eval-gate.html` → `window.__BENCH_RESULT` → 13/13 match, false-heal 0/13,
+  0 regressions, GO** — re-confirmed in the master worktree against committed S0/S1 files.
+- **Gate-can-fail sanity check (re-run independently in master):** mutating one case's `expectedVerdict`
+  heal→abstain correctly drops match to 12/13 AND fires falseHealCount=1 (healing-when-abstain-expected is a
+  false-heal by definition). Proves the gate genuinely fails, not just always-green. Live corpus untouched
+  (used a clone). Review pass fixed 3 issues in-worktree (regression-drift gap, a missing script-load guard,
+  `app` inferred-by-regex → explicit field); those fixes are in the merged commit.
+- **`toFlywheelEvents`** exports runs as `flywheel-event/v1` rows with `verify_confidence:'simulated'` — so a
+  benchmark run is consumable by S3's report, but can NEVER promote to the brain (OV#4: it measures the
+  matcher, it doesn't train it).
+- Built: `self-heal/benchmark/{corpus.js, eval-gate.js, eval-gate.html, baseline.json, BENCHMARK-RUN.md}`.
+
 ## Repro
 `python3 -m http.server 8766 --bind 127.0.0.1` from worktree root →
 - S0: `http://127.0.0.1:8766/self-heal/pretotype/flow-pretotype.html` (`?manual=1` for HITL). `window.__PRETOTYPE_RESULT`.
@@ -308,3 +335,4 @@ reads as one cluster) that the shallower pretotype reports (`amplitude-report.js
 - S1: `http://127.0.0.1:8766/self-heal/schemas/tests.html`. `window.__S1_TESTS`.
 - S2: `http://127.0.0.1:8766/self-heal/brain/tests.html`. `window.__S2_TESTS`.
 - S3: `http://127.0.0.1:8766/self-heal/report/tests.html`. `window.__S3_TESTS`.
+- S4: `http://127.0.0.1:8766/self-heal/benchmark/eval-gate.html`. `window.__BENCH_RESULT`.
