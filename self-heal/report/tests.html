@@ -1,0 +1,308 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>S3 — report + failure clustering (F7) tests</title>
+<style>
+  body{font:13px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;margin:16px;color:#111}
+  h1{font-size:16px}h2{font-size:13px;margin:14px 0 4px;border-bottom:2px solid #eee;padding-bottom:3px}
+  .ok{color:#137333;font-weight:700}.bad{color:#c5221f;font-weight:700}.warn{color:#b06000}
+  .row{font-family:ui-monospace,Menlo,monospace;font-size:11px;margin:2px 0}
+  .PASS{color:#137333}.FAIL{color:#c5221f}
+  pre{background:#f6f6f6;padding:8px;white-space:pre-wrap;max-height:34vh;overflow:auto;font-size:11px}
+  table{border-collapse:collapse;margin:8px 0;font-size:12px}
+  td,th{border:1px solid #ddd;padding:4px 8px;text-align:left;vertical-align:top}
+  th{background:#f6f6f6}
+  .banner{background:#e8f5e9;border:1px solid #81c784;border-radius:6px;padding:6px 10px;margin:6px 0;font-size:12px}
+  .banner.warn{background:#fff8e1;border-color:#ffe082}
+</style></head>
+<body>
+<h1>S3 — report + failure clustering (F7) tests</h1>
+<p><small>Expectations are pre-registered as consts BEFORE <code>buildReport</code> runs (K36e discipline), then
+diffed against the actual output. Corpus mixes HIGH/MEDIUM/NONE/simulated confidence, 9 categories, one
+<code>false_heal:true</code> row, one row that omits the optional <code>false_heal</code> field, and 2 malformed
+rows (missing required field / bad enum) that must be REJECTED BY NAME, not silently dropped or crashed on.
+A separate "live cross-check" section hand-writes rows mirroring the S7 table in <code>PRETOTYPE-RUN.md</code> and
+also opportunistically converts <code>window.__S7_RESULT.liveResults</code> if a sibling tab left it behind.</small></p>
+<div id="out"></div>
+
+<script src="../schemas/validator.js"></script>
+<script src="../schemas/flywheel-event.schema.js"></script>
+<script src="report.js"></script>
+<script>
+(function () {
+  const out = document.getElementById('out');
+  const R = window.SELFHEAL_REPORT;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+  function deepEqual(a, b) {
+    if (Object.is(a, b)) return true;   // Object.is: correct NaN===NaN and distinguishes -0/+0 (=== gets both wrong)
+    if (a === null || b === null || a === undefined || b === undefined) return false;  // Object.is already handled the equal cases
+    if (typeof a !== typeof b) return false;
+    if (Array.isArray(a) || Array.isArray(b)) {
+      if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+      return a.every((v, i) => deepEqual(v, b[i]));
+    }
+    if (typeof a === 'object') {
+      const ka = Object.keys(a), kb = Object.keys(b);
+      if (ka.length !== kb.length) return false;
+      // verify key-name symmetry, not just count — otherwise {x:undefined} would equal {y:undefined}.
+      return ka.every(k => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]));
+    }
+    return false;
+  }
+
+  // ---- corpus: 13 valid flywheel-event/v1 rows + 2 malformed ----
+  const validLiveL1 = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T09:00:00Z', app: 'fixture:login',
+    testId: 'L1', stepId: null, outcome: 'PASS', verify_confidence: 'HIGH', category: 'VERIFIED',
+    source: 'live', driftKind: 'pristine', healed: false, false_heal: false, diagnosis: null, hitl_decision: null
+  };
+  const validLiveL2 = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T09:00:05Z', app: 'fixture:login',
+    testId: 'L2', stepId: null, outcome: 'PASS', verify_confidence: 'MEDIUM', category: 'NEG_OK',
+    source: 'live', driftKind: 'pristine', healed: false, false_heal: false, diagnosis: null, hitl_decision: null
+  };
+  const validLiveL3 = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T09:00:10Z', app: 'fixture:login',
+    testId: 'L3', stepId: null, outcome: 'PASS', verify_confidence: 'MEDIUM', category: 'NEG_OK',
+    source: 'live', driftKind: 'pristine', healed: false, false_heal: false, diagnosis: null, hitl_decision: null
+  };
+  const validLiveS1 = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T09:00:15Z', app: 'fixture:login',
+    testId: 'S1', stepId: null, outcome: 'PASS_WARNING', verify_confidence: 'NONE', category: 'SMOKE',
+    source: 'live', driftKind: 'pristine', healed: null, false_heal: false, diagnosis: null, hitl_decision: null
+  };
+  const validLiveL1AppBug = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T09:00:20Z', app: 'fixture:login',
+    testId: 'L1', stepId: 'appbug-run', outcome: 'FAILED', verify_confidence: 'MEDIUM', category: 'APP_BUG',
+    source: 'live', driftKind: 'appbug', healed: false, false_heal: false,
+    diagnosis: 'textPresent("Dashboard") failed after submit — app-bug mode, do NOT heal', hitl_decision: null
+  };
+  const validSimAmpHeal = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:00Z', app: 'amplitude',
+    testId: 'A1', stepId: 'o1', outcome: 'PASS', verify_confidence: 'simulated', category: 'DRIFT',
+    source: 'simulated', driftKind: 'restyle', healed: true, false_heal: false, diagnosis: null, hitl_decision: null
+  };
+  const validSimAmpAmbiguous = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:05Z', app: 'amplitude',
+    testId: 'A31', stepId: 'o31', outcome: 'ABSTAIN', verify_confidence: 'simulated', category: 'AMBIGUITY',
+    source: 'simulated', driftKind: 'localize', healed: null, false_heal: false,
+    diagnosis: 'multiple identical candidates tied within margin ("+ Add Column Filter") — no deterministic discriminator',
+    hitl_decision: null
+  };
+  const validSimTsgAmbiguous = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:10Z', app: 'testsigma',
+    testId: 'T5', stepId: 'o5', outcome: 'ABSTAIN', verify_confidence: 'simulated', category: 'AMBIGUITY',
+    source: 'simulated', driftKind: 'localize', healed: null, false_heal: false,
+    diagnosis: 'icon-ligature accessible name collided under drift — no deterministic discriminator',
+    hitl_decision: null
+  };
+  const validSimRemoval = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:15Z', app: 'fixture:login',
+    testId: 'T9', stepId: 'o9', outcome: 'FAILED', verify_confidence: 'simulated', category: 'REMOVAL',
+    source: 'simulated', driftKind: 'restyle', healed: false, false_heal: false,
+    diagnosis: 'no candidate on current screen — removed, or not yet rendered', hitl_decision: null
+  };
+  const validSimStateIssue = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:20Z', app: 'fixture:payment',
+    testId: 'P2', stepId: 'o2', outcome: 'FAILED', verify_confidence: 'simulated', category: 'STATE_ISSUE',
+    source: 'simulated', driftKind: 'pristine', healed: null, false_heal: false,
+    diagnosis: 'element exists but is not interactable (disabled/hidden/overlay)', hitl_decision: null
+  };
+  const validSimFalseHeal = {   // THE gating proof row — outcome looks like PASS, false_heal:true must still surface
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:25Z', app: 'fixture:login',
+    testId: 'FH1', stepId: 'o40', outcome: 'PASS', verify_confidence: 'MEDIUM', category: 'DRIFT',
+    source: 'simulated', driftKind: 'restyle', healed: true, false_heal: true,
+    diagnosis: 'healed to WRONG element (data-oracle mismatch) — synthetic corpus row proving the false-heal gate surfaces',
+    hitl_decision: null
+  };
+  const validSimFieldMissing = {   // false_heal deliberately OMITTED — schema allows it; must not be miscounted either way
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:30Z', app: 'fixture:login',
+    testId: 'L4', stepId: null, outcome: 'PASS', verify_confidence: 'simulated', category: 'VERIFIED',
+    source: 'simulated', driftKind: 'pristine', healed: false, diagnosis: null, hitl_decision: null
+  };
+  const validManualHitl = {
+    schemaVersion: 'flywheel-event/v1', ts: '2026-06-26T10:00:35Z', app: 'fixture:payment',
+    testId: 'P7', stepId: null, outcome: 'ABSTAIN', verify_confidence: 'NONE', category: 'UNKNOWN',
+    source: 'manual', driftKind: null, healed: null, false_heal: false,
+    diagnosis: 'nameless icon — queued for human review', hitl_decision: 'skip'
+  };
+  const malformedMissingSource = { ...validLiveL1 }; delete malformedMissingSource.source;
+  const malformedBadOutcomeEnum = { ...validLiveS1, outcome: 'PASSED_WARNING' };   // raw non-canonical label (the S7 label-drift bug)
+
+  const corpus = [
+    validLiveL1, validLiveL2, validLiveL3, validLiveS1, validLiveL1AppBug,
+    validSimAmpHeal, validSimAmpAmbiguous, validSimTsgAmbiguous, validSimRemoval, validSimStateIssue,
+    validSimFalseHeal, validSimFieldMissing, validManualHitl,
+    malformedMissingSource, malformedBadOutcomeEnum
+  ];
+
+  // ---- pre-registered expectations (decided BEFORE running buildReport) ----
+  const EXPECT = {
+    totalRowsReceived: 15, validRowCount: 13, rejectedRowCount: 2,
+    falseHealCount: 1, falseHealFieldMissingCount: 1, falseHealInRejectedRows: 0,
+    outcomeCounts: { PASS: 6, PASS_WARNING: 1, FAILED: 3, ABSTAIN: 3 },
+    verifyConfidenceCounts: { HIGH: 1, MEDIUM: 4, NONE: 2, simulated: 6 },
+    clusterCategories: ['AMBIGUITY', 'APP_BUG', 'REMOVAL', 'SMOKE', 'STATE_ISSUE', 'UNKNOWN'],
+    clusterCounts: [2, 1, 1, 1, 1, 1],
+    ambiguityExampleTestIds: ['A31', 'T5'],
+    selfHealMeasured: { healed: 0, healEligible: 4, rate: 0, ratePct: 0, label: 'measured' },
+    selfHealSimulated: { healed: 2, healEligible: 4, rate: 0.5, ratePct: 50, label: 'simulated' },
+    manualExcludedCount: 1,
+    perTestCount: 12,
+    l1OutcomeCounts: { PASS: 1, PASS_WARNING: 0, FAILED: 1, ABSTAIN: 0 },
+    l1Categories: ['VERIFIED', 'APP_BUG']
+  };
+
+  let actual, throwErr = null;
+  try { actual = R.buildReport(corpus); } catch (e) { throwErr = e; }
+
+  const checks = [];
+  function check(label, expect, got) { checks.push({ label, expect, got, passed: deepEqual(expect, got) }); }
+
+  if (throwErr) {
+    check('buildReport(corpus) does not throw', 'no throw', 'THREW: ' + (throwErr && throwErr.stack || throwErr));
+  } else {
+    check('totalRowsReceived', EXPECT.totalRowsReceived, actual.summary.totalRowsReceived);
+    check('validRowCount', EXPECT.validRowCount, actual.summary.validRowCount);
+    check('rejectedRowCount', EXPECT.rejectedRowCount, actual.summary.rejectedRowCount);
+    check('falseHealCount (THE gating metric)', EXPECT.falseHealCount, actual.summary.falseHealCount);
+    check('falseHealFieldMissingCount', EXPECT.falseHealFieldMissingCount, actual.summary.falseHealFieldMissingCount);
+    check('falseHealInRejectedRows', EXPECT.falseHealInRejectedRows, actual.summary.falseHealInRejectedRows);
+    check('outcomeCounts', EXPECT.outcomeCounts, actual.summary.outcomeCounts);
+    check('verifyConfidenceCounts', EXPECT.verifyConfidenceCounts, actual.summary.verifyConfidenceCounts);
+    check('clusters: category order (F7 — one root cause, many failures)', EXPECT.clusterCategories, actual.clusters.map(c => c.category));
+    check('clusters: counts', EXPECT.clusterCounts, actual.clusters.map(c => c.count));
+    check('clusters: AMBIGUITY exampleTestIds span both apps', EXPECT.ambiguityExampleTestIds, actual.clusters.find(c => c.category === 'AMBIGUITY').exampleTestIds);
+    check('clusters: AMBIGUITY sampleDiagnosis is non-null', true, !!actual.clusters.find(c => c.category === 'AMBIGUITY').sampleDiagnosis);
+    check('selfHealRate.measured (source=live)', EXPECT.selfHealMeasured, actual.selfHealRate.measured);
+    check('selfHealRate.simulated (source=simulated, never blended)', EXPECT.selfHealSimulated, actual.selfHealRate.simulated);
+    check('selfHealRate.manualExcludedCount', EXPECT.manualExcludedCount, actual.selfHealRate.manualExcludedCount);
+    check('perTest row count', EXPECT.perTestCount, actual.perTest.length);
+    const l1 = actual.perTest.find(p => p.app === 'fixture:login' && p.testId === 'L1');
+    check('perTest fixture:login::L1 outcomeCounts (2 rows merged)', EXPECT.l1OutcomeCounts, l1 && l1.outcomeCounts);
+    check('perTest fixture:login::L1 categories', EXPECT.l1Categories, l1 && l1.categories);
+    check('rejectedRows[0] reason names the missing field', true, /missing required field "source"/.test(actual.rejectedRows[0].reason));
+    check('rejectedRows[1] reason names the bad enum value', true, actual.rejectedRows[1].reason.indexOf('PASSED_WARNING') !== -1);
+    check('rejectedRows never silently dropped (length matches malformed count)', 2, actual.rejectedRows.length);
+    check('labels documents every numeric field group', true,
+      ['falseHealCount', 'outcomeCounts', 'verifyConfidenceCounts', 'clusters', 'selfHealRate.measured', 'selfHealRate.simulated', 'selfHealRate.manualExcludedCount']
+        .every(k => typeof actual.labels[k] === 'string'));
+  }
+
+  // ---- defensive: non-array input must throw, never silently return an empty "all clear" report ----
+  let nonArrayThrew = false;
+  try { R.buildReport(null); } catch (e) { nonArrayThrew = true; }
+  check('buildReport(null) throws rather than fabricating an empty report', true, nonArrayThrew);
+
+  // ---- regression: review-pass fixes (self-contained mini-corpora, so main EXPECT stays stable) ----
+  const base = (over) => Object.assign({
+    schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T12:00:00Z', app: 'fixture:x', testId: 'X1', stepId: null,
+    outcome: 'FAILED', verify_confidence: 'simulated', category: 'REMOVAL', source: 'simulated',
+    driftKind: 'restyle', healed: false, false_heal: false, diagnosis: null, hitl_decision: null
+  }, over);
+
+  // (1) prototype-pollution: a category whose name collides with an Object.prototype member must still cluster.
+  const protoRep = R.buildReport([base({ category: 'constructor' }), base({ category: 'toString' })]);
+  check('regression: prototype-name categories cluster (not dropped)',
+    ['constructor', 'toString'], protoRep.clusters.map(c => c.category).sort());
+  check('regression: prototype-name cluster counts are correct', [1, 1], protoRep.clusters.map(c => c.count));
+
+  // (2) false_heal supplied as a non-boolean truthy on a REJECTED row must still surface in the gate.
+  const rejFhRep = R.buildReport([base({ false_heal: 'true' })]);   // string fails schema boolean type → rejected
+  check('regression: rejected row with false_heal:"true" is rejected', 1, rejFhRep.summary.rejectedRowCount);
+  check('regression: truthy false_heal on a rejected row surfaces in falseHealInRejectedRows', 1, rejFhRep.summary.falseHealInRejectedRows);
+
+  // (3) perTest key must not collide when app/testId contain the delimiter.
+  const collRep = R.buildReport([base({ app: 'A::B', testId: 'C' }), base({ app: 'A', testId: 'B::C' })]);
+  check('regression: perTest (app,testId) pairs do not collide on "::"', 2, collRep.perTest.length);
+
+  // (4) empty-string category is now rejected at the schema (not folded into UNKNOWN).
+  const emptyCatRep = R.buildReport([base({ category: '' })]);
+  check('regression: empty-string category is rejected (schema minLength)', 1, emptyCatRep.summary.rejectedRowCount);
+  check('regression: empty-string category does NOT become an UNKNOWN cluster', 0, emptyCatRep.clusters.length);
+
+  // (5) the report is robust to a schema whose enum is present (loud-throw path only fires when absent — not exercised here, but confirm normal path still yields initialized buckets).
+  check('regression: outcomeCounts has a zero-initialized bucket for every enum value', true,
+    Object.keys(actual.summary.outcomeCounts).length >= 4);
+
+  // deepEqual self-tests (the gate must be trustworthy)
+  check('deepEqual self-test: {x:undefined} !== {y:undefined} (key symmetry)', false, deepEqual({ x: undefined }, { y: undefined }));
+  check('deepEqual self-test: NaN equals NaN', true, deepEqual(NaN, NaN));
+
+  const pass = checks.filter(c => c.passed).length, fail = checks.length - pass;
+
+  // ---- live cross-check #1: hand-written rows mirroring the S7 table in PRETOTYPE-RUN.md (always runs) ----
+  const s7MirrorRows = [
+    { schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T11:00:00Z', app: 'fixture:login', testId: 'L1', stepId: null,
+      outcome: 'PASS', verify_confidence: 'HIGH', category: 'VERIFIED', source: 'live', driftKind: 'pristine',
+      healed: false, false_heal: false, diagnosis: null, hitl_decision: null },
+    { schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T11:00:05Z', app: 'fixture:login', testId: 'L2', stepId: null,
+      outcome: 'PASS', verify_confidence: 'MEDIUM', category: 'NEG_OK', source: 'live', driftKind: 'pristine',
+      healed: false, false_heal: false, diagnosis: null, hitl_decision: null },
+    { schemaVersion: 'flywheel-event/v1', ts: '2026-07-01T11:00:10Z', app: 'fixture:login', testId: 'L1', stepId: 'appbug-run',
+      outcome: 'FAILED', verify_confidence: 'MEDIUM', category: 'APP_BUG', source: 'live', driftKind: 'appbug',
+      healed: false, false_heal: false, diagnosis: 'STUCK_DOM — textPresent("Dashboard") failed', hitl_decision: null }
+  ];
+  let s7MirrorReport = null, s7MirrorErr = null;
+  try { s7MirrorReport = R.buildReport(s7MirrorRows); } catch (e) { s7MirrorErr = e; }
+  const s7MirrorOk = !s7MirrorErr && s7MirrorReport.summary.falseHealCount === 0
+    && s7MirrorReport.clusters.some(c => c.category === 'APP_BUG' && c.count === 1);
+
+  // ---- live cross-check #2: opportunistic adapter from window.__S7_RESULT.liveResults (skipped if no sibling tab) ----
+  function liveResultToFlywheelEvent(r0, app) {
+    return {
+      schemaVersion: 'flywheel-event/v1', ts: new Date().toISOString(), app: app || 'fixture:login',
+      testId: r0.id, stepId: null, outcome: r0.outcome, verify_confidence: r0.verify_confidence,
+      category: r0.category, source: 'live', driftKind: 'pristine', healed: false, false_heal: false,
+      diagnosis: r0.outcome === 'FAILED' ? (r0.prescription || null) : null, hitl_decision: null
+    };
+  }
+  const s7 = window.__S7_RESULT;
+  let adapterReport = null, adapterErr = null, adapterRan = false, adapterAdaptedCount = 0;
+  if (s7 && s7.liveResults && s7.liveResults.length) {
+    adapterRan = true;
+    try {
+      const adaptedRows = s7.liveResults.slice(0, 3).map(r0 => liveResultToFlywheelEvent(r0, 'fixture:login'));
+      adapterReport = R.buildReport(adaptedRows);
+      adapterAdaptedCount = adaptedRows.length;
+    } catch (e) { adapterErr = e; }
+  }
+  // buildReport never throws on invalid rows (it accumulates them in rejectedRows), so "no throw" alone
+  // would pass even if the adapter mapping were wrong and EVERY row got rejected. Require that the adapted
+  // rows actually VALIDATED — otherwise the cross-check proves nothing about the S7→flywheel-event mapping.
+  const adapterOk = !adapterRan || (!adapterErr && adapterReport
+    && adapterReport.summary.validRowCount === adapterAdaptedCount
+    && adapterReport.summary.rejectedRowCount === 0
+    && typeof adapterReport.summary.falseHealCount === 'number');
+
+  const liveCrossCheckOk = s7MirrorOk && adapterOk;
+
+  // ---- render ----
+  let h = '';
+  h += '<div class="banner">S3 gate: <b>' + pass + '/' + checks.length + ' checks passed</b> '
+     + (fail === 0 && liveCrossCheckOk ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + fail + ' check(s) + live-cross-check ' + (liveCrossCheckOk ? 'ok' : 'FAILED') + ')</span>')
+     + '</div>';
+
+  h += '<h2>Corpus checks (expect vs got)</h2>';
+  h += '<table><tr><th>#</th><th>check</th><th>expect</th><th>got</th><th>result</th></tr>';
+  checks.forEach((c, i) => {
+    h += '<tr><td>' + (i + 1) + '</td><td>' + esc(c.label) + '</td>'
+      + '<td><pre style="max-height:8em">' + esc(JSON.stringify(c.expect)) + '</pre></td>'
+      + '<td><pre style="max-height:8em">' + esc(JSON.stringify(c.got)) + '</pre></td>'
+      + '<td class="' + (c.passed ? 'PASS' : 'FAIL') + '">' + (c.passed ? 'PASS' : 'FAIL') + '</td></tr>';
+  });
+  h += '</table>';
+
+  h += '<h2>Live cross-check</h2>';
+  h += '<div class="row">S7-mirror rows (L1 valid-login PASS/HIGH/VERIFIED, L2 PASS/MEDIUM/NEG_OK, L1 app-bug FAILED/MEDIUM/APP_BUG) → '
+     + (s7MirrorOk ? '<span class="ok">OK ✓ false-heal=0, APP_BUG clustered</span>' : '<span class="bad">FAILED</span>') + '</div>';
+  if (s7MirrorReport) h += '<div class="row"><small>falseHealCount=' + s7MirrorReport.summary.falseHealCount
+     + ', clusters=' + JSON.stringify(s7MirrorReport.clusters.map(c => c.category + ':' + c.count)) + '</small></div>';
+  if (!adapterRan) h += '<div class="row warn">(no <code>__S7_RESULT</code> in this tab — adapter cross-check skipped; S7-mirror rows above still ran.)</div>';
+  else h += '<div class="row">adapter(<code>__S7_RESULT.liveResults</code>) → buildReport: '
+     + (adapterOk ? '<span class="ok">OK ✓</span>' : '<span class="bad">FAILED: ' + esc(adapterErr && adapterErr.message || adapterErr) + '</span>') + '</div>';
+
+  window.__S3_TESTS = { checks, pass, fail, s7MirrorReport, s7MirrorOk, adapterRan, adapterOk, liveCrossCheckOk, actual };
+  out.innerHTML = h;
+})();
+</script>
+</body></html>

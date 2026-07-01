@@ -21,7 +21,7 @@
       stepId: { type: ['string', 'null'] },                         // null when the row is a test-level outcome
       outcome: { type: 'string', enum: ['PASS', 'PASS_WARNING', 'FAILED', 'ABSTAIN'] },   // canonical runtime vocabulary only — NOT outcome-verification's raw 'PASSED'/'PASSED_WARNING'
       verify_confidence: { type: 'string', enum: ['HIGH', 'MEDIUM', 'NONE', 'simulated'] },
-      category: { type: 'string' },                                 // VERIFIED|NEG_OK|APP_BUG|DRIFT|AMBIGUITY|REMOVAL|STATE_ISSUE|SMOKE|UNKNOWN
+      category: { type: 'string', minLength: 1 },                   // VERIFIED|NEG_OK|APP_BUG|DRIFT|AMBIGUITY|REMOVAL|STATE_ISSUE|SMOKE|UNKNOWN — empty string is a producer bug, reject it (don't silently fold into UNKNOWN downstream)
       source: { type: 'string', enum: ['live', 'simulated', 'manual'] },  // live=S7 executor; simulated=drift-only; manual=HITL
       driftKind: { type: ['string', 'null'], enum: ['pristine', 'restyle', 'localize', 'appbug', null] },
       healed: { type: ['boolean', 'null'] },                        // true=matcher had to heal; false=cached; null=n/a

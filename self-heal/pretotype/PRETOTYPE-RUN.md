@@ -261,6 +261,45 @@ S2 does not touch that file.
   records. Fixed (one-level-deep copy) + regression test added.
 - Built: `self-heal/brain/{brain.js, tests.html}`.
 
+## S3 — run report + failure clustering (`measured · 2026-07-01` — `self-heal/report/`)
+
+Built in a parallel background worktree, then reviewed + fixed + merged from the master session.
+`report.js` is a pure function over schema-validated `flywheel-event/v1` rows (read-only consumer of S1's
+schemas). Adds F7 failure-clustering (group non-PASS rows by category → "one root cause, many failures"
+reads as one cluster) that the shallower pretotype reports (`amplitude-report.js`, `generic-report.js`) lacked.
+
+- **`buildReport(rows)`** → `{summary, clusters, selfHealRate, perTest, rejectedRows, labels}`.
+  - Every row validated first; malformed rows land in `rejectedRows` **with a named reason** (never silently
+    dropped or crashed on).
+  - `summary.falseHealCount` is the single most prominent field; **plus** `falseHealInRejectedRows` and
+    `falseHealFieldMissingCount` so a false-heal can't hide in a malformed or field-omitting row.
+  - `selfHealRate` keeps **measured (source=live)** and **simulated (source=simulated)** as separate numbers,
+    never blended; manual/HITL rows counted-but-excluded. Rate is `null` (not 0) when no eligible data — no
+    fabricated percentage. Every numeric group has a `labels` entry (measured/simulated/n·a).
+- **Gate: `self-heal/report/tests.html` → `window.__S3_TESTS` → 33/33 checks PASS**, GO. Corpus = 13 valid rows
+  (9 categories, HIGH/MEDIUM/NONE/simulated, one `false_heal:true` gating-proof row, one field-omitting row) +
+  2 malformed rows rejected by name. Expectations pre-registered before running (K36e). Live cross-check:
+  hand-written rows mirroring the S7 table (L1 PASS/HIGH/VERIFIED, app-bug FAILED/APP_BUG) → false-heal 0,
+  APP_BUG correctly clustered; opportunistic adapter from `__S7_RESULT.liveResults` when a sibling tab has it.
+- **Review pass (3 parallel reviewers: correctness / cleanup+conventions / test-contract) found real bugs,
+  all fixed before merge:**
+  1. **Prototype-pollution in clustering** — `byCategory = {}` keyed by free-form category; a row with
+     `category:'constructor'`/`'toString'` would resolve truthy via `Object.prototype`, skip the guard, and
+     silently drop that entire failure class from the F7 report. Fixed with `Object.create(null)` + regression.
+  2. **False-heal blind spot on rejected rows** — `falseHealInRejectedRows` used `=== true`, so a row rejected
+     *because* `false_heal` was `"true"` (string) or `1` was invisible to the gate exactly when the payload is
+     malformed. Changed to a truthy check (surface more, never less, on the gating metric). Regression added.
+  3. **perTest key collision** — `app + '::' + testId` merged `('A::B','C')` and `('A','B::C')`. Switched to
+     `JSON.stringify([app, testId])`. Regression added.
+  4. **Stale hardcoded enum fallback** — `... || ['PASS',...]` would silently miscount if the schema's enum
+     were ever migrated. Replaced with a loud throw when the enum is absent (schema/report.js out of sync).
+  5. **CLAUDE.md no-fabrication** — `perTest.*` numbers (incl. the gate's per-test `falseHealCount`) had no
+     `labels` entry. Added, with the rejected-row-blind-spot caveat spelled out.
+  6. **Empty-string category** folded into UNKNOWN — fixed at its proper home: `flywheel-event.schema.js`
+     `category` now has `minLength: 1`, so empty is rejected & surfaced in `rejectedRows` (S1 suite re-run: 24/24
+     still green). Also hardened the test harness's `deepEqual` (`Object.is` for NaN/±0, key-symmetry check).
+- Built: `self-heal/report/{report.js, tests.html}`; tightened `self-heal/schemas/flywheel-event.schema.js`.
+
 ## Repro
 `python3 -m http.server 8766 --bind 127.0.0.1` from worktree root →
 - S0: `http://127.0.0.1:8766/self-heal/pretotype/flow-pretotype.html` (`?manual=1` for HITL). `window.__PRETOTYPE_RESULT`.
@@ -268,3 +307,4 @@ S2 does not touch that file.
 - S7: `http://127.0.0.1:8766/self-heal/pretotype/opentest-pretotype-live.html`. `window.__S7_RESULT`.
 - S1: `http://127.0.0.1:8766/self-heal/schemas/tests.html`. `window.__S1_TESTS`.
 - S2: `http://127.0.0.1:8766/self-heal/brain/tests.html`. `window.__S2_TESTS`.
+- S3: `http://127.0.0.1:8766/self-heal/report/tests.html`. `window.__S3_TESTS`.
