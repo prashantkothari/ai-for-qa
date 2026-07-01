@@ -330,6 +330,39 @@ copies) before merge. Reuses the S0 fixtures as its corpus — no new fixtures a
   matcher, it doesn't train it).
 - Built: `self-heal/benchmark/{corpus.js, eval-gate.js, eval-gate.html, baseline.json, BENCHMARK-RUN.md}`.
 
+## S5 — plugin shell (`measured · live · 2026-07-01` — `self-heal/shell/`)
+
+The user-facing flow: **suggest → review → run(live) → report**, with HITL-on-stuck and brain priming.
+Pure orchestration — no new matcher/heal/executor code. The honest successor to the MOCK `flow-pretotype.js`
+(now real executor + real report + real authoring). `shell.js` wires: S6 `testgen.authorTests` (suggest) →
+approve list (review) → S7 `executeLive` per test (run) → S3 `buildReport` (report) → S2 `brain` (prime) →
+existing `hitl-overlay` (stuck). Injectable, same delivery model as the other tools.
+
+- **Gate: `self-heal/shell/shell.html` → `window.__S5_SHELL` → 12/12 checks PASS, GO** (`?manual=1` answers HITL
+  with the real overlay by hand; default is a canned auto-answerer so the shell is headless-testable).
+- **End-to-end on the interactive login fixture:** 6 tests suggested (L1/L2/L3/S1/F1 authored + one H1
+  nameless-eye HITL probe) → L1 PASS/HIGH, L2/L3 PASS/MEDIUM (NEG_OK), S1/F1 PASS_WARNING (smoke), H1 →
+  **ABSTAIN → HITL fired once** (never a wrong guess). **false-heal 0 in both runs.** F7 clusters: SMOKE:2,
+  AMBIGUITY:1. All live rows schema-valid (0 rejected).
+- **Measured before/after (brain priming):** run-1 cold **0%** → run-2 primed **33% (3/9 eligible steps)**.
+  The 33% is exactly right and demonstrates OV#4 in the metric: only L1 verifies at HIGH (elementGone), so
+  only its 3 steps (`L1:email/password/submit`) cache; L2/L3 are MEDIUM (textPresent) and are NOT cached.
+- **Consistency check** (in the gate): the shell's L1 outcome equals a direct `executeLive(L1)` — the
+  orchestration doesn't distort outcomes.
+- **Honest bounds (stated in the shell, not hidden):** (a) HITL SURFACES the pipeline's stuck signal +
+  records the human decision as ground truth; resolve-and-continue mid-test is S8/S9. (b) Brain priming is
+  MEASURED and the cache COMPOUNDS (ingest on HIGH), but `executeLive` does not yet consult the brain to
+  short-circuit matching — brain-first execution is S8/S9. So the primed cache is shown populated + valid,
+  not yet load-bearing.
+- **Bugs caught before commit:** (1) the shell's `toRow` fabricated false-heals — it called the identity-
+  based `isFalseHeal` with a null resolved-identity (executeLive doesn't expose the resolved element), a
+  category error since identity-level false-heal needs an oracle only the benchmark has; fixed to
+  `false_heal:false` on live rows (runtime wrong-heals surface via verify-by-effect → FAILED, and S4 is the
+  identity-level authority). Caught by the gate reading falseHealCount=5. (2) the harness mount handler had
+  dropped the empty-submit→"required" branch, making L3 fail as APP_BUG; restored. (3) code review removed
+  one dead assignment.
+- Built: `self-heal/shell/{shell.js, shell.html}`.
+
 ## Repro
 `python3 -m http.server 8766 --bind 127.0.0.1` from worktree root →
 - S0: `http://127.0.0.1:8766/self-heal/pretotype/flow-pretotype.html` (`?manual=1` for HITL). `window.__PRETOTYPE_RESULT`.
@@ -339,3 +372,4 @@ copies) before merge. Reuses the S0 fixtures as its corpus — no new fixtures a
 - S2: `http://127.0.0.1:8766/self-heal/brain/tests.html`. `window.__S2_TESTS`.
 - S3: `http://127.0.0.1:8766/self-heal/report/tests.html`. `window.__S3_TESTS`.
 - S4: `http://127.0.0.1:8766/self-heal/benchmark/eval-gate.html`. `window.__BENCH_RESULT`.
+- S5: `http://127.0.0.1:8766/self-heal/shell/shell.html` (`?manual=1` for real HITL). `window.__S5_SHELL`.
