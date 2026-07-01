@@ -226,9 +226,45 @@ surfaced real bugs pre-commit:
   (L1 HIGH/PASS, L2/L3 MEDIUM/PASS, app-bug FAILED/APP_BUG); tally now shows canonical `PASS_WARNING:2` only.
 - Built: `self-heal/schemas/{validator.js, test-plan.schema.js, flywheel-event.schema.js, escalation.schema.js, tests.html}`.
 
+## S2 — brain (verify-gated cache) (`measured · live · 2026-07-01` — `self-heal/brain/`)
+
+The honest first cut of the compounding store: `put/get` keyed by **authored test identity**
+(`testId:stepId`, e.g. `L1:submit` — K37/GA-e), gated on `verify_confidence==='HIGH'` (OV#4), miss→cold.
+Promote/demote counters + the autonomy ladder stay `self-heal/pipeline/learning-loop.js`'s job (S8) —
+S2 does not touch that file.
+
+- **16/16 unit checks PASS** (`self-heal/brain/tests.html` → `window.__S2_TESTS`): put rejects
+  MEDIUM/NONE/simulated confidence and role+name/null locators; accepts real `#id`/`[data-testid]`
+  anchors at HIGH; get is a cold miss on a never-cached key, on a selector that no longer resolves, and
+  on a selector that now matches 2+ elements (never guess between duplicates); snapshot is a real
+  point-in-time copy (mutating it can't corrupt the live store).
+- **Measured before/after** (not simulated): ran S7's `executeLive` on the L1 fixture, then re-mounted
+  the SAME fixture and queried the brain a second time —
+
+  | metric | before S2 (run 1, cold) | after S2 (run 2, primed) | tag |
+  |---|---|---|---|
+  | brain hits before resolving any step | 0/3 | 3/3 (**100%**) | measured |
+  | brain writes from one HIGH-confidence live run | — | 3 (email, password, submit) | measured |
+
+- **Adapter (`ingestLiveResult`)** turns one S7 `executeLive` result into per-step brain writes: sound
+  because `executeLive` is all-or-nothing up to the assertion (one unresolved step blocks the whole test
+  before verification runs) — so a HIGH-confidence test-level outcome is evidence for every step that
+  got there, not just the last one.
+- **Bug caught by a "failing" unit test, not code review this time:** the first version of
+  `ingestLiveResult` passed the whole `liveResult` object into `brain.put()`, which reads
+  `verification.confidence` — but S7's result only has `verify_confidence` as the canonical field
+  (`.confidence` happens to carry the same value today, incidentally). A synthetic unit test that didn't
+  mirror that incidental duplication caught the coupling immediately. Fixed: the adapter now builds
+  `{confidence: liveResult.verify_confidence}` explicitly instead of relying on field overlap.
+- **Manual code-review pass** (small diff, ~180 lines — skipped the 10-parallel-finder-agent ceremony)
+  found one real issue: `snapshot()` was a shallow copy, leaking mutable references to live cache
+  records. Fixed (one-level-deep copy) + regression test added.
+- Built: `self-heal/brain/{brain.js, tests.html}`.
+
 ## Repro
 `python3 -m http.server 8766 --bind 127.0.0.1` from worktree root →
 - S0: `http://127.0.0.1:8766/self-heal/pretotype/flow-pretotype.html` (`?manual=1` for HITL). `window.__PRETOTYPE_RESULT`.
 - S6: `http://127.0.0.1:8766/self-heal/pretotype/opentest-pretotype.html`. `window.__S6_RESULT`.
 - S7: `http://127.0.0.1:8766/self-heal/pretotype/opentest-pretotype-live.html`. `window.__S7_RESULT`.
 - S1: `http://127.0.0.1:8766/self-heal/schemas/tests.html`. `window.__S1_TESTS`.
+- S2: `http://127.0.0.1:8766/self-heal/brain/tests.html`. `window.__S2_TESTS`.
