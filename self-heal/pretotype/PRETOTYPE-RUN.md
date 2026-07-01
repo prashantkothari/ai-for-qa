@@ -310,10 +310,13 @@ copies) before merge. Reuses the S0 fixtures as its corpus — no new fixtures a
   (`PAYMENT_FIXTURES.CASES`). One documented exclusion: `T1|appbug` is a post-heal assertion case, not a
   `matchStep` case, so asserting a matcher verdict for it would be fabricated.
 - **`eval-gate.js`** — `runBenchmark(corpus, doc, baseline?)`: per case mount→capture→drift→match/diagnose→
-  compare {verdict, category, resolved-element identity}. **False-heal is defined precisely**: verdict=heal &
-  expected=heal → false-heal iff resolved `data-oracle` ≠ ground-truth oracle (wrong element); verdict=heal &
-  expected≠heal → always a false-heal (healed when it should have abstained). Regression detection flags both
-  a match-status flip AND silent failure-mode drift between two already-non-matching states.
+  compare {verdict, category, resolved-element identity}. **False-heal is NOT defined here** — it is
+  single-sourced in **`self-heal/schemas/false-heal.js`** (`SELFHEAL_FALSEHEAL.isFalseHeal`) so the benchmark
+  classifier and S8's future live flywheel writer share one definition and can never drift apart. The rule:
+  verdict=heal & expected=heal → false-heal iff resolved identity ≠ intended identity (wrong element);
+  verdict=heal & expected≠heal → always a false-heal (healed when it should have abstained). Regression
+  detection flags both a match-status flip AND silent failure-mode drift between two already-non-matching states.
+  The primitive has its own 6-branch unit test in the S1 harness (`__S1_TESTS.fhRows`).
 - **`baseline.json`** — last-known-good snapshot, generated from the first clean run (not hand-authored).
 - **Gate: `self-heal/benchmark/eval-gate.html` → `window.__BENCH_RESULT` → 13/13 match, false-heal 0/13,
   0 regressions, GO** — re-confirmed in the master worktree against committed S0/S1 files.

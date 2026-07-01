@@ -45,6 +45,7 @@ Result exposed at <code>window.__BENCH_RESULT</code>.</small></p>
 <script src="../pretotype/payment-fixtures.js"></script>
 <script src="../schemas/validator.js"></script>
 <script src="../schemas/flywheel-event.schema.js"></script>
+<script src="../schemas/false-heal.js"></script>
 <script src="corpus.js"></script>
 <script src="eval-gate.js"></script>
 <script>
@@ -52,8 +53,8 @@ Result exposed at <code>window.__BENCH_RESULT</code>.</small></p>
   const status = document.getElementById('status'), out = document.getElementById('out');
   const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-  const missing = ['SELFHEAL', 'SELFHEAL_DIAGNOSIS', 'SELFHEAL_CANDGEN', 'PRETOTYPE_FIXTURES', 'PAYMENT_FIXTURES',
-    'SELFHEAL_BENCHMARK_CORPUS', 'SELFHEAL_BENCHMARK'].filter(k => !window[k]);
+  const missing = ['SELFHEAL', 'SELFHEAL_DIAGNOSIS', 'SELFHEAL_CANDGEN', 'SELFHEAL_FALSEHEAL', 'PRETOTYPE_FIXTURES',
+    'PAYMENT_FIXTURES', 'SELFHEAL_BENCHMARK_CORPUS', 'SELFHEAL_BENCHMARK'].filter(k => !window[k]);
   if (missing.length) {
     status.innerHTML = '<b class="bad">Scripts did not load (' + missing.join(', ') + ' undefined).</b>';
     out.innerHTML = '<p>This page must be served over http (relative &lt;script src&gt; paths do not resolve from a ' +

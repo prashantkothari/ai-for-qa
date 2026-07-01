@@ -32,6 +32,7 @@ against test-plan/v1 as a cross-check.</small></p>
 <script src="test-plan.schema.js"></script>
 <script src="flywheel-event.schema.js"></script>
 <script src="escalation.schema.js"></script>
+<script src="false-heal.js"></script>
 <script>
 (function () {
   const out = document.getElementById('out');
@@ -142,6 +143,22 @@ against test-plan/v1 as a cross-check.</small></p>
   });
   const pass = rows.filter(r => r.passed).length, fail = rows.length - pass;
 
+  // ---- false-heal primitive (single-sourced decision — schemas/false-heal.js) unit checks ----
+  const FH = window.SELFHEAL_FALSEHEAL;
+  const fhCases = [
+    ['no heal (abstain) → never false-heal',        { verdict: 'abstain', expectedVerdict: 'heal',    resolvedIdentity: null, expectedIdentity: 'a' }, false],
+    ['fail verdict → never false-heal',             { verdict: 'fail',    expectedVerdict: 'heal',    resolvedIdentity: null, expectedIdentity: 'a' }, false],
+    ['heal to the intended element → not false',    { verdict: 'heal',    expectedVerdict: 'heal',    resolvedIdentity: 'a',  expectedIdentity: 'a' }, false],
+    ['heal to the WRONG element → false-heal',      { verdict: 'heal',    expectedVerdict: 'heal',    resolvedIdentity: 'b',  expectedIdentity: 'a' }, true ],
+    ['heal when abstain was expected → false-heal', { verdict: 'heal',    expectedVerdict: 'abstain', resolvedIdentity: 'a',  expectedIdentity: 'a' }, true ],
+    ['heal when fail was expected → false-heal',    { verdict: 'heal',    expectedVerdict: 'fail',    resolvedIdentity: 'x',  expectedIdentity: 'y' }, true ]
+  ];
+  const fhRows = fhCases.map(([label, input, expected]) => {
+    const got = FH.isFalseHeal(input);
+    return { label, expect: expected, got, passed: got === expected };
+  });
+  const fhPass = fhRows.filter(r => r.passed).length, fhFail = fhRows.length - fhPass;
+
   // ---- cross-check against LIVE artifacts ----
   const stage = document.createElement('div'); stage.id = 'appStage';
   stage.innerHTML = window.PRETOTYPE_FIXTURES.LOGIN_DOM; document.body.appendChild(stage);
@@ -168,8 +185,8 @@ against test-plan/v1 as a cross-check.</small></p>
 
   // ---- render ----
   let h = '';
-  h += '<div class="banner">S1 gate: <b>' + pass + '/' + rows.length + ' corpus rows passed</b> '
-     + (fail === 0 ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + fail + ')</span>')
+  h += '<div class="banner">S1 gate: <b>' + pass + '/' + rows.length + ' corpus rows</b> + <b>' + fhPass + '/' + fhRows.length + ' false-heal checks</b> passed '
+     + (fail === 0 && fhFail === 0 ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + (fail + fhFail) + ')</span>')
      + '</div>';
   h += '<h2>Corpus (expected accept vs reject)</h2>';
   h += '<table><tr><th>#</th><th>label</th><th>expect</th><th>got</th><th>result</th><th>first error (if any)</th></tr>';
@@ -177,6 +194,14 @@ against test-plan/v1 as a cross-check.</small></p>
     h += '<tr><td>' + (i + 1) + '</td><td>' + r.label + '</td><td>' + r.expect + '</td><td>' + r.got + '</td>'
       +  '<td class="' + (r.passed ? 'PASS' : 'FAIL') + '">' + (r.passed ? 'PASS' : 'FAIL') + '</td>'
       +  '<td>' + (r.firstErr ? r.firstErr : '—') + '</td></tr>';
+  });
+  h += '</table>';
+
+  h += '<h2>false-heal primitive (schemas/false-heal.js — one definition for S4 benchmark + S8 flywheel)</h2>';
+  h += '<table><tr><th>#</th><th>case</th><th>expect</th><th>got</th><th>result</th></tr>';
+  fhRows.forEach((r, i) => {
+    h += '<tr><td>' + (i + 1) + '</td><td>' + r.label + '</td><td>' + r.expect + '</td><td>' + r.got + '</td>'
+      +  '<td class="' + (r.passed ? 'PASS' : 'FAIL') + '">' + (r.passed ? 'PASS' : 'FAIL') + '</td></tr>';
   });
   h += '</table>';
 
@@ -190,7 +215,7 @@ against test-plan/v1 as a cross-check.</small></p>
 
   if (!liveCheck.ok) h += '<pre>' + JSON.stringify(liveCheck.errors, null, 2) + '</pre>';
 
-  window.__S1_TESTS = { rows, pass, fail, liveCheck, s7Check };
+  window.__S1_TESTS = { rows, pass, fail, fhRows, fhPass, fhFail, liveCheck, s7Check };
   out.innerHTML = h;
 })();
 </script>

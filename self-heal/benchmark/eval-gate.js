@@ -12,19 +12,14 @@
  * `runBenchmark(corpus, doc)` shape) to run with regressions always []; pass the parsed baseline.json
  * to get real regression detection (eval-gate.html does this).
  *
- * FALSE-HEAL definition (the ONE number that must never silently regress):
- *   - actual verdict !== 'heal'                        -> never a false-heal (no false-heal without a heal).
- *   - actual verdict === 'heal' AND expected == 'heal'  -> false-heal iff resolved element's data-oracle
- *                                                          != the case's ground-truth oracle (healed to
- *                                                          the WRONG element).
- *   - actual verdict === 'heal' AND expected != 'heal'  -> ALWAYS a false-heal (healed at all when the
- *                                                          case should have abstained/failed) — per the
- *                                                          brief's explicit definition, regardless of
- *                                                          which element it resolved to.
+ * FALSE-HEAL definition is NOT defined here — it is single-sourced in self-heal/schemas/false-heal.js
+ * (window.SELFHEAL_FALSEHEAL.isFalseHeal) so the benchmark classifier and S8's live flywheel writer can
+ * never disagree on what counts as a false-heal. This file just calls it with data-oracle identities.
  */
 (function (root) {
-  const S = root.SELFHEAL, CG = root.SELFHEAL_CANDGEN, DG = root.SELFHEAL_DIAGNOSIS;
+  const S = root.SELFHEAL, CG = root.SELFHEAL_CANDGEN, DG = root.SELFHEAL_DIAGNOSIS, FH = root.SELFHEAL_FALSEHEAL;
   if (!S || !DG) throw new Error('eval-gate.js: SELFHEAL / SELFHEAL_DIAGNOSIS not loaded — load selfheal-core.js + pipeline/change-diagnosis.js first');
+  if (!FH) throw new Error('eval-gate.js: SELFHEAL_FALSEHEAL not loaded — load self-heal/schemas/false-heal.js first');
 
   // ---- drift helper — REIMPLEMENTED here (not imported): flow-pretotype.js documents this exact
   // transform (hash class/id for 'restyle'; reverse text/aria-label/placeholder for 'localize') but
@@ -94,11 +89,11 @@
       const actualCategory = diag.category;
       const resolvedOracle = (actualVerdict === 'heal' && r.best && r.best.el) ? r.best.el.getAttribute('data-oracle') : null;
 
-      // 4) false-heal + match classification (see file header for the exact false-heal definition).
-      let falseHeal = false;
-      if (actualVerdict === 'heal') {
-        falseHeal = (c.expectedVerdict === 'heal') ? (resolvedOracle !== c.oracle) : true;
-      }
+      // 4) false-heal (single-sourced in schemas/false-heal.js) + match classification.
+      const falseHeal = FH.isFalseHeal({
+        verdict: actualVerdict, expectedVerdict: c.expectedVerdict,
+        resolvedIdentity: resolvedOracle, expectedIdentity: c.oracle
+      });
       const identityOk = (c.expectedVerdict === 'heal') ? (resolvedOracle === c.oracle) : true;
       const match = (actualVerdict === c.expectedVerdict) && (actualCategory === c.expectedCategory) && identityOk;
 
