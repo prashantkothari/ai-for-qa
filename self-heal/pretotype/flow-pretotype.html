@@ -1,0 +1,96 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>S0 Pretotype — autonomous QA plugin flow (Wizard-of-Oz)</title>
+<style>
+  body{font:13px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;margin:16px;color:#111}
+  h1{font-size:16px}h2{font-size:13px;margin:14px 0 4px}
+  #wrap{display:flex;gap:20px;align-items:flex-start}
+  #appStage{width:420px;border:1px solid #ccc;border-radius:8px;padding:14px;background:#fff}
+  #appStage h2{font-size:15px;margin:0 0 8px}
+  #appStage .inp{display:block;width:100%;margin:2px 0 8px;padding:6px;border:1px solid #bbb;border-radius:5px}
+  #appStage .btn{padding:7px 12px;border:1px solid #888;border-radius:5px;background:#f3f3f3;cursor:pointer;margin:4px 6px 4px 0}
+  #appStage .btn.primary{background:#137333;color:#fff;border-color:#137333}
+  #appStage .icon{width:28px;height:28px;border:1px solid #bbb;border-radius:5px;background:#fafafa;cursor:pointer}
+  #appStage .link{display:inline-block;margin:6px 0;color:#1a73e8}
+  #out{flex:1;min-width:480px}
+  .ok{color:#137333}.bad{color:#c5221f;font-weight:bold}.warn{color:#b06000}
+  table{border-collapse:collapse;margin:6px 0;width:100%}td,th{border:1px solid #ddd;padding:3px 7px;font-size:12px;text-align:left}
+  .PASS{color:#137333}.PASS_HEALED{color:#137333;font-weight:bold}.FAILED{color:#c5221f}.ABSTAIN{color:#b06000}
+  .verdict{font-size:18px;font-weight:bold;padding:8px 14px;border-radius:8px;display:inline-block;margin:8px 0}
+  .GO{background:#e6f4ea;color:#137333}.REFINE{background:#fef7e0;color:#b06000}.PIVOT{background:#fdecea;color:#c5221f}
+  pre{background:#f6f6f6;padding:8px;white-space:pre-wrap;max-height:40vh;overflow:auto;font-size:11px}
+  small{color:#777}
+</style></head>
+<body>
+<h1>S0 Pretotype — open screen → suggest → review → record → execute → heal → report (Wizard-of-Oz)</h1>
+<p><small>REAL: selfheal-core · pipeline · hitl-overlay. MOCKED: shell · test-gen · executor · brain · flywheel.
+Add <code>?manual=1</code> to answer HITL cards yourself. Result in <code>window.__PRETOTYPE_RESULT</code>.</small></p>
+<div id="status">loading…</div>
+<div id="wrap">
+  <div><h2>App under test (#appStage)</h2><div id="appStage"></div></div>
+  <div id="out"></div>
+</div>
+
+<!-- load order mirrors gong-e2e-harness: pristine core first, then pipeline, hitl, fixtures, runner -->
+<script src="../../selfheal-core.js"></script>
+<script src="../pipeline/candidate-generation.js"></script>
+<script src="../pipeline/change-diagnosis.js"></script>
+<script src="../pipeline/failure-reporter.js"></script>
+<script src="../pipeline/outcome-verification.js"></script>
+<script src="../tools/hitl-overlay.js"></script>
+<script src="fixtures.js"></script>
+<script src="flow-pretotype.js"></script>
+<script>
+(async function () {
+  const status = document.getElementById('status'), out = document.getElementById('out');
+  const esc = s => String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  // guard: the relative <script src> tags only resolve when served over http (static-server.py),
+  // NOT when opened as a file:/data: URL (e.g. an IDE preview panel) — fail with a clear instruction.
+  const missing = ['SELFHEAL','PRETOTYPE_FIXTURES','__PRETOTYPE'].filter(k => !window[k]);
+  if (missing.length) {
+    status.innerHTML = '<b class="bad">Scripts did not load (' + missing.join(', ') + ' undefined).</b>';
+    out.innerHTML = '<p>This page was likely opened as a <code>file:</code>/<code>data:</code> URL (e.g. an IDE preview), ' +
+      'where its relative <code>&lt;script src&gt;</code> paths cannot resolve.</p>' +
+      '<p>Run <code>python3 static-server.py</code> and open it over http:<br>' +
+      '<code>http://127.0.0.1:8765/.claude/worktrees/peaceful-ride-9d7661/self-heal/pretotype/flow-pretotype.html</code></p>';
+    return;
+  }
+  try {
+    const res = await window.__PRETOTYPE.run();
+    window.__PRETOTYPE_RESULT = res;
+    const v = res.verdict, rep = res.report;
+
+    let h = '<div class="verdict ' + v.decision + '">KILL-GATE: ' + v.decision + '</div>';
+    h += ' <span class="' + (v.falseHealOK?'ok':'bad') + '">false-heal total = ' + rep.falseHealTotal + ' (ceiling 0)</span>';
+
+    h += '<h2>Run report (the contract)</h2>';
+    h += '<p>screens covered: <b>' + rep.screensCovered.join(', ') + '</b> · tests generated <b>' + rep.testsGenerated +
+         '</b> · approved <b>' + rep.testsApproved + '</b> · healed <b>' + rep.healed + '</b> · app-bugs <b>' + rep.appBugsFound + '</b></p>';
+    h += '<p>exec status: ' + Object.entries(rep.execStatus).map(([k,n])=>k+':'+n).join('  ') + '</p>';
+
+    h += '<table><tr><th>test</th><th>drift</th><th>resolution</th><th>assert</th><th>final</th><th>category</th><th>false-heal</th><th>flaky</th><th>actionable</th></tr>';
+    res.rows.forEach(r=>{
+      h += '<tr><td>'+r.test+' '+esc(r.name)+'</td><td>'+r.drift+'</td><td>'+r.resolution+'</td><td>'+r.assertion+
+           '</td><td class="'+r.final+'">'+r.final+'</td><td>'+r.category+'</td>'+
+           '<td class="'+(r.falseHeal?'bad':'')+'">'+(r.falseHeal?'YES':'—')+'</td><td>'+(r.flaky?'YES':'—')+'</td><td><small>'+esc(r.remediation)+'</small></td></tr>';
+    });
+    h += '</table>';
+
+    h += '<h2>Review (Flow 1)</h2><p>suggested: '+res.review.suggested.join(', ')+' · approved: '+res.review.approved.join(', ')+
+         ' · edited: '+esc(JSON.stringify(res.review.edited))+' · skipped: '+res.review.skipped.join(', ')+
+         ' · pointed-at: '+res.review.pointedAt+' · screenshot-on: '+res.review.screenshotOn+'</p>';
+
+    h += '<h2>HITL fires</h2><pre>'+esc(JSON.stringify(res.hitlFires,null,1))+'</pre>';
+    h += '<h2>Brain after (keyed by test identity) + flywheel</h2><pre>'+esc(JSON.stringify({brain:res.brain,flywheelEvents:res.flywheel.length},null,1))+'</pre>';
+
+    h += '<h2>Divergences vs pre-registered expectations</h2>';
+    h += v.divergences.length ? '<pre class="warn">'+esc(res.verdict.divergences.join('\n'))+'</pre>' : '<p class="ok">none — actual matches pre-registered expectations.</p>';
+
+    out.innerHTML = h;
+    status.innerHTML = '<b class="'+(v.decision==='GO'?'ok':(v.decision==='PIVOT'?'bad':'warn'))+'">done — '+v.decision+'</b>';
+  } catch (e) {
+    window.__PRETOTYPE_ERR = String(e && e.stack || e);
+    status.innerHTML = '<b class="bad">RUN ERROR: ' + esc(e && e.stack || e) + '</b>';
+  }
+})();
+</script>
+</body></html>

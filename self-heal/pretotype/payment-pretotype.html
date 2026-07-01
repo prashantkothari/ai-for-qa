@@ -1,0 +1,114 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>S0 Pretotype — COMPLEX payment screen (popup-over-popup) stress</title>
+<style>
+  body{font:13px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;margin:16px;color:#111}
+  h1{font-size:16px}h2{font-size:13px;margin:14px 0 4px}
+  #wrap{display:flex;gap:20px;align-items:flex-start}
+  #appStage{position:relative;width:460px;min-height:360px;border:1px solid #ccc;border-radius:8px;padding:14px;background:#fff;overflow:hidden}
+  #appStage h2{font-size:15px;margin:6px 0}#appStage h3{font-size:14px;margin:0 0 8px}
+  #appStage .inp{display:block;width:100%;margin:6px 0;padding:6px;border:1px solid #bbb;border-radius:5px}
+  #appStage button{padding:6px 10px;border:1px solid #888;border-radius:5px;background:#f3f3f3;cursor:pointer;margin:3px 4px 3px 0}
+  #appStage [data-oracle=pay]{background:#137333;color:#fff;border-color:#137333}
+  #appStage .iconbtn{width:28px;height:28px;background:#fafafa;float:right}
+  #appStage .card-row{display:flex;gap:8px;align-items:center;border:1px solid #eee;border-radius:6px;padding:6px;margin:4px 0}
+  #appStage .card-row span{flex:1}
+  #appStage .dropdown{border:1px solid #bbb;border-radius:5px;padding:6px;cursor:pointer;width:200px}
+  #appStage .opt{padding:6px 10px;cursor:pointer}#appStage .opt:hover{background:#f0f6ff}
+  #appStage .lbl{display:block;margin:6px 0}
+  #out{flex:1;min-width:520px}
+  .ok{color:#137333}.bad{color:#c5221f;font-weight:bold}
+  table{border-collapse:collapse;margin:6px 0;width:100%}td,th{border:1px solid #ddd;padding:4px 7px;font-size:12px;text-align:left;vertical-align:top}
+  .PASS,.PASS_HEALED{color:#137333}.FAILED{color:#c5221f}.ABSTAIN{color:#b06000}
+  .verdict{font-size:18px;font-weight:bold;padding:8px 14px;border-radius:8px;display:inline-block;margin:8px 0}
+  .GO{background:#e6f4ea;color:#137333}.REFINE{background:#fef7e0;color:#b06000}.PIVOT{background:#fdecea;color:#c5221f}
+  .match{color:#137333;font-weight:bold}.miss{color:#c5221f;font-weight:bold}
+</style></head>
+<body>
+<h1>S0 Pretotype — COMPLEX payment screen (popup-over-popup, twin rows, role-less portal, nameless icon)</h1>
+<p><small>Real: selfheal-core · pipeline (incl. disambiguateByContext) · hitl-overlay. Mocked: shell/exec.
+Add <code>?manual=1</code> for HITL cards. Result: <code>window.__PAY_RESULT</code>.</small></p>
+<div id="status">loading…</div>
+<div id="wrap">
+  <div><h2>App under test (#appStage)</h2><div id="appStage"></div></div>
+  <div id="out"></div>
+</div>
+
+<script src="../../selfheal-core.js"></script>
+<script src="../pipeline/candidate-generation.js"></script>
+<script src="../pipeline/change-diagnosis.js"></script>
+<script src="../pipeline/failure-reporter.js"></script>
+<script src="../tools/hitl-overlay.js"></script>
+<script src="payment-fixtures.js"></script>
+<script>
+(async function () {
+  const status = document.getElementById('status'), out = document.getElementById('out');
+  const esc = s => String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const S = window.SELFHEAL, CG = window.SELFHEAL_CANDGEN, DG = window.SELFHEAL_DIAGNOSIS, RP = window.SELFHEAL_REPORTER, F = window.PAYMENT_FIXTURES;
+  const MANUAL = /[?&]manual=1/.test(location.search);
+  if (!S || !CG || !F) { status.innerHTML='<b class="bad">scripts not loaded — open via http://127.0.0.1:8765/… (static-server), not file:/preview.</b>'; return; }
+  const stage = () => document.getElementById('appStage');
+  const hitlFires = [];
+  async function hitl(card, canned){ hitlFires.push({when:card.kind, oracle:card.step||card.test, flag:card.flag, category:card.category});
+    if (MANUAL && window.__hitl){ try{ return await window.__hitl.show(card); }catch(e){} } return canned||{action:'skip'}; }
+
+  function hash(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return 'x'+h.toString(16)+'z'; }
+  function restyle(){ stage().querySelectorAll('*').forEach(el=>{ if(el.getAttribute('class')) el.setAttribute('class',hash(el.getAttribute('class'))); if(el.id) el.id=hash(el.id); }); }
+
+  async function runCase(c){
+    // capture in cap state
+    stage().innerHTML = F.STATES[c.cap]();
+    const capEl = stage().querySelector("[data-oracle='"+c.oracle+"']");
+    if (!capEl) return { id:c.id, label:c.label, hard:c.hard, final:'ERROR', category:'no capture el', match:false };
+    const step = S.captureStep(capEl, document, { container:'#appStage', stepId:c.oracle });
+    if (c.context) step.context = CG.captureContext(capEl);
+    if (step.flag) await hitl({ kind:'record', step:c.oracle, flag:step.flag, descriptor:step.target.descriptor }, {action:'skip'});
+
+    // execute in exec state (+ optional drift)
+    stage().innerHTML = F.STATES[c.exec]();
+    if (c.drift === 'restyle') restyle();
+    const r = c.context ? CG.disambiguateByContext(document, step, {gate:true}) : S.matchStep(document, step, {gate:true});
+
+    // classify
+    let final, category, falseHeal=false, via=r.via||null, detail='';
+    if (r.verdict === 'heal') {
+      const correct = r.best && r.best.el.getAttribute('data-oracle') === c.oracle;
+      falseHeal = !correct;
+      final = c.drift ? 'PASS_HEALED' : 'PASS'; category = 'DRIFT';
+      detail = correct ? ('healed correct'+(via?(' via '+via):'')) : ('FALSE-HEAL → '+(r.best&&r.best.el.getAttribute('data-oracle')));
+    } else if (r.verdict === 'abstain') {
+      final = 'ABSTAIN';
+      if (r.gated) { category='STATE_ISSUE'; detail=r.diagnosis; }
+      else { const d = DG.diagnoseFailure(r); category=d.category; detail=d.reason; }
+      await hitl({ kind:'execute', test:c.id, category, headline:(RP.report({category,reason:detail},step)).headline, reason:detail }, {action:'skip'});
+    } else { // fail
+      const d = DG.diagnoseFailure(r); final='FAILED'; category=d.category; detail=d.reason;
+      await hitl({ kind:'execute', test:c.id, category, headline:(RP.report(d,step)).headline, reason:detail }, {action:'skip'});
+    }
+
+    const want = c.want;
+    const match = final===want.final && category===want.category && (!want.via || via===want.via) && (!want.recordFlag || hitlFires.some(f=>f.when==='record'&&f.oracle===c.oracle&&f.flag===want.recordFlag));
+    return { id:c.id, label:c.label, hard:c.hard, final, category, via, falseHeal, detail, want:`${want.final}/${want.category}${want.via?('/'+want.via):''}${want.note?(' ('+want.note+')'):''}`, match };
+  }
+
+  try {
+    const rows = [];
+    for (const c of F.CASES) rows.push(await runCase(c));
+    const falseHealTotal = rows.filter(r=>r.falseHeal).length;
+    const misses = rows.filter(r=>!r.match);
+    const decision = falseHealTotal>0 ? 'PIVOT' : (misses.length===0 ? 'GO' : 'REFINE');
+    window.__PAY_RESULT = { decision, falseHealTotal, rows, hitlFires };
+
+    let h = '<div class="verdict '+decision+'">COMPLEX-SCREEN GATE: '+decision+'</div> <span class="'+(falseHealTotal===0?'ok':'bad')+'">false-heal = '+falseHealTotal+'</span>';
+    h += '<table><tr><th>case</th><th>what is hard</th><th>final</th><th>category</th><th>vs expected</th><th>detail</th></tr>';
+    rows.forEach(r=>{ h += '<tr><td><b>'+r.id+'</b> '+esc(r.label)+'</td><td><small>'+esc(r.hard)+'</small></td>'+
+      '<td class="'+r.final+'">'+r.final+(r.via?(' ·'+r.via):'')+'</td><td>'+r.category+'</td>'+
+      '<td>'+(r.match?'<span class="match">✓ '+esc(r.want)+'</span>':'<span class="miss">✗ got vs '+esc(r.want)+'</span>')+'</td>'+
+      '<td class="'+(r.falseHeal?'bad':'')+'"><small>'+esc(r.detail)+'</small></td></tr>'; });
+    h += '</table>';
+    h += '<h2>HITL fires</h2><pre style="background:#f6f6f6;padding:8px;font-size:11px">'+esc(JSON.stringify(hitlFires,null,1))+'</pre>';
+    out.innerHTML = h;
+    status.innerHTML = '<b class="'+(decision==='GO'?'ok':(decision==='PIVOT'?'bad':'warn'))+'">done — '+decision+'</b>';
+  } catch(e){ window.__PAY_ERR=String(e&&e.stack||e); status.innerHTML='<b class="bad">RUN ERROR: '+esc(e&&e.stack||e)+'</b>'; }
+})();
+</script>
+</body></html>
