@@ -363,6 +363,40 @@ existing `hitl-overlay` (stuck). Injectable, same delivery model as the other to
   one dead assignment.
 - Built: `self-heal/shell/{shell.js, shell.html}`.
 
+## Live read-only pilot — real Amplitude chart-builder (`measured · live · 2026-07-02`)
+
+First live execution against a REAL, authenticated, cross-origin production app (not a local fixture) —
+the gap flagged after S5: "nothing has clicked/filled/submitted on a real app yet." Scope, per user
+decision: **read-only proof first, zero writes.** Not run via the S5 shell (its `mount()` assumes a
+fixture-swap model); instead `selfheal-core.js`'s real matcher was injected verbatim into the live tab via
+Chrome MCP's `javascript_tool` (CDP `Runtime.evaluate`, same technique `app-observer.js` already used for
+read-only measurement — bypasses the page's CSP since it's not a `<script src>` tag), wrapped in an IIFE so
+no global leaks into Amplitude's own page scope.
+
+- **Target**: `app.amplitude.com/analytics/testsigma/chart/new` (an unsaved chart draft — Amplitude keeps
+  `/chart/new` URLs ephemeral until an explicit Save; never clicked). **Actions**: clicking the
+  Segmentation/Funnel/Data Table/Retention/Journeys chart-type tabs — pure view-switches, no create/save/
+  delete. Confirmed zero persisted writes.
+- **Real captureStep → real matchStep → real click**, on real DOM: all 3 targets resolved via **strong,
+  real testid anchors** (`chart-type-select-dataTableV2`, `-retention`; `flag: null`, not weak/ambiguous) —
+  consistent with the earlier read-only measurement's finding that this screen is test-id-rich (~54–65%).
+- **First pass (naive immediate verify) under-reported**: `domChanged`/`urlChanged` read `false` for all 3,
+  because Amplitude's SPA re-renders asynchronously (React) and the snapshot was taken synchronously,
+  immediately after `.click()`. Confirmed via screenshot: the click DID work (a loading spinner mid-
+  transition). **This is the exact real-world case S9's `temporal-wait` lever exists for** — a live, honest
+  validation that the lever is solving a real problem, not a hypothetical one.
+- **Second pass (bounded wait-then-verify, same schedule/cap shape as `temporal-wait.js`)**: **3/3 verified**
+  — "Data Table" changed in 285ms (fast); "Retention" and "Journeys" each took ~1970ms (real navigation to
+  a new chart-slug URL, e.g. `.../new/9wsdcnmf?sharingId=...` → `.../new/viphxemr?sharingId=...`). Confirmed
+  visually (screenshot: Journeys/Pathfinder view active, "Select an event to start").
+- **False-heal: 0** — every located control resolved to the real, correct, intended tab.
+- **Honest bounds**: this pilot used a hand-written injection script exercising the real matcher directly,
+  not the S5 shell (which assumes a fixture-mount model) or S6's `testgen.js` (which only authors login-
+  screen tests) — porting the shell/authoring layer to real, non-fixture, non-login screens is follow-up
+  work, not done here. This proves the LOCATOR + LIVE-ACT + WAIT-VERIFY chain works end-to-end on a real
+  production SPA; it does not yet prove a suggest→review→report flow against a real app (that needs a
+  generic screen-type authoring path in `testgen.js`, S6's current gap for non-login screens).
+
 ## Repro
 `python3 -m http.server 8766 --bind 127.0.0.1` from worktree root →
 - S0: `http://127.0.0.1:8766/self-heal/pretotype/flow-pretotype.html` (`?manual=1` for HITL). `window.__PRETOTYPE_RESULT`.
