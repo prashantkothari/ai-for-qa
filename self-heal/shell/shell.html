@@ -41,6 +41,7 @@ flow. Add <code>?manual=1</code> to answer HITL cards with the real overlay by h
 <script src="../pretotype/selfheal-runtime.js"></script>
 <script src="../report/report.js"></script>
 <script src="../brain/brain.js"></script>
+<script src="../pipeline/learning-loop.js"></script>
 <script src="../tools/hitl-overlay.js"></script>
 <script src="shell.js"></script>
 <script>
@@ -51,7 +52,7 @@ flow. Add <code>?manual=1</code> to answer HITL cards with the real overlay by h
   const MANUAL = /[?&]manual=1/.test(location.search);
   const stage = document.getElementById('appStage');
 
-  const need = ['SELFHEAL', 'PRETOTYPE_FIXTURES', '__TESTGEN', '__RUNTIME', 'SELFHEAL_REPORT', 'SELFHEAL_BRAIN', 'SELFHEAL_SHELL'].filter(k => !window[k]);
+  const need = ['SELFHEAL', 'PRETOTYPE_FIXTURES', '__TESTGEN', '__RUNTIME', 'SELFHEAL_REPORT', 'SELFHEAL_BRAIN', 'SELFHEAL_LEARN', 'SELFHEAL_SHELL'].filter(k => !window[k]);
   if (need.length) { status.innerHTML = '<b class="bad">Scripts not loaded (' + need.join(', ') + '). Serve over http://127.0.0.1:8766/…</b>'; return; }
 
   // one document-level guard so a live .click() on an anchor can't navigate the harness away
@@ -135,7 +136,50 @@ flow. Add <code>?manual=1</code> to answer HITL cards with the real overlay by h
        directL1.outcome === byId(run1, 'L1').outcome && directL1.verify_confidence === byId(run1, 'L1').verify_confidence);
 
     const gatePass = checks.filter(c => c.passed).length, gateFail = checks.length - gatePass;
-    window.__S5_SHELL = { suite, run1, run2, brainSnapshot: brain.snapshot(), checks, gatePass, gateFail };
+
+    // ---- S8: climb the ladder to L2 for L1 (>=5 consecutive HIGH-confidence successes), then observe
+    // brain-first serving actually happening, plus a live demotion+eviction probe. Kept as its OWN
+    // checks array so the original 12 S5 checks above stay independently reportable/unchanged.
+    const run3 = await session.run({ drift: 'pristine', useBrain: true });
+    const run4 = await session.run({ drift: 'pristine', useBrain: true });
+    const run5 = await session.run({ drift: 'pristine', useBrain: true });   // L1 steps hit 5 successes here
+    const run6 = await session.run({ drift: 'pristine', useBrain: true });   // first run L1 steps CAN be brain-served
+
+    const ladder = session.getLadder();
+    const l1StepIds = suite.tests.find(t => t.id === 'L1').steps.filter(st => st._anchor).map(st => st._anchor.stepId);
+
+    const laddChecks = [];
+    const lck = (label, cond) => laddChecks.push({ label, passed: !!cond });
+    lck('L1 steps reach ladder tier L2 after exactly 5 HIGH-confidence successes', l1StepIds.every(id => ladder.tier('L1', id) === 'L2'));
+    lck('run6 serves at least one L1 step from the brain (brain-first is load-bearing, not just measured)',
+        byId(run6, 'L1').steps.some(st => st.servedBy === 'brain'));
+    lck('run6 still verifies by effect at HIGH confidence (verification never skipped — only re-matching is)',
+        byId(run6, 'L1').verify_confidence === 'HIGH' && byId(run6, 'L1').outcome === 'PASS');
+    lck('run6 false-heal = 0 (still the gate, even brain-first)', run6.report.summary.falseHealCount === 0);
+    lck('run6 reports a servedTally with both fields present (observable, not asserted)',
+        typeof run6.servedTally.brainServed === 'number' && typeof run6.servedTally.matcherServed === 'number' && run6.servedTally.brainServed >= 1);
+    lck('non-HIGH-confidence tests (L2/L3/S1/F1) never promote past L1 — OV#4 keeps them cold',
+        ['L2', 'L3', 'S1', 'F1'].every(id => {
+          const t = suite.tests.find(x => x.id === id);
+          return !t || t.steps.filter(st => st._anchor).every(st => ladder.tier(id, st._anchor.stepId) === 'L1');
+        }));
+    lck('flywheel log accumulates one real row per test per run, across ALL 6 runs (process-lifetime, not discarded)',
+        session.getFlywheelLog().length === run1.results.length + run2.results.length + run3.results.length + run4.results.length + run5.results.length + run6.results.length);
+
+    // demotion probe: simulate a verify-by-effect failure on an L2-promoted key and confirm the ladder
+    // demotes AND evicts from the brain immediately (1 failure, aggressive, false-heal=0 discipline).
+    const demoStepId = l1StepIds[0];
+    const beforeDemoteHit = brain.get('L1', demoStepId, document);
+    ladder.record('L1', demoStepId, 'FAILED', 'HIGH', brain);
+    const afterDemoteTier = ladder.tier('L1', demoStepId);
+    const afterDemoteHit = brain.get('L1', demoStepId, document);
+    lck('demote fires at exactly 1 failure: evicts from the brain AND resets the key to cold (tier L1)',
+        !!beforeDemoteHit && afterDemoteTier === 'L1' && afterDemoteHit === null);
+
+    const laddPass = laddChecks.filter(c => c.passed).length, laddFail = laddChecks.length - laddPass;
+    window.__S5_SHELL = { suite, run1, run2, run3, run4, run5, run6, brainSnapshot: brain.snapshot(),
+                           checks, gatePass, gateFail, laddChecks, laddPass, laddFail,
+                           ladderSnapshot: ladder.snapshot(), flywheelLog: session.getFlywheelLog() };
 
     // ---- render ----
     let h = '';
@@ -173,6 +217,24 @@ flow. Add <code>?manual=1</code> to answer HITL cards with the real overlay by h
 
     h += '<h2>4 · HITL fires (existing overlay)</h2>';
     h += '<div class="mut">' + (run1.hitlFires.length ? esc(JSON.stringify(run1.hitlFires)) : 'none') + (MANUAL ? '' : ' · (auto-answered; add ?manual=1 for the real overlay)') + '</div>';
+
+    h += '<h2>5 · S8 ladder — load-bearing brain-first + promote/demote (measured, not asserted)</h2>';
+    h += '<div class="banner">S8 ladder gate: <b>' + laddPass + '/' + laddChecks.length + ' checks passed</b> '
+       + (laddFail === 0 ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + laddFail + ')</span>')
+       + '<br>' + laddChecks.map(c => (c.passed ? '✓ ' : '<span class="bad">✗ ') + esc(c.label) + (c.passed ? '' : '</span>')).join('<br>') + '</div>';
+    h += '<table><tr><th>run</th><th>L1 servedTally (brain/matcher)</th><th>L1 outcome</th></tr>';
+    [run1, run2, run3, run4, run5, run6].forEach((r, i) => {
+      h += '<tr><td>run' + (i + 1) + '</td><td>' + r.servedTally.brainServed + ' / ' + r.servedTally.matcherServed + '</td>'
+         + '<td>' + esc(byId(r, 'L1').outcome) + '</td></tr>';
+    });
+    h += '</table>';
+    h += '<div class="mut">L1 ladder record after run6: ' + esc(JSON.stringify(l1StepIds.map(id => ({ step: id, ...ladder.get('L1', id), tier: ladder.tier('L1', id) })))) + '</div>';
+    h += '<div class="mut">Flywheel log size (accumulated, process-lifetime only — no durability backend): ' + session.getFlywheelLog().length + '</div>';
+    h += '<p class="mut">Ladder design (S8, self-heal/pipeline/learning-loop.js): L1 (cold/&lt;5 successes) → real matcher + '
+       + 'verify-by-effect always. L2 (&gt;=5 consecutive HIGH-confidence successes, 0 failures) → brain-first (skip re-matching '
+       + 'only; verify-by-effect NEVER skipped). Demote at exactly 1 failure → evict + reset to cold (aggressive by design — '
+       + 'promote slow, demote fast). No L3: skipping verify-by-effect itself has no second independent oracle to justify it '
+       + 'as safe, so it is not built (documented in learning-loop.js).</p>';
 
     panel.innerHTML = h;
     status.innerHTML = '<b class="ok">done — window.__S5_SHELL</b>';

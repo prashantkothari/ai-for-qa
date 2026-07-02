@@ -7,6 +7,19 @@
  *
  * SCOPE (pretotype): synthetic events on an INTERACTIVE in-page fixture. Real-app live execution needs
  * trusted events (chrome.debugger/CDP) + test-data/state safety -> the real MV3 extension, NOT here.
+ *
+ * S8 addition — OPTIONAL brain-first wiring (backward compatible; existing callers unaffected):
+ *   executeLive(scopeEl, test, opts) takes an OPTIONAL opts.brain (self-heal/brain/brain.js instance)
+ *   and opts.ladder (self-heal/pipeline/learning-loop.js instance). When BOTH are supplied AND the
+ *   ladder says a given step's key (test.id + ':' + step._anchor.stepId) is tier 'L2', locateAndAct()
+ *   tries brain.get() FIRST and, on a hit, acts directly on the resolved element — skipping matchStep
+ *   for that step only. brain.get() itself still re-checks the cached selector resolves to exactly ONE
+ *   live element (S2's existing safety check — reused here, not re-implemented). On a brain miss (even
+ *   at L2 — e.g. the element is gone/duplicated now) it falls straight through to the real matcher,
+ *   exactly as if no brain had been supplied — a cache hit is never assumed, only ever confirmed live.
+ *   verify-by-effect below is UNCHANGED and ALWAYS runs regardless of which path located the element —
+ *   the false-heal firewall never gets skipped, only re-matching does. Callers that omit opts (or omit
+ *   opts.brain/opts.ladder) get byte-identical behaviour to before this change.
  */
 (function (root) {
   const S = root.SELFHEAL, V = root.SELFHEAL_VERIFY;
@@ -31,13 +44,27 @@
     return false;
   }
 
-  // resolve an OpenTest.ai step's NL target via its captured _anchor (heal-aware), then act
-  function locateAndAct(scopeEl, step) {
+  // resolve an OpenTest.ai step's NL target via its captured _anchor (heal-aware), then act.
+  // opts.brain/opts.ladder/opts.testId are OPTIONAL (S8) — see header. Omitting any of them falls back
+  // to the original always-matcher path unchanged.
+  function locateAndAct(scopeEl, step, opts) {
+    opts = opts || {};
     if (!step._anchor) return { located: false, acted: false, reason: 'no anchor' };
+    const stepId = step._anchor.stepId;
+
+    if (opts.brain && opts.ladder && opts.testId && stepId && opts.ladder.tier(opts.testId, stepId) === 'L2') {
+      const hit = opts.brain.get(opts.testId, stepId, scopeEl.ownerDocument);   // re-verifies live uniqueness itself
+      if (hit) {
+        const ok = act(hit.el, step.action, step.value);
+        return { located: true, acted: ok, el: hit.el, stepId, servedBy: 'brain' };
+      }
+      // L2 but the brain came up cold (element gone/now-ambiguous) -> never guess, fall through to matcher below
+    }
+
     const r = S.matchStep(scopeEl.ownerDocument, step._anchor, { gate: true });
-    if (r.verdict !== 'heal' || !r.best) return { located: false, acted: false, verdict: r.verdict, result: r };
+    if (r.verdict !== 'heal' || !r.best) return { located: false, acted: false, verdict: r.verdict, result: r, stepId, servedBy: 'matcher' };
     const ok = act(r.best.el, step.action, step.value);
-    return { located: true, acted: ok, el: r.best.el };
+    return { located: true, acted: ok, el: r.best.el, stepId, servedBy: 'matcher' };
   }
 
   // confidence of the effect we can verify (mirrors outcome-verification.CONFIDENCE)
@@ -47,8 +74,12 @@
     return { type: 'textPresent', value: dashboardText };
   }
 
-  // execute a whole OpenTest.ai test LIVE against a scope element; return the verified 3-way outcome
-  function executeLive(scopeEl, test) {
+  // execute a whole OpenTest.ai test LIVE against a scope element; return the verified 3-way outcome.
+  // opts (OPTIONAL, S8): { brain, ladder } — threaded into locateAndAct so brain-first only kicks in
+  // when both are supplied AND the ladder has promoted this specific step. Omit opts entirely (as every
+  // pre-S8 caller does) for byte-identical behaviour.
+  function executeLive(scopeEl, test, opts) {
+    opts = opts || {};
     const steps = []; let blocked = null;
     // sentinel anchor = the test's first fill target (the field that should disappear on success)
     const sentinel = (test.steps.find(s => s.action === 'fill') || {})._anchor || null;
@@ -58,8 +89,8 @@
       const row = { action: st.action, target: st.target, value: st.value || null, located: null, acted: false };
       if (st.action === 'navigate') { row.acted = true; steps.push(row); continue; }
       if (st.action === 'assert') { steps.push(row); continue; }     // assert handled by verify below
-      const a = locateAndAct(scopeEl, st);
-      row.located = a.located; row.acted = a.acted;
+      const a = locateAndAct(scopeEl, st, { brain: opts.brain, ladder: opts.ladder, testId: test.id });
+      row.located = a.located; row.acted = a.acted; row.stepId = a.stepId || null; row.servedBy = a.servedBy || null;
       steps.push(row);
       if (!a.located) { blocked = { st, r: a.result }; break; }
     }

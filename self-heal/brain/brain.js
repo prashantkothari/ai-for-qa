@@ -52,7 +52,19 @@
       return out;
     }
 
-    return { get, put, snapshot };
+    // evict(testId, stepId) -> true if a record was removed, false if the key was already cold.
+    // S8's demotion lever: the ladder (self-heal/pipeline/learning-loop.js) calls this on a failure so
+    // the NEXT get() cold-starts (forces the real matcher again) instead of silently re-serving a
+    // locator that just led to a wrong/failed outcome. This is the only way a brain-first act path can
+    // ever "un-trust" a key — false-heal=0 discipline says demote fast, so eviction has no cooldown.
+    function evict(testId, stepId) {
+      const k = key(testId, stepId);
+      if (!(k in data)) return false;
+      delete data[k];
+      return true;
+    }
+
+    return { get, put, snapshot, evict };
   }
 
   // ---- adapter: turn one S7 executeLive() result into brain writes for every step that was
