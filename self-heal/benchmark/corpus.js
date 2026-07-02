@@ -93,7 +93,35 @@
     loginCase('F-T4-pristine', 'T4', null, 'heal', 'DRIFT',
       'EXPECTED["T4|pristine"]=PASS'),
     loginCase('F-T5-pristine', 'T5', null, 'heal', 'DRIFT',
-      'EXPECTED["T5|pristine"]=PASS')
+      'EXPECTED["T5|pristine"]=PASS'),
+
+    // ---- F-T3-removed: false-heal regression guard (selfheal-core.js no-anchor veto, 2026-07-02) ----
+    // NOT built via loginCase() — that helper always uses the SAME LOGIN_DOM for capture and exec (only
+    // `drift` differs). This case needs a genuinely DIFFERENT exec-state DOM (the eye button structurally
+    // removed, not just restyled/localized), which is exactly the captureHtml()/execHtml()-as-separate-
+    // functions shape this file's header already documents for the payment cases (see header comment).
+    // Same target as F-T3-pristine (T3's nameless eye icon — no testid/id/name/nameAttr; see fixtures.js
+    // header), but here the control is genuinely GONE at exec time, not merely tied with a look-alike.
+    // Pre-fix (LEVERS-RUN.md): matchStep healed this to the UNRELATED "Continue with Google" SSO button
+    // (verdict:'heal', margin:0.187) because both remaining candidates only share generic DOM *context*
+    // signals (role/tag/type/inForm/formAction) — not real identity — so elimination alone cleared
+    // TH.heal+TH.margin. Must ABSTAIN with a named reason (selfheal-core.js's noAnchorVeto ->
+    // diagnosis:'no-anchor' -> change-diagnosis.js maps this to AMBIGUITY, NOT REMOVAL: a candidate
+    // DID clear the heal threshold, so this is a policy decline, not "nothing matched" — see
+    // change-diagnosis.js's dedicated 'no-anchor' case for the full reasoning).
+    {
+      id: 'F-T3-removed', source: 'fixtures.js:T3|removed(eye)', app: 'fixture:login',
+      captureHtml: function () { return FX.LOGIN_DOM; },
+      execHtml: function () { return FX.LOGIN_DOM.replace(/<button type="button" class="icon"[\s\S]*?<\/button>\s*/, ''); },
+      mountHtml: FX.LOGIN_DOM.replace(/<button type="button" class="icon"[\s\S]*?<\/button>\s*/, ''),
+      drift: null,
+      oracle: 'eye',
+      context: false,
+      expectedVerdict: 'abstain', expectedCategory: 'AMBIGUITY',
+      note: 'nameless eye icon (T3 target) removed entirely from the exec DOM; must not heal to the ' +
+        'unrelated SSO button by elimination — regression guard for the no-anchor veto (was heal/SSO, ' +
+        'margin 0.187, before the 2026-07-02 selfheal-core.js fix); see self-heal/tools/CORE-FIX-RUN.md'
+    }
   ];
 
   // ---- payment-fixtures.js:C* — cap-state capture, exec-state match (+ optional drift/context) ----

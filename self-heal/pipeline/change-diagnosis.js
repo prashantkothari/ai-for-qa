@@ -37,6 +37,18 @@
         return { category: 'REMOVAL', reason: 'no candidate on current screen — removed, OR not yet rendered (TEMPORAL needs runtime to distinguish)' };
       case 'no-identity':
         return { category: 'REMOVAL', reason: 'no candidate cleared the identity floor — drifted beyond recognition, OR removed' };
+      // selfheal-core.js's noAnchorVeto (2026-07-02 false-heal fix): a candidate DID clear
+      // TH.heal/TH.margin here — this is NOT "nothing matched" (that's 'no-identity' above). It is
+      // a deliberate POLICY decline: the recorded step never had a real anchor (no testid/id/name/
+      // nameAttr — bestLocator() tier 'none'), so the winner was chosen by score+margin over pure
+      // DOM context (role/tag/type/inForm/formAction), which cannot distinguish a genuine
+      // re-location from a coincidental same-shape sibling. Mislabeling this REMOVAL would tell the
+      // user "go check if the feature still exists" when the real, actionable fix is "add a stable
+      // anchor (data-testid recommended) to this control at record time" — closest existing
+      // category is AMBIGUITY (P1 "can't deterministically discriminate" — here, between "this
+      // candidate is genuinely the same control" and "this candidate merely won by elimination").
+      case 'no-anchor':
+        return { category: 'AMBIGUITY', reason: 'a candidate cleared the heal threshold, but the recorded step has no identifying anchor (no testid/id/name) to trust it against — likely a coincidental match among generically similar controls, not a verified re-location; add a stable anchor (data-testid recommended) at record time' };
       default:
         return { category: 'UNKNOWN', reason: result.diagnosis || 'unclassified' };
     }

@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>selfheal-core.js — no-anchor veto fix tests</title>
+<style>
+  body{font:14px/1.5 ui-monospace,Menlo,monospace;max-width:900px;margin:24px auto;padding:0 16px}
+  h1{font-size:18px} .ok{color:#137333} .bad{color:#c5221f}
+  .row{padding:5px 0;border-bottom:1px solid #eee} .det{color:#555;padding-left:20px;font-size:12px}
+  .summary{font-size:16px;margin:12px 0;padding:10px;border-radius:6px}
+  .summary.pass{background:#e6f4ea;color:#137333} .summary.fail{background:#fce8e6;color:#c5221f}
+  button{font:inherit;padding:6px 12px;margin-bottom:12px}
+</style></head><body>
+<h1>selfheal-core.js — no-anchor veto fix tests (2026-07-02)</h1>
+<p>Focused regression harness for the confirmed false-heal fix (removed nameless-icon healed to the
+wrong control) and the follow-up review round's four findings (shared no-anchor veto now covers
+matchStep AND candidate-widening.js's matchStepWidened; dedicated 'no-anchor' diagnosis; measured
+heal-rate tradeoff). Loads the fixed core + fixtures.js + candidate-widening.js (all read-only),
+runs 5 cases.</p>
+<button id="run">Run tests</button>
+<div id="out"></div>
+
+<script src="../../selfheal-core.js"></script>
+<script src="../pretotype/fixtures.js"></script>
+<script src="../pipeline/candidate-widening.js"></script>
+<script src="core-fix-tests.js"></script>
+<script>
+  function go() {
+    const out = document.getElementById('out');
+    const r = runCoreFixTests();
+    out.innerHTML = '';
+    const sum = document.createElement('div');
+    sum.className = 'summary ' + (r.failed ? 'fail' : 'pass');
+    sum.textContent = (r.failed ? 'FAIL — ' : 'PASS — ') + r.passed + '/' + r.total + ' passing' + (r.failed ? (' (' + r.failed + ' failed)') : '');
+    out.appendChild(sum);
+    r.results.forEach(c => {
+      const d = document.createElement('div'); d.className = 'row';
+      d.innerHTML = '<span class="' + (c.pass ? 'ok' : 'bad') + '">' + (c.pass ? '✓' : '✗') + '</span> ' + c.name +
+        '<div class="det">' + c.detail + '</div>';
+      out.appendChild(d);
+    });
+  }
+  document.getElementById('run').addEventListener('click', go);
+  // auto-run on load too, so a plain page-load + javascript_tool readback of window.__CORE_FIX_TESTS works.
+  go();
+</script>
+</body></html>
