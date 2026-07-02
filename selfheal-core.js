@@ -188,6 +188,56 @@ function diagnose(ranked, vd){
   return 'no-identity';                                                  // weak signal overall
 }
 
+// ---- no-anchor veto (false-heal fix, 2026-07-02) ------------------------------------------------
+// SINGLE SOURCE OF TRUTH: any caller that reuses the core's verdict() over a step-scoped descriptor
+// (matchStep below, AND self-heal/pipeline/candidate-widening.js's matchStepWidened, which mirrors
+// matchStep's pipeline verbatim over a widened candidate set) must route its verdict through this
+// function, not just matchStep, or the exact same false-heal mechanism stays reachable there too.
+//
+// step.flag==='no-anchor' means bestLocator() found ZERO real identity signal at record time
+// (no testid, no stable id, no name-attr, not even role+name — see bestLocator()/flagOf()).
+// Such a descriptor's remaining signals (role/tag/type/cls/inForm/formAction) are pure DOM
+// *context*, shared by every sibling control in the same form/container — they are durable
+// (DURA scores them high) but NOT identifying. When the true target is removed, conf/margin are
+// computed only over the *other, unrelated* candidates: the runner-up can score far lower on
+// those same context signals for unrelated reasons (e.g. a mismatched `type`), which manufactures
+// a wide RELATIVE margin even though neither candidate is a real match in absolute terms — so a
+// context-only descriptor can clear TH.heal + TH.margin purely by elimination. There is no
+// legitimate way to re-locate a control that never had an identifying anchor, so any such
+// descriptor must never heal on score+margin alone.
+//
+// Unconditional w.r.t. opts.gate (NOT folded into the `opts.gate!==false` actionability check)
+// because this is a correctness invariant, not an optional interactability check — and because
+// self-heal/pipeline/search-and-pick.js's Phase 2 deliberately calls matchStep with {gate:false} to
+// get a raw ranking before applying its OWN 'score+anchor-tier' safety check (winner's OWN locator
+// tier is testid/stable-id). That check looks like independent evidence but is NOT: for a
+// no-anchor descriptor there is no recorded anchor VALUE to verify the winner against, so "the
+// winner happens to have some real id" says nothing about whether it's the SAME control — traced
+// concretely on the exact repro below, the wrongly-healed "Continue with Google" SSO button DOES
+// carry its own real, non-hashed id ("sso" -> bestLocator tier 'stable-id'), so gating only on
+// opts.gate would let this exact bug back in through search-and-pick's widen path. Hence: always on.
+//
+// Does NOT affect descriptors with a real anchor (testid/stable-id/name-attr/role+name -> flag is
+// null or 'weak-identity'), and does NOT change the already-correct pristine-tie AMBIGUITY case
+// (that one already abstains via the ordinary margin check, never reaching this veto).
+//
+// Known, accepted tradeoff (measured against the full existing corpus, see CORE-FIX-RUN.md): a
+// genuinely-unique no-anchor control that is the ONLY candidate on the page (no elimination ever
+// occurs) will also abstain instead of heal. This is deliberate — false-heal=0 outweighs heal-rate
+// per project rule — and was NOT observed to affect any existing case: the only two no-anchor cases
+// in the whole benchmark corpus (fixtures.js T3 "eye" icon, payment-fixtures.js C5 "gear" icon)
+// were ALREADY expected to abstain (AMBIGUITY) before this fix, not heal, so 0/2 regress.
+//
+// diagnosis:'no-anchor' is a DISTINCT code from 'no-identity' (see diagnose() above) on purpose: a
+// candidate DID clear TH.heal/TH.margin here — this is a policy decline, not "nothing matched well
+// enough" — change-diagnosis.js's diagnoseFailure() carries a matching, accurate branch.
+function noAnchorVeto(vd, step, cands, ranked){
+  if(vd.v==='heal' && step && step.flag==='no-anchor'){
+    return {verdict:'abstain', best:vd.best, margin:vd.margin, noAnchor:true, diagnosis:'no-anchor', cands, ranked};
+  }
+  return null;
+}
+
 // ---- replay a recorded step: scope -> rank -> verdict -> gate -> diagnose ----
 function matchStep(doc, step, opts={}){
   const desc = descFromStep(step.target.descriptor);
@@ -199,6 +249,8 @@ function matchStep(doc, step, opts={}){
   const vd = verdict(ranked);
   // `cands`/`ranked` are returned so callers (e.g. disambiguation) can reuse the scored set
   // instead of re-scanning the DOM and re-scoring every candidate. [perf: one scan per heal]
+  const vetoed = noAnchorVeto(vd, step, cands, ranked);
+  if(vetoed) return vetoed;
   if(vd.v==='heal' && opts.gate!==false){
     const act = WEB.actionable(vd.best.el);
     if(!act.usable) return {verdict:'abstain', best:vd.best, margin:vd.margin, gated:true, diagnosis: act.reason||'not-usable', cands, ranked};
@@ -221,6 +273,6 @@ function verifyEffect(before, after, expect){
 
 // (CommonJS-style export guard; harmless in the browser)
 const SELFHEAL = {DEF,DURA,TH,fuzzy,mv,buildFromEx,scoreEx,verdict,predicted,WEB,IOS,rank,match,looksHashed,
-  bestLocator,flagOf,captureStep,descFromStep,isShown,isEnabled,resolveScope,diagnose,matchStep,verifyEffect};
+  bestLocator,flagOf,captureStep,descFromStep,isShown,isEnabled,resolveScope,diagnose,matchStep,verifyEffect,noAnchorVeto};
 if (typeof module!=='undefined' && module.exports) module.exports = SELFHEAL;
 if (typeof window!=='undefined') window.SELFHEAL = SELFHEAL;

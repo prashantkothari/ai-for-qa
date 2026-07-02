@@ -25,7 +25,7 @@
   let S = (root && root.SELFHEAL) || null;
   if (!S && typeof module !== 'undefined' && module.exports) { try { S = require('../../selfheal-core.js'); } catch (e) { /* fall through */ } }
   S = S || (root && root.SELFHEAL);
-  const { WEB, descFromStep, verdict, scoreEx, isShown, isEnabled, diagnose } = S;
+  const { WEB, descFromStep, verdict, scoreEx, isShown, isEnabled, diagnose, noAnchorVeto } = S;
 
   // computed style, layout-safe: detached DOMParser docs have no layout/window → getComputedStyle
   // returns empty strings, so pointer signals quietly yield false and only attribute hints fire.
@@ -100,6 +100,12 @@
     if (!cands.length) return { verdict: 'fail', diagnosis: 'not-ready', best: null, margin: 0, cands: [], ranked: [], widened: true, widenedAdded: w.added };
     const ranked = cands.map(el => { const ex = WEB.extract(el, doc); return { el, ex, conf: scoreEx(ex, desc) }; }).sort((a, b) => b.conf - a.conf);
     const vd = verdict(ranked);
+    // Same core no-anchor veto matchStep applies (selfheal-core.js) — routed through the SAME
+    // shared function so this widened path can't reopen the exact false-heal it closes there.
+    // Widening only makes the risk worse (more unrelated candidates to spuriously win by
+    // elimination), never better, so there is no widening-specific reason to skip this check.
+    const vetoed = noAnchorVeto(vd, step, cands, ranked);
+    if (vetoed) return Object.assign({}, vetoed, { widened: true, widenedAdded: w.added });
     if (vd.v === 'heal' && opts.gate !== false) {
       const act = WEB.actionable(vd.best.el);
       if (!act.usable) return { verdict: 'abstain', best: vd.best, margin: vd.margin, gated: true, diagnosis: act.reason || 'not-usable', cands, ranked, widened: true, widenedAdded: w.added };

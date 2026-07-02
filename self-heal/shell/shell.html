@@ -1,0 +1,247 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>S5 — plugin shell (suggest → review → run → report + HITL)</title>
+<style>
+  body{font:13px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;margin:16px;color:#111}
+  h1{font-size:16px}h2{font-size:13px;margin:14px 0 4px;border-bottom:2px solid #eee;padding-bottom:3px}
+  #layout{display:flex;gap:20px;align-items:flex-start}
+  #appStage{position:relative;width:340px;border:1px solid #ccc;border-radius:8px;padding:12px;background:#fff;min-height:80px}
+  #appStage .inp{display:block;width:100%;margin:4px 0 8px;padding:6px;border:1px solid #bbb;border-radius:5px;box-sizing:border-box}
+  #appStage button{padding:6px 10px;border:1px solid #888;border-radius:5px;background:#f3f3f3;cursor:pointer;margin:3px 4px 0 0}
+  #appStage .err{color:#c5221f;margin-top:8px;font-weight:600}
+  #panel{flex:1;min-width:560px}
+  .ok{color:#137333;font-weight:700}.bad{color:#c5221f;font-weight:700}.warn{color:#b06000}
+  .PASS{color:#137333;font-weight:700}.FAILED,.APP_BUG{color:#c5221f;font-weight:700}.ABSTAIN,.PASS_WARNING{color:#b06000;font-weight:700}
+  .card{border:1px solid #e3e3e3;border-radius:8px;padding:8px 10px;margin:6px 0}
+  .kind{font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;background:#eef;color:#3949ab}
+  .kind.negative{background:#fff3e0;color:#b06000}.kind.smoke{background:#eceff1;color:#546e7a}
+  .banner{background:#e8f5e9;border:1px solid #81c784;border-radius:6px;padding:6px 10px;margin:6px 0;font-size:12px}
+  table{border-collapse:collapse;margin:6px 0;font-size:12px}td,th{border:1px solid #ddd;padding:4px 8px;text-align:left}th{background:#f6f6f6}
+  .mut{color:#666;font-size:11px}
+</style></head>
+<body>
+<h1>S5 — plugin shell: suggest → review → run(live) → report, with HITL + brain priming</h1>
+<p><small>Wires S6 authoring + S7 live executor + S3 report + S2 brain + the existing HITL overlay into one
+flow. Add <code>?manual=1</code> to answer HITL cards with the real overlay by hand. <code>window.__S5_SHELL</code> for readback.</small></p>
+<div id="status">loading…</div>
+<div id="layout">
+  <div><h2>App under test (interactive)</h2><div id="appStage"></div></div>
+  <div id="panel"></div>
+</div>
+
+<script src="../../selfheal-core.js"></script>
+<script src="../pipeline/candidate-generation.js"></script>
+<script src="../pipeline/change-diagnosis.js"></script>
+<script src="../pipeline/failure-reporter.js"></script>
+<script src="../pipeline/outcome-verification.js"></script>
+<script src="../schemas/validator.js"></script>
+<script src="../schemas/flywheel-event.schema.js"></script>
+<script src="../schemas/false-heal.js"></script>
+<script src="../pretotype/fixtures.js"></script>
+<script src="../pretotype/testgen.js"></script>
+<script src="../pretotype/selfheal-runtime.js"></script>
+<script src="../report/report.js"></script>
+<script src="../brain/brain.js"></script>
+<script src="../pipeline/learning-loop.js"></script>
+<script src="../tools/hitl-overlay.js"></script>
+<script src="shell.js"></script>
+<script>
+(async function () {
+  const status = document.getElementById('status'), panel = document.getElementById('panel');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const F = window.PRETOTYPE_FIXTURES, SHELL = window.SELFHEAL_SHELL, S = window.SELFHEAL, BRAIN = window.SELFHEAL_BRAIN;
+  const MANUAL = /[?&]manual=1/.test(location.search);
+  const stage = document.getElementById('appStage');
+
+  const need = ['SELFHEAL', 'PRETOTYPE_FIXTURES', '__TESTGEN', '__RUNTIME', 'SELFHEAL_REPORT', 'SELFHEAL_BRAIN', 'SELFHEAL_LEARN', 'SELFHEAL_SHELL'].filter(k => !window[k]);
+  if (need.length) { status.innerHTML = '<b class="bad">Scripts not loaded (' + need.join(', ') + '). Serve over http://127.0.0.1:8766/…</b>'; return; }
+
+  // one document-level guard so a live .click() on an anchor can't navigate the harness away
+  document.addEventListener('click', e => { if (stage.contains(e.target) && e.target.closest('a[href]')) e.preventDefault(); }, true);
+
+  // reuse S4's documented drift transform (restyle: hash class/id; localize: reverse visible text/aria/placeholder)
+  function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return 'x' + h.toString(16) + 'bh'; }
+  function applyDrift(el, kind) {
+    if (!kind || kind === 'pristine') return;
+    if (kind === 'restyle') el.querySelectorAll('*').forEach(n => { if (n.getAttribute('class')) n.setAttribute('class', hash(n.getAttribute('class'))); if (n.id) n.id = hash(n.id); });
+    else if (kind === 'localize') {
+      const rev = s => (s || '').split('').reverse().join('');
+      const w = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT, null); const t = []; let n; while ((n = w.nextNode())) t.push(n);
+      t.forEach(x => { if (x.nodeValue.trim()) x.nodeValue = rev(x.nodeValue); });
+      el.querySelectorAll('[aria-label],[placeholder]').forEach(n => { ['aria-label', 'placeholder'].forEach(a => { if (n.getAttribute(a)) n.setAttribute(a, rev(n.getAttribute(a))); }); });
+    }
+  }
+
+  // mount(driftKind) → the interactive login fixture with a REAL submit handler (valid→dashboard, wrong→error).
+  function mount(drift) {
+    stage.innerHTML = F.LOGIN_DOM;
+    stage.querySelectorAll('a[href]').forEach(a => a.setAttribute('href', '#'));
+    const form = stage.querySelector('form');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const email = (stage.querySelector('[type="email"]') || {}).value || '';
+      const pwd = (stage.querySelector('[type="password"]') || {}).value || '';
+      if (!email.trim()) {                                    // empty submit → required-field validation (L3)
+        if (!stage.querySelector('.err')) { const d = document.createElement('div'); d.className = 'err'; d.setAttribute('role', 'alert'); d.textContent = 'Email is required'; form.appendChild(d); }
+      } else if (/secret|valid/i.test(pwd)) stage.innerHTML = F.DASHBOARD_DOM;   // valid creds → dashboard
+      else stage.innerHTML = F.ERROR_DOM;                     // wrong creds → "Invalid credentials"
+    });
+    applyDrift(stage, drift);
+    return stage;
+  }
+
+  // HITL: real overlay in ?manual=1, else a canned auto-answerer that records a decision (ground truth).
+  const hitl = MANUAL && window.__hitl ? window.__hitl
+             : { show: card => Promise.resolve({ action: card.category === 'AMBIGUITY' ? 'caption-icon' : 'skip', value: null, cardId: card.cardId }) };
+
+  try {
+    const brain = BRAIN.makeBrain();
+    const session = SHELL.createSession({ doc: document, app: 'fixture:login', mount, hitl, brain });
+
+    // suggest (author) — then append one HITL probe: the nameless eye toggle (no accessible name → abstain → HITL),
+    // exercising the stuck path the login suite alone never hits (S0 Flow-3 nameless-icon → HITL).
+    const suite = session.suggest();
+    mount('pristine');
+    const eyeEl = stage.querySelector("[data-oracle='eye']");
+    const eyeAnchor = S.captureStep(eyeEl, document, { stepId: 'eye', container: '#appStage' });
+    suite.tests.push({ id: 'H1', title: 'Toggle password visibility (nameless icon)', kind: 'smoke',
+      goal: 'The show/hide-password control is reachable — a nameless icon that must route to HITL, not a wrong guess.',
+      steps: [{ description: 'Click the show-password eye', thinking: 'No accessible name → the matcher must abstain and ask, never guess.',
+                action: 'click', target: 'show password', expected: 'password becomes visible', _anchor: eyeAnchor }] });
+    session.setApproved(suite.tests.map(t => t.id));
+
+    // RUN 1 (cold brain) then RUN 2 (primed) — same fixture, to MEASURE priming before/after.
+    const run1 = await session.run({ drift: 'pristine', useBrain: true });
+    const run2 = await session.run({ drift: 'pristine', useBrain: true });
+
+    // ---- gate: explicit PASS/FAIL checks (S5's sanity harness, same discipline as S1–S4) ----
+    const checks = [];
+    const ck = (label, cond) => checks.push({ label, passed: !!cond });
+    const byId = (run, id) => run.results.find(r => r.id === id);
+    ck('suggested = login suite + H1 nameless-eye probe', suite.tests.map(t => t.id).join(',') === 'L1,L2,L3,S1,F1,H1');
+    ck('run1 false-heal = 0 (THE gate)', run1.report.summary.falseHealCount === 0);
+    ck('run2 false-heal = 0 (THE gate)', run2.report.summary.falseHealCount === 0);
+    ck('L1 verified live at HIGH (elementGone)', byId(run1, 'L1').verify_confidence === 'HIGH' && byId(run1, 'L1').outcome === 'PASS');
+    ck('L3 empty-submit → required (NEG_OK, not APP_BUG)', byId(run1, 'L3').outcome === 'PASS' && byId(run1, 'L3').category === 'NEG_OK');
+    ck('H1 nameless eye → ABSTAIN (never a wrong guess)', byId(run1, 'H1').outcome === 'ABSTAIN');
+    ck('HITL fired exactly once, on H1', run1.hitlFires.length === 1 && run1.hitlFires[0].test === 'H1');
+    ck('brain caches ONLY the HIGH-verified test (L1 steps), OV#4', Object.keys(brain.snapshot()).sort().join(',') === 'L1:email,L1:password,L1:submit');
+    ck('priming rises cold→primed', run1.brainPriming.ratePct === 0 && run2.brainPriming.ratePct > 0);
+    ck('all live rows schema-valid (0 rejected by S3/S1)', run1.report.summary.rejectedRowCount === 0);
+    ck('F7 clusters present for non-PASS rows', run1.report.clusters.length >= 1 && run1.report.clusters.every(c => c.category && c.count > 0));
+
+    // consistency: the shell must not distort outcomes vs calling the executor directly on the same input.
+    mount('pristine');
+    const directL1 = window.__RUNTIME.executeLive(stage, suite.tests.find(t => t.id === 'L1'));
+    ck('shell L1 outcome == direct executeLive L1 (no distortion)',
+       directL1.outcome === byId(run1, 'L1').outcome && directL1.verify_confidence === byId(run1, 'L1').verify_confidence);
+
+    const gatePass = checks.filter(c => c.passed).length, gateFail = checks.length - gatePass;
+
+    // ---- S8: climb the ladder to L2 for L1 (>=5 consecutive HIGH-confidence successes), then observe
+    // brain-first serving actually happening, plus a live demotion+eviction probe. Kept as its OWN
+    // checks array so the original 12 S5 checks above stay independently reportable/unchanged.
+    const run3 = await session.run({ drift: 'pristine', useBrain: true });
+    const run4 = await session.run({ drift: 'pristine', useBrain: true });
+    const run5 = await session.run({ drift: 'pristine', useBrain: true });   // L1 steps hit 5 successes here
+    const run6 = await session.run({ drift: 'pristine', useBrain: true });   // first run L1 steps CAN be brain-served
+
+    const ladder = session.getLadder();
+    const l1StepIds = suite.tests.find(t => t.id === 'L1').steps.filter(st => st._anchor).map(st => st._anchor.stepId);
+
+    const laddChecks = [];
+    const lck = (label, cond) => laddChecks.push({ label, passed: !!cond });
+    lck('L1 steps reach ladder tier L2 after exactly 5 HIGH-confidence successes', l1StepIds.every(id => ladder.tier('L1', id) === 'L2'));
+    lck('run6 serves at least one L1 step from the brain (brain-first is load-bearing, not just measured)',
+        byId(run6, 'L1').steps.some(st => st.servedBy === 'brain'));
+    lck('run6 still verifies by effect at HIGH confidence (verification never skipped — only re-matching is)',
+        byId(run6, 'L1').verify_confidence === 'HIGH' && byId(run6, 'L1').outcome === 'PASS');
+    lck('run6 false-heal = 0 (still the gate, even brain-first)', run6.report.summary.falseHealCount === 0);
+    lck('run6 reports a servedTally with both fields present (observable, not asserted)',
+        typeof run6.servedTally.brainServed === 'number' && typeof run6.servedTally.matcherServed === 'number' && run6.servedTally.brainServed >= 1);
+    lck('non-HIGH-confidence tests (L2/L3/S1/F1) never promote past L1 — OV#4 keeps them cold',
+        ['L2', 'L3', 'S1', 'F1'].every(id => {
+          const t = suite.tests.find(x => x.id === id);
+          return !t || t.steps.filter(st => st._anchor).every(st => ladder.tier(id, st._anchor.stepId) === 'L1');
+        }));
+    lck('flywheel log accumulates one real row per test per run, across ALL 6 runs (process-lifetime, not discarded)',
+        session.getFlywheelLog().length === run1.results.length + run2.results.length + run3.results.length + run4.results.length + run5.results.length + run6.results.length);
+
+    // demotion probe: simulate a verify-by-effect failure on an L2-promoted key and confirm the ladder
+    // demotes AND evicts from the brain immediately (1 failure, aggressive, false-heal=0 discipline).
+    const demoStepId = l1StepIds[0];
+    const beforeDemoteHit = brain.get('L1', demoStepId, document);
+    ladder.record('L1', demoStepId, 'FAILED', 'HIGH', brain);
+    const afterDemoteTier = ladder.tier('L1', demoStepId);
+    const afterDemoteHit = brain.get('L1', demoStepId, document);
+    lck('demote fires at exactly 1 failure: evicts from the brain AND resets the key to cold (tier L1)',
+        !!beforeDemoteHit && afterDemoteTier === 'L1' && afterDemoteHit === null);
+
+    const laddPass = laddChecks.filter(c => c.passed).length, laddFail = laddChecks.length - laddPass;
+    window.__S5_SHELL = { suite, run1, run2, run3, run4, run5, run6, brainSnapshot: brain.snapshot(),
+                           checks, gatePass, gateFail, laddChecks, laddPass, laddFail,
+                           ladderSnapshot: ladder.snapshot(), flywheelLog: session.getFlywheelLog() };
+
+    // ---- render ----
+    let h = '';
+    const t1 = run1.report.summary, t2 = run2.report.summary;
+    h += '<div class="banner">S5 gate: <b>' + gatePass + '/' + checks.length + ' checks passed</b> '
+       + (gateFail === 0 ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + gateFail + ')</span>')
+       + '<br>' + checks.map(c => (c.passed ? '✓ ' : '<span class="bad">✗ ') + esc(c.label) + (c.passed ? '' : '</span>')).join('<br>') + '</div>';
+    h += '<div class="banner">Flow ran end-to-end: <b>' + suite.tests.length + ' suggested</b> → approved → executed live → reported. '
+       + 'false-heal <b>' + t1.falseHealCount + '</b> (run1) / <b>' + t2.falseHealCount + '</b> (run2). '
+       + 'HITL fired <b>' + run1.hitlFires.length + '</b>× on the nameless control.</div>';
+
+    h += '<h2>1 · Suggested & approved tests (S6 authoring)</h2>';
+    suite.tests.forEach(t => { h += '<div class="card"><span class="kind ' + esc(t.kind) + '">' + esc(t.kind) + '</span> <b>' + esc(t.id) + ' ' + esc(t.title) + '</b>'
+      + '<div class="mut">' + esc(t.goal || '') + '</div></div>'; });
+
+    h += '<h2>2 · Live execution + report (S7 executor → S3 report)</h2>';
+    function outcomes(run) {
+      let s = '<table><tr><th>test</th><th>outcome</th><th>verify_confidence</th><th>category</th></tr>';
+      run.results.forEach(r => { s += '<tr><td>' + esc(r.id) + '</td><td class="' + esc(r.outcome) + '">' + esc(r.outcome) + '</td>'
+        + '<td>' + esc(r.verify_confidence) + '</td><td>' + esc(r.category) + (r._hitlDecision ? ' → HITL:' + esc(r._hitlDecision) : '') + '</td></tr>'; });
+      return s + '</table>';
+    }
+    h += '<div class="mut">Run 1 (cold brain):</div>' + outcomes(run1);
+    h += '<div class="mut">Failure clusters (F7): ' + esc(JSON.stringify(run1.report.clusters.map(c => c.category + ':' + c.count))) + '</div>';
+
+    h += '<h2>3 · Brain priming — measured before/after (S2)</h2>';
+    h += '<table><tr><th>metric</th><th>run 1 (cold)</th><th>run 2 (primed)</th><th>tag</th></tr>'
+      + '<tr><td>brain cache hits / eligible real-anchor steps</td>'
+      + '<td>' + run1.brainPriming.hits + '/' + run1.brainPriming.eligible + ' (' + run1.brainPriming.ratePct + '%)</td>'
+      + '<td>' + run2.brainPriming.hits + '/' + run2.brainPriming.eligible + ' (' + run2.brainPriming.ratePct + '%)</td>'
+      + '<td>measured</td></tr></table>';
+    h += '<p class="mut">Honest bound: priming is MEASURED (cache is populated + valid after a verified-HIGH run), but '
+       + 'executeLive does not yet consult the brain to short-circuit matching — brain-first execution is S8/S9. '
+       + 'HITL here SURFACES the stuck signal + records the decision; resolve-and-continue mid-test is also S8/S9.</p>';
+
+    h += '<h2>4 · HITL fires (existing overlay)</h2>';
+    h += '<div class="mut">' + (run1.hitlFires.length ? esc(JSON.stringify(run1.hitlFires)) : 'none') + (MANUAL ? '' : ' · (auto-answered; add ?manual=1 for the real overlay)') + '</div>';
+
+    h += '<h2>5 · S8 ladder — load-bearing brain-first + promote/demote (measured, not asserted)</h2>';
+    h += '<div class="banner">S8 ladder gate: <b>' + laddPass + '/' + laddChecks.length + ' checks passed</b> '
+       + (laddFail === 0 ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + laddFail + ')</span>')
+       + '<br>' + laddChecks.map(c => (c.passed ? '✓ ' : '<span class="bad">✗ ') + esc(c.label) + (c.passed ? '' : '</span>')).join('<br>') + '</div>';
+    h += '<table><tr><th>run</th><th>L1 servedTally (brain/matcher)</th><th>L1 outcome</th></tr>';
+    [run1, run2, run3, run4, run5, run6].forEach((r, i) => {
+      h += '<tr><td>run' + (i + 1) + '</td><td>' + r.servedTally.brainServed + ' / ' + r.servedTally.matcherServed + '</td>'
+         + '<td>' + esc(byId(r, 'L1').outcome) + '</td></tr>';
+    });
+    h += '</table>';
+    h += '<div class="mut">L1 ladder record after run6: ' + esc(JSON.stringify(l1StepIds.map(id => ({ step: id, ...ladder.get('L1', id), tier: ladder.tier('L1', id) })))) + '</div>';
+    h += '<div class="mut">Flywheel log size (accumulated, process-lifetime only — no durability backend): ' + session.getFlywheelLog().length + '</div>';
+    h += '<p class="mut">Ladder design (S8, self-heal/pipeline/learning-loop.js): L1 (cold/&lt;5 successes) → real matcher + '
+       + 'verify-by-effect always. L2 (&gt;=5 consecutive HIGH-confidence successes, 0 failures) → brain-first (skip re-matching '
+       + 'only; verify-by-effect NEVER skipped). Demote at exactly 1 failure → evict + reset to cold (aggressive by design — '
+       + 'promote slow, demote fast). No L3: skipping verify-by-effect itself has no second independent oracle to justify it '
+       + 'as safe, so it is not built (documented in learning-loop.js).</p>';
+
+    panel.innerHTML = h;
+    status.innerHTML = '<b class="ok">done — window.__S5_SHELL</b>';
+  } catch (e) {
+    window.__S5_ERR = String(e && e.stack || e);
+    status.innerHTML = '<b class="bad">ERR: ' + esc(e && e.stack || e) + '</b>';
+  }
+})();
+</script>
+</body></html>
