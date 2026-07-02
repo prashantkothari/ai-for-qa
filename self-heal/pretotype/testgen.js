@@ -21,7 +21,7 @@
   const MATCH = {
     email:    ex => ex.type === 'email' || /e-?mail/i.test(ex.name || ex.nameAttr || ''),
     password: ex => ex.type === 'password' || /password/i.test(ex.name || ex.nameAttr || ''),
-    submit:   ex => /\b(sign ?in|log ?in|continue|next|submit|create account|place order)\b/i.test(ex.name || ''),
+    submit:   ex => ex.type === 'submit' || /\b(sign ?in|log ?in|continue|next|submit|send( message)?|create account|place order)\b/i.test(ex.name || ''),
     sso:      ex => /google|sso|single ?sign|saml|okta|continue with/i.test(ex.name || ''),
     forgot:   ex => /forgot|reset/i.test(ex.name || '')
   };

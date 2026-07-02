@@ -296,7 +296,11 @@
       schemaVersion: 'flywheel-event/v1', ts: new Date().toISOString(), app: 'fixture:contact',
       testId: res.id, stepId: null, outcome: res.outcome,
       verify_confidence: res.verify_confidence, category: res.category || 'UNKNOWN',
-      source: 'live', driftKind: state.nextDrift, healed: res.located, false_heal: false,
+      // flywheel-event/v1 restricts driftKind to a fixed enum — map our UI-only "remove-target" to
+      // "appbug" (semantically closest: the target is gone as if the app removed it) so the row validates
+      // and gets counted in the summary. The UI still shows our finer-grained label.
+      source: 'live', driftKind: (['pristine','restyle','localize','appbug'].indexOf(state.nextDrift) !== -1 ? state.nextDrift : 'appbug'),
+      healed: res.located, false_heal: false,
       diagnosis: res.located ? null : (res.prescription || res.category || 'not located'),
       hitl_decision: null
     };
