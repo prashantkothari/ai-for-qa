@@ -1,0 +1,50 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>QA Agent — panel (P1)</title>
+<link rel="stylesheet" href="panel.css">
+</head><body>
+<div class="layout">
+  <div class="stage-wrap">
+    <h2>Host app (fixture)</h2>
+    <div id="appStage"></div>
+    <div id="overlay"><span class="lbl" id="overlayLbl"></span></div>
+    <div class="mut" style="margin-top:6px" id="stageInfo">contact-form fixture · pristine</div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><b>QA AGENT · PLUGIN</b><span id="statusLine" class="mut" style="color:#bbb">idle</span></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="chat">chat</div>
+      <div class="tab" data-tab="review">review</div>
+      <div class="tab" data-tab="runs">runs</div>
+      <div class="tab" data-tab="report">report</div>
+    </div>
+    <div class="tab-body" id="tab-chat">
+      <div class="chat-log" id="chatLog">
+        <div class="chat-msg agent"><div class="who">AGENT</div>Try: <code>author a test for this form</code> · <code>run</code> · <code>report</code></div>
+      </div>
+      <div class="chat-input"><input id="chatInput" placeholder="message agent…"><button class="btn btn-primary" id="chatSend">send</button></div>
+    </div>
+    <div class="tab-body hide" id="tab-review"></div>
+    <div class="tab-body hide" id="tab-runs"></div>
+    <div class="tab-body hide" id="tab-report"></div>
+  </div>
+</div>
+
+<!-- exact script load order copied from self-heal/shell/shell.html -->
+<script src="../../selfheal-core.js"></script>
+<script src="../pipeline/candidate-generation.js"></script>
+<script src="../pipeline/change-diagnosis.js"></script>
+<script src="../pipeline/failure-reporter.js"></script>
+<script src="../pipeline/outcome-verification.js"></script>
+<script src="../schemas/validator.js"></script>
+<script src="../schemas/flywheel-event.schema.js"></script>
+<script src="../schemas/false-heal.js"></script>
+<script src="../pretotype/fixtures.js"></script>
+<script src="../pretotype/testgen.js"></script>
+<script src="../pretotype/selfheal-runtime.js"></script>
+<script src="../report/report.js"></script>
+<script src="../brain/brain.js"></script>
+<script src="../pipeline/learning-loop.js"></script>
+<script src="../tools/hitl-overlay.js"></script>
+<script src="../shell/shell.js"></script>
+<script src="panel.js"></script>
+</body></html>

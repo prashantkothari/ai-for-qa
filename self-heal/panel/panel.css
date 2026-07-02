@@ -1,0 +1,75 @@
+/* QA Agent side-panel — P1 (Sessions 1-3). Compact plain aesthetic per mockups. */
+:root{--fg:#111;--muted:#666;--line:#e3e3e3;--bg:#fafafa;--ok:#137333;--bad:#c5221f;--warn:#b06000;--brand:#111}
+*{box-sizing:border-box}
+body{font:13px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);margin:0;background:#fff}
+.layout{display:flex;gap:12px;padding:12px;align-items:flex-start;min-height:100vh}
+.stage-wrap{flex:0 0 380px;position:relative}
+.stage-wrap h2,.panel h2{font-size:12px;margin:0 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+#appStage{position:relative;border:1px solid #ccc;border-radius:8px;padding:14px;background:#fff;min-height:220px}
+#appStage .inp{display:block;width:100%;margin:4px 0 8px;padding:6px;border:1px solid #bbb;border-radius:5px}
+#appStage button{padding:6px 10px;border:1px solid #888;border-radius:5px;background:#f3f3f3;cursor:pointer;margin:3px 4px 0 0}
+#appStage .err{color:var(--bad);margin-top:6px;font-weight:600;font-size:12px}
+#overlay{position:absolute;pointer-events:none;border:2px solid var(--brand);border-radius:3px;display:none;z-index:5}
+#overlay .lbl{position:absolute;top:-22px;left:0;background:var(--brand);color:#fff;font-size:11px;padding:1px 6px;border-radius:3px;font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+.panel{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;display:flex;flex-direction:column;min-height:calc(100vh - 24px)}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);background:#111;color:#fff;border-radius:10px 10px 0 0}
+.panel-head b{font-size:12px;letter-spacing:.08em}
+.tabs{display:flex;gap:2px;padding:8px 8px 0;border-bottom:1px solid var(--line);background:#fafafa}
+.tab{padding:5px 12px;font-size:12px;border:1px solid var(--line);border-bottom:none;background:#eee;cursor:pointer;border-radius:5px 5px 0 0}
+.tab.active{background:#fff;font-weight:700}
+.tab-body{padding:14px;flex:1;overflow:auto}
+.card{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:6px 0;background:#fff}
+.card.edge{border-style:dashed}
+.card .title{font-weight:600}
+.card .goal{color:var(--muted);font-size:12px;margin-top:2px}
+.card .actions{margin-top:6px;display:flex;gap:4px}
+.card button,.btn{padding:3px 10px;font-size:11px;border:1px solid #888;background:#fff;cursor:pointer;border-radius:4px}
+.btn-primary{background:#111;color:#fff;border-color:#111;font-weight:600}
+.btn-primary:hover{background:#000}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:#eef;color:#3949ab;margin-right:6px}
+.badge.negative{background:#fff3e0;color:#b06000}
+.badge.smoke,.badge.edge{background:#eceff1;color:#546e7a}
+.badge.risk{background:#fbe9e7;color:var(--bad)}
+.section-hd{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 4px}
+.review-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ask{background:#111;color:#fff;padding:10px;border-radius:6px;margin:8px 0}
+.ask .lbl{font-size:10px;letter-spacing:.1em;opacity:.7}
+.ask q{display:block;margin:6px 0}
+.ask button{background:#fff;color:#111}
+.footer{border-top:1px solid var(--line);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:#fafafa;border-radius:0 0 10px 10px}
+.footer .info{font-size:12px;color:var(--muted)}
+.run{display:grid;grid-template-columns:1fr 1.2fr;gap:12px;height:100%}
+.run .left-note{font-size:11px;color:var(--muted);margin-top:4px}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{padding:6px 8px;border:1px solid var(--line);border-radius:4px;margin:4px 0;font-size:12px;cursor:pointer;background:#fff}
+.steps li.active{border-color:#111;background:#f5f5f5}
+.steps li .num{display:inline-block;width:22px;color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.steps li .sel{color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:11px;margin-left:24px;display:block}
+.marks{margin-left:6px;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.diag{margin-left:24px;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600;display:inline-block;margin-top:2px}
+.diag.DRIFT{background:#e8f5e9;color:#137333}
+.diag.AMBIGUITY,.diag.REMOVAL,.diag.STATE_ISSUE{background:#fff3e0;color:#b06000}
+.diag.UNKNOWN,.diag.APP_BUG{background:#fbe9e7;color:var(--bad)}
+.controls{margin-top:8px;display:flex;gap:4px}
+.inspect{border:1px solid var(--line);border-radius:6px;padding:10px;background:#fff}
+.inspect h3{font-size:11px;color:var(--muted);margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em}
+.inspect pre,.inspect code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:#f5f5f5;padding:6px;border-radius:4px;white-space:pre-wrap;overflow-wrap:break-word;margin:4px 0;display:block}
+.inspect textarea{width:100%;min-height:44px;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+.status-PASS{color:var(--ok);font-weight:700}
+.status-ABSTAIN,.status-PASS_WARNING{color:var(--warn);font-weight:700}
+.status-FAILED,.status-APP_BUG{color:var(--bad);font-weight:700}
+.chat-log{max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:8px;background:#fafafa;margin-bottom:8px}
+.chat-msg{margin:6px 0;padding:6px 10px;border-radius:6px;background:#fff;border:1px solid var(--line)}
+.chat-msg.user{background:#e8f0fe;border-color:#c8dafd}
+.chat-msg.agent{background:#fff;border-color:var(--line)}
+.chat-msg .who{font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.chat-input{display:flex;gap:6px}
+.chat-input input{flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px}
+.mut{color:var(--muted);font-size:11px}
+.report table{border-collapse:collapse;font-size:12px;width:100%;margin-top:8px}
+.report td,.report th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+.report th{background:#fafafa}
+.headline{font-size:22px;font-weight:700}
+.headline .n{font-family:ui-monospace,Menlo,monospace}
+.tag{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:6px}
+.hide{display:none}

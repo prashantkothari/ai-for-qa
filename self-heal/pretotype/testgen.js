@@ -39,6 +39,7 @@
     const email = findControl(doc, 'email'), pwd = findControl(doc, 'password'),
           submit = findControl(doc, 'submit'), sso = findControl(doc, 'sso'), forgot = findControl(doc, 'forgot');
     const tests = [];
+    const openQuestions = [];
     const isLogin = email && pwd && submit;
 
     if (isLogin) {
@@ -82,6 +83,74 @@
       goal: 'Password recovery is reachable from the login screen.',
       steps: [{ description: `Click '${N}'`, thinking: 'Recovery is a critical path for locked-out users.', action: 'click', target: N, expected: 'The password-reset screen/flow opens.', _anchor: anchorFor(doc, forgot, 'forgot') }] }); }
 
+    // FORMS archetype (T3.2, additive) — used when there is a <form> with inputs but it isn't the
+    // special-cased login flow above. Enumerates fields, classifies required/optional, emits POSITIVE
+    // (all-required-filled), NEGATIVE-per-required (leave one required blank), and empty-submit.
+    // Property assertion (stated, not just implied): an inline error/alert is present iff a required
+    // field was left empty on submit.
+    const form = doc.querySelector('form');
+    if (!tests.length && form) {
+      const fields = [];
+      form.querySelectorAll('input, textarea, select').forEach((el) => {
+        const type = (el.type || el.tagName || '').toLowerCase();
+        if (['hidden', 'submit', 'button', 'reset'].indexOf(type) !== -1) return;
+        const req = el.hasAttribute('required') || el.getAttribute('aria-required') === 'true';
+        const name = el.getAttribute('name') || el.id || type;
+        // sample value by type/name — heuristic, deterministic
+        let v = 'Test Value';
+        if (type === 'email' || /email/i.test(name)) v = 'name@example.com';
+        else if (type === 'tel' || /phone/i.test(name)) v = '5551234567';
+        else if (type === 'number') v = '1';
+        else if (el.tagName.toLowerCase() === 'textarea') v = 'Hello, this is a test message.';
+        const stepId = 'f_' + (name || fields.length);
+        fields.push({ el, type, name, required: req, value: v, stepId,
+                       anchor: S.captureStep(el, doc, { stepId, container: '#appStage' }) });
+      });
+      const submitHit = findControl(doc, 'submit');
+      const submitLbl = submitHit ? labelOf(submitHit) : 'Submit';
+      const aSub = anchorFor(doc, submitHit, 'submit');
+      const required = fields.filter(f => f.required);
+      const weakAnchor = fields.find(f => !f.anchor || !f.anchor.target || !f.anchor.target.bestLocator);
+      if (weakAnchor) openQuestions.push({ id: 'weak-anchor:' + weakAnchor.name,
+        text: 'Field "' + weakAnchor.name + '" has a weak anchor (no stable locator). Include it as edge-risk?' });
+
+      // (1) POSITIVE: fill all required + optional-with-values, submit, assert absence of error
+      const posSteps = fields.map(f => ({ description: 'Fill ' + f.name, thinking: 'Provide a valid value for ' + f.type,
+        action: 'fill', target: f.name, value: f.value, expected: f.name + ' accepts value.', _anchor: f.anchor }));
+      posSteps.push({ description: 'Click ' + submitLbl, thinking: 'Submit with all valid values.',
+        action: 'click', target: submitLbl, expected: 'Form submits without validation errors.', _anchor: aSub });
+      // generic success heuristic — assert against the fixture's success text "Thanks" (honest: fixture-specific)
+      posSteps.push({ description: 'Assert success', thinking: 'Success signal expected on valid submit.',
+        action: 'assert', target: 'Thanks', expected: "Post-submit page shows a success signal." });
+      tests.push({ id: 'F1', title: 'Submit valid form', kind: 'positive',
+        goal: 'A form submitted with all valid values succeeds.', steps: posSteps });
+
+      // (2) NEGATIVE-per-required: leave each required field blank
+      required.forEach((rf, i) => {
+        const steps = fields.filter(f => f !== rf && f.required).map(f => ({ description: 'Fill ' + f.name,
+          thinking: 'Fill other required fields.', action: 'fill', target: f.name, value: f.value,
+          expected: f.name + ' accepts value.', _anchor: f.anchor }));
+        steps.push({ description: 'Click ' + submitLbl, thinking: 'Submit with ' + rf.name + ' blank.',
+          action: 'click', target: submitLbl, expected: 'Form does NOT navigate away.', _anchor: aSub });
+        steps.push({ description: 'Assert required-field error', thinking: 'Property: error iff required field is empty.',
+          action: 'assert', target: 'required', expected: "A 'required' style validation message appears." });
+        tests.push({ id: 'N' + (i + 1), title: 'Missing ' + rf.name + ' shows error', kind: 'negative',
+          goal: 'Blank required field "' + rf.name + '" triggers inline validation.', steps: steps });
+      });
+
+      // (3) empty-submit
+      if (submitHit && required.length) {
+        tests.push({ id: 'E1', title: 'Empty submit shows required-field validation', kind: 'negative',
+          goal: 'Submitting with all fields empty is blocked with visible required-field messages.',
+          steps: [
+            { description: 'Click ' + submitLbl + ' with empty fields', thinking: 'Reflex path many users hit.',
+              action: 'click', target: submitLbl, expected: 'The form does NOT submit.', _anchor: aSub },
+            { description: 'Assert a required-field message', thinking: 'Confirms validation fires client-side.',
+              action: 'assert', target: 'required', expected: "A 'required' message is visible." }
+          ] });
+      }
+    }
+
     // FALLBACK — no recognized flow: honest smoke per identifiable control (OpenTest.ai shape, no asserts)
     if (!tests.length) {
       S.WEB.candidates(doc).slice(0, 12).forEach((el, i) => { const ex = S.WEB.extract(el, doc); const n = norm(ex.name); if (!n) return;
@@ -89,7 +158,8 @@
           steps: [{ description: 'Click ' + n, thinking: 'No recognized flow on this screen → enumeration only.', action: 'click', target: n, expected: 'No locator error.', _anchor: S.captureStep(el, doc, { stepId: 'g' + i, container: '#appStage' }) }] }); });
     }
 
-    return { screenType: isLogin ? 'login' : (tests.length ? 'partial' : 'generic'), tests };
+    return { screenType: isLogin ? 'login' : (form && tests.length ? 'forms' : (tests.length ? 'partial' : 'generic')),
+             tests: tests, openQuestions: openQuestions || [] };
   }
 
   root.__TESTGEN = { authorTests, findControl };

@@ -83,5 +83,22 @@
     }
   };
 
-  root.PRETOTYPE_FIXTURES = { LOGIN_DOM, DASHBOARD_DOM, ERROR_DOM, STUCK_DOM, TESTS, REVIEW, EXPECTED };
+  // ---- Non-login FORM fixture (P1 gate): a contact form with required + optional fields + inline validation
+  const CONTACT_DOM = `
+    <form id="contactForm" class="auth-form" novalidate>
+      <h2>Contact us</h2>
+      <label for="cName">Name</label>
+      <input id="cName" name="name" type="text" required class="inp" data-oracle="name" placeholder="Your name">
+      <label for="cEmail">Email</label>
+      <input id="cEmail" name="email" type="email" required class="inp" data-oracle="email" placeholder="you@example.com">
+      <label for="cPhone">Phone (optional)</label>
+      <input id="cPhone" name="phone" type="tel" class="inp" data-oracle="phone" placeholder="555-1234">
+      <label for="cMsg">Message</label>
+      <textarea id="cMsg" name="message" required class="inp" data-oracle="message" placeholder="How can we help?"></textarea>
+      <button type="submit" id="cSubmit" class="btn primary" data-oracle="submit">Send message</button>
+    </form>`;
+  const CONTACT_SUCCESS_DOM = `<div id="thanks"><h1>Thanks!</h1><p>Your message was sent.</p></div>`;
+
+  root.PRETOTYPE_FIXTURES = { LOGIN_DOM, DASHBOARD_DOM, ERROR_DOM, STUCK_DOM, TESTS, REVIEW, EXPECTED,
+                              CONTACT_DOM, CONTACT_SUCCESS_DOM };
 })(typeof window !== 'undefined' ? window : globalThis);
