@@ -106,7 +106,7 @@
             .forEach(s => { brainEligible++; if (brain.get(test.id, s._anchor.stepId, doc)) brainHits++; });
         }
 
-        const res = RT.executeLive(stage, test, useBrain ? { brain, ladder } : undefined);
+        const res = await RT.executeLive(stage, test, useBrain ? { brain, ladder } : undefined);   // P2 T5.1: executeLive is now async
         res._driftKind = drift;
 
         // S8 observability: tally how steps were actually served this run (brain-first vs matcher).

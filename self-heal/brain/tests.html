@@ -30,7 +30,7 @@ against the SAME fixture, with the brain wired in between, and MEASURE the cache
 <script src="../pretotype/selfheal-runtime.js"></script>
 <script src="brain.js"></script>
 <script>
-(function () {
+(async function () {   // P2 T5.1: executeLive is now async
   const out = document.getElementById('out');
   const B = window.SELFHEAL_BRAIN, F = window.PRETOTYPE_FIXTURES, TG = window.__TESTGEN, RT = window.__RUNTIME;
   const stage = document.getElementById('appStage');
@@ -163,7 +163,7 @@ against the SAME fixture, with the brain wired in between, and MEASURE the cache
   mountInteractive();
   const run1Misses = l1.steps.filter(s => s._anchor).map(s => brain.get('L1', s._anchor.stepId, document) === null);
   const run1AllCold = run1Misses.every(Boolean);
-  const live1 = RT.executeLive(stage, l1);
+  const live1 = await RT.executeLive(stage, l1);
   const written = B.ingestLiveResult(brain, l1, live1);
 
   // RUN 2 (primed): re-mount the SAME fixture; brain.get() should now HIT for every located step from run 1.

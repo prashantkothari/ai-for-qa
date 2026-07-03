@@ -131,7 +131,8 @@
     paused: false,
     nextDrift: 'pristine',
     currentApp: 'fixture:contact',  // T4.1/T4.2: which fixture chat "author"/Runs currently target
-    variantRuns: {}    // T4.3: variantId -> last executeLive() result, for the inline variant table
+    variantRuns: {},   // T4.3: variantId -> last executeLive() result, for the inline variant table
+    ladderHistory: []  // T5.2: promote/demote events, most-recent-last
   };
 
   // ---- tabs ---------------------------------------------------------------------------------------
@@ -223,7 +224,7 @@
          '<button class="btn btn-primary" id="approveGen">▶ APPROVE &amp; GENERATE</button></div>';
     root.innerHTML = h;
     root.querySelectorAll('[data-tid]').forEach(el => {
-      el.addEventListener('click', e => {
+      el.addEventListener('click', async e => {
         const btn = e.target.closest('button'); if (!btn) return;
         const tid = el.dataset.tid, act = btn.dataset.act;
         if (act === 'drop') { state.approvedIds = state.approvedIds.filter(x => x !== tid); state.droppedIds.push(tid); renderReview(); }
@@ -239,8 +240,8 @@
             d.appendChild(renderVariantBox(t));
             el.appendChild(d);
           }
-        } else if (act === 'run-variants') { runVariants(tid); renderReview(); }
-        else if (act === 'replay-variant') { replayVariant(tid, btn.dataset.vid); renderReview(); }
+        } else if (act === 'run-variants') { await runVariants(tid); renderReview(); }
+        else if (act === 'replay-variant') { await replayVariant(tid, btn.dataset.vid); renderReview(); }
       });
     });
     root.querySelectorAll('.ask').forEach(a => {
@@ -318,14 +319,15 @@
 
   // runs every variant of `tid` NOW (pristine drift — fuzzing targets DATA, not DOM drift), synchronously,
   // one executeLive() per variant, exactly like a single test run — this IS the case×N sub-run.
-  function runVariants(tid) {
+  async function runVariants(tid) {
     const t = state.suite.tests.find(x => x.id === tid);
     if (!t || !t._variants) return;
-    t._variants.forEach(v => {
+    for (const v of t._variants) {
       const clone = window.__DATAGEN.buildVariantCase(t, v);
       const stageEl = APPS[state.currentApp].mount('pristine');
-      const res = window.__RUNTIME.executeLive(stageEl, clone, { brain, ladder });
+      const res = await window.__RUNTIME.executeLive(stageEl, clone, { brain, ladder });   // P2 T5.1: executeLive is now async
       res._driftKind = 'pristine';
+      advanceLearning(clone, res);
       state.variantRuns[t.id + '#' + v.id] = res;
       state.allRows.push({
         schemaVersion: 'flywheel-event/v1', ts: new Date().toISOString(), app: state.currentApp,
@@ -335,13 +337,13 @@
         firstTry: (typeof res.firstTry === 'boolean') ? res.firstTry : null,
         diagnosis: res.located ? null : (res.prescription || res.category || 'not located'), hitl_decision: null
       });
-    });
+    }
     chatMsg('agent', 'Ran <b>' + t._variants.length + '</b> data variants for <b>' + esc(tid) + '</b> (seed ' + esc(t._seed) + ').');
   }
 
   // replay-by-seed: regenerate the SAME variant from the SAME stored seed (no re-roll) and re-run it —
   // proves determinism (identical value every time) while giving a one-click repro for a failed case.
-  function replayVariant(tid, vidShort) {
+  async function replayVariant(tid, vidShort) {
     const t = state.suite.tests.find(x => x.id === tid);
     if (!t || !t._variants) return;
     const v = t._variants.find(x => x.id === vidShort); if (!v) return;
@@ -351,10 +353,38 @@
     const identical = regenerated && regenerated.value === v.value;
     const clone = window.__DATAGEN.buildVariantCase(t, v);
     const stageEl = APPS[state.currentApp].mount('pristine');
-    const res = window.__RUNTIME.executeLive(stageEl, clone, { brain, ladder });
+    const res = await window.__RUNTIME.executeLive(stageEl, clone, { brain, ladder });   // P2 T5.1: executeLive is now async
+    advanceLearning(clone, res);
     state.variantRuns[t.id + '#' + v.id] = res;
     chatMsg('agent', 'Replayed <b>' + esc(vidShort) + '</b> from seed <b>' + esc(t._seed) + '</b> — regenerated value ' +
       (identical ? 'matched exactly (deterministic ✓)' : 'DID NOT MATCH — regenerate bug') + '. Outcome: <b>' + esc(res.outcome) + '</b>.');
+  }
+
+  // ---- T5.2: brain ingestion + ladder advancement — mirrors shell.js's run() EXACTLY (same OV#4
+  // guard, same APP_BUG-is-neutral exception) since panel.js calls executeLive directly instead of
+  // going through shell.js's session.run(). Without this, the ladder would never promote/demote and
+  // the brain would never learn — "run twice to show promotion" needs this wired. -------------------
+  function advanceLearning(test, res) {
+    if (res.outcome === 'PASS' && res.verify_confidence === 'HIGH') BRAIN.ingestLiveResult(brain, test, res);
+    if (ladder && res.category !== 'APP_BUG') {
+      res.steps.forEach(st => {
+        if (st.acted && st.stepId) {
+          // ladder.record() mutates its internal record BY REFERENCE — ladder.get() before the call
+          // would alias the SAME object, so we must copy out the plain number, not hold a reference,
+          // or "before" would silently read as "after" and the promotion edge would never be detected.
+          const beforeRec = ladder.get(test.id, st.stepId);
+          const beforeSuccesses = beforeRec ? beforeRec.successes : 0;
+          const out = ladder.record(test.id, st.stepId, res.outcome, res.verify_confidence, brain);
+          if (out.action !== 'noop') {
+            state.ladderHistory.push({
+              ts: new Date().toISOString(), testId: test.id, stepId: st.stepId, action: out.action,
+              tier: out.tier, successes: out.rec.successes, failures: out.rec.failures,
+              promoted: out.tier === 'L2' && beforeSuccesses < window.SELFHEAL_LEARN.PROMOTE_AT
+            });
+          }
+        }
+      });
+    }
   }
 
   // ---- runs tab (T2.1-T2.3, mockup 04) -----------------------------------------------------------
@@ -407,8 +437,9 @@
     // on our own drift-mounted stage AND record it into the flywheel via toRow so the report picks it up.
     APPS[state.currentApp].mount(state.nextDrift);
     const RT = window.__RUNTIME;
-    const res = window.__RUNTIME.executeLive(stage, test, { brain, ladder });
+    const res = await window.__RUNTIME.executeLive(stage, test, { brain, ladder });   // P2 T5.1: executeLive is now async
     res._driftKind = state.nextDrift;
+    advanceLearning(test, res);   // P2 T5.2: brain ingestion + ladder promote/demote
     // shell.js toRow is not directly exported but createSession keeps its own log. Mirror the row shape here.
     const row = {
       schemaVersion: 'flywheel-event/v1', ts: new Date().toISOString(), app: state.currentApp,

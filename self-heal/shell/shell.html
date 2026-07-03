@@ -33,6 +33,8 @@ flow. Add <code>?manual=1</code> to answer HITL cards with the real overlay by h
 <script src="../pipeline/change-diagnosis.js"></script>
 <script src="../pipeline/failure-reporter.js"></script>
 <script src="../pipeline/outcome-verification.js"></script>
+<script src="../pipeline/search-and-pick.js"></script>
+<script src="../pipeline/temporal-wait.js"></script>
 <script src="../schemas/validator.js"></script>
 <script src="../schemas/flywheel-event.schema.js"></script>
 <script src="../schemas/false-heal.js"></script>
@@ -131,7 +133,7 @@ flow. Add <code>?manual=1</code> to answer HITL cards with the real overlay by h
 
     // consistency: the shell must not distort outcomes vs calling the executor directly on the same input.
     mount('pristine');
-    const directL1 = window.__RUNTIME.executeLive(stage, suite.tests.find(t => t.id === 'L1'));
+    const directL1 = await window.__RUNTIME.executeLive(stage, suite.tests.find(t => t.id === 'L1'));   // P2 T5.1: executeLive is now async
     ck('shell L1 outcome == direct executeLive L1 (no distortion)',
        directL1.outcome === byId(run1, 'L1').outcome && directL1.verify_confidence === byId(run1, 'L1').verify_confidence);
 

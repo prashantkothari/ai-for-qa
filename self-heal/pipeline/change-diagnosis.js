@@ -17,12 +17,19 @@
     if (!result) return { category: 'UNKNOWN', reason: 'no result object' };
 
     if (result.verdict === 'heal') {
-      return {
-        category: 'DRIFT',
-        reason: result.disambiguated
-          ? 'healed after deterministic disambiguation (margin tie broken by elimination)'
-          : 'healed: stable signals re-located the element'
-      };
+      // P2 T5.1: relabel a lever-mediated heal with its own honest story, same DRIFT category — the
+      // lever only changed HOW the element was found, not the fact that it was (mirrors the
+      // pre-existing `disambiguated` special-case just below).
+      let reason = result.disambiguated
+        ? 'healed after deterministic disambiguation (margin tie broken by elimination)'
+        : 'healed: stable signals re-located the element';
+      if (result.lever === 'temporal-wait' && result.retries > 0) {
+        reason = 'healed after a bounded wait (' + result.elapsedMs + 'ms, ' + result.retries +
+          ' retr' + (result.retries === 1 ? 'y' : 'ies') + ') — likely TEMPORAL (async render), not removed';
+      } else if (result.lever === 'search-and-pick' && result.widened) {
+        reason = 'healed after widening the search scope (' + (result.matchedBy || 'score') + ') — likely moved to a different container';
+      }
+      return { category: 'DRIFT', reason };
     }
 
     // gated = identity matched but the element is not interactable (overlay/disabled/off-screen)
@@ -49,6 +56,15 @@
       // candidate is genuinely the same control" and "this candidate merely won by elimination").
       case 'no-anchor':
         return { category: 'AMBIGUITY', reason: 'a candidate cleared the heal threshold, but the recorded step has no identifying anchor (no testid/id/name) to trust it against — likely a coincidental match among generically similar controls, not a verified re-location; add a stable anchor (data-testid recommended) at record time' };
+      // P2 T5.1: search-and-pick.js's own docs invite a "future wiring session" to fold these widened-
+      // scope diagnoses into the existing taxonomy rather than leaving them as UNKNOWN — this is that.
+      case 'not-found-widened':
+      case 'no-identity-widened':
+        return { category: 'REMOVAL', reason: 'no candidate found even after widening the search scope beyond the recorded container — likely genuinely removed' };
+      case 'ambiguous-widened':
+        return { category: 'AMBIGUITY', reason: 'multiple exact-anchor matches found after widening the search scope; cannot pick without a human' };
+      case 'weak-match-widened':
+        return { category: 'AMBIGUITY', reason: 'a candidate was found after widening the search scope, but its own locator is too weak (role+name only) to auto-accept' };
       default:
         return { category: 'UNKNOWN', reason: result.diagnosis || 'unclassified' };
     }

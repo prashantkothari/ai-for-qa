@@ -31,7 +31,8 @@
  *   only rows with firstTry===true|false, so absent/null is never miscounted either way.
  */
 (function (root) {
-  const S = root.SELFHEAL, V = root.SELFHEAL_VERIFY, CG = root.SELFHEAL_CANDGEN;
+  const S = root.SELFHEAL, V = root.SELFHEAL_VERIFY, CG = root.SELFHEAL_CANDGEN, DG = root.SELFHEAL_DIAGNOSIS,
+        TW = root.SELFHEAL_TEMPORALWAIT, SP = root.SELFHEAL_SEARCHPICK;
   let _h = 0; const hash = s => { _h = 0; for (let i = 0; i < s.length; i++) _h = (_h * 31 + s.charCodeAt(i)) >>> 0; return _h; };
 
   // snapshot the observable state of a scope (+ whether a specific anchor element is still present)
@@ -73,7 +74,16 @@
   // resolve an OpenTest.ai step's NL target via its captured _anchor (heal-aware), then act.
   // opts.brain/opts.ladder/opts.testId are OPTIONAL (S8) — see header. Omitting any of them falls back
   // to the original always-matcher path unchanged.
-  function locateAndAct(scopeEl, step, opts) {
+  //
+  // P2 T5.1 (S9 lever wiring): ASYNC now (temporal-wait polls on a real timer) — every caller has been
+  // updated to `await` this. When the base match doesn't heal, the diagnosed CATEGORY picks a named
+  // lever, never a guess: TEMPORAL-shaped failures (change-diagnosis.js's REMOVAL, honestly ambiguous
+  // between "removed" and "not yet rendered") get a BOUNDED wait; AMBIGUITY/REMOVAL get a scope-widened
+  // search. Both levers mirror matchStep's own result shape and carry their OWN safety gates (identity
+  // floor, exact-anchor-or-strong-tier-only auto-accept) — this function never loosens them, it only
+  // decides WHEN to ask. If neither lever is loaded (older callers / lever-tests.html's standalone
+  // harness) behaviour is byte-identical to before this change.
+  async function locateAndAct(scopeEl, step, opts) {
     opts = opts || {};
     if (!step._anchor) return { located: false, acted: false, reason: 'no anchor', firstTry: null };
     const stepId = step._anchor.stepId;
@@ -98,13 +108,32 @@
     // can safely break it (see candidate-generation.js's floor+margin safety gates). When there is no
     // tie, or no context was recorded, it returns matchStep's own base result unchanged — so every
     // existing archetype (forms/login) is byte-identical, and only row-action archetypes gain the lever.
-    const r = (CG && typeof CG.disambiguateByContext === 'function')
+    let r = (CG && typeof CG.disambiguateByContext === 'function')
       ? CG.disambiguateByContext(doc, step._anchor, { gate: true })
       : S.matchStep(doc, step._anchor, { gate: true });
-    if (r.verdict !== 'heal' || !r.best) return { located: false, acted: false, verdict: r.verdict, result: r, stepId, servedBy: 'matcher', firstTry: null };
+    let lever = null;
+
+    if (r.verdict !== 'heal' || !r.best) {
+      const diag0 = (DG && DG.diagnoseFailure(r)) || { category: 'UNKNOWN' };
+      if (diag0.category === 'REMOVAL' && TW && typeof TW.waitAndMatch === 'function') {
+        const waited = await TW.waitAndMatch(doc, step._anchor, {});
+        r = waited;                                    // adopt it either way — richer diagnosis on timeout too
+        if (waited.verdict === 'heal') lever = 'temporal-wait';
+      }
+      if (r.verdict !== 'heal' || !r.best) {
+        const diag1 = (DG && DG.diagnoseFailure(r)) || diag0;
+        if ((diag1.category === 'AMBIGUITY' || diag1.category === 'REMOVAL') && SP && typeof SP.searchAndPick === 'function') {
+          const widened = SP.searchAndPick(doc, step._anchor, {});
+          r = widened;
+          if (widened.verdict === 'heal') lever = 'search-and-pick';
+        }
+      }
+    }
+
+    if (r.verdict !== 'heal' || !r.best) return { located: false, acted: false, verdict: r.verdict, result: r, stepId, servedBy: 'matcher', firstTry: null, lever };
     const ft = firstTryFromLocator(doc, step._anchor, r.best.el);
     const ok = act(r.best.el, step.action, step.value);
-    return { located: true, acted: ok, el: r.best.el, stepId, servedBy: 'matcher', firstTry: ft, via: r.via || null };
+    return { located: true, acted: ok, el: r.best.el, stepId, servedBy: lever || 'matcher', firstTry: ft, via: r.via || lever || null };
   }
 
   // confidence of the effect we can verify (mirrors outcome-verification.CONFIDENCE)
@@ -118,7 +147,8 @@
   // opts (OPTIONAL, S8): { brain, ladder } — threaded into locateAndAct so brain-first only kicks in
   // when both are supplied AND the ladder has promoted this specific step. Omit opts entirely (as every
   // pre-S8 caller does) for byte-identical behaviour.
-  function executeLive(scopeEl, test, opts) {
+  // P2 T5.1: now ASYNC (locateAndAct awaits temporal-wait's real timer) — every caller must `await` this.
+  async function executeLive(scopeEl, test, opts) {
     opts = opts || {};
     const steps = []; let blocked = null;
     // sentinel anchor = the test's first fill target (the field that should disappear on success)
@@ -129,10 +159,11 @@
       const row = { action: st.action, target: st.target, value: st.value || null, located: null, acted: false, firstTry: null };
       if (st.action === 'navigate') { row.acted = true; steps.push(row); continue; }
       if (st.action === 'assert') { steps.push(row); continue; }     // assert has no locate-and-heal semantics; firstTry stays null so aggregators exclude it
-      const a = locateAndAct(scopeEl, st, { brain: opts.brain, ladder: opts.ladder, testId: test.id });
+      const a = await locateAndAct(scopeEl, st, { brain: opts.brain, ladder: opts.ladder, testId: test.id });
       row.located = a.located; row.acted = a.acted; row.stepId = a.stepId || null; row.servedBy = a.servedBy || null;
       row.firstTry = (typeof a.firstTry === 'boolean') ? a.firstTry : null;
       row.via = a.via || null;   // 'context' when K19/K27 row-text disambiguation broke a margin tie
+      row.lever = a.lever || null;   // 'temporal-wait' | 'search-and-pick' when a P2 T5.1 lever was tried
       steps.push(row);
       if (!a.located) { blocked = { st, r: a.result }; break; }
     }
@@ -152,11 +183,13 @@
 
     if (blocked) {
       const d = root.SELFHEAL_DIAGNOSIS.diagnoseFailure(blocked.r);
+      const leverNote = blocked.r && blocked.r.lever ? (' (tried ' + blocked.r.lever + ' — still no safe match)') :
+        (blocked.r && blocked.r.timedOut ? ' (tried temporal-wait — timed out)' : '');
       return { id: test.id, title: test.title, kind: test.kind, goal: test.goal, steps,
                located: false, outcome: blocked.r.verdict === 'abstain' ? 'ABSTAIN' : 'FAILED',
                category: d.category, confidence: 'NONE', verified: false,
                verify_confidence: 'NONE', firstTry: aggregateFirstTry(steps),
-               prescription: 'add a stable test-id / container hint' };
+               prescription: (d.reason || 'add a stable test-id / container hint') + leverNote };
     }
 
     // observe + verify-by-effect (REAL state change)
