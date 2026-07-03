@@ -64,6 +64,52 @@
     return stage;
   }
 
+  // ---- tables/lists archetype fixture (T4.1) — Cancel flips ONLY that row's status; a wrong-row
+  // heal would flip a NEIGHBOR instead, which is the false-heal shape this archetype targets. -------
+  function mountOrders(drift) {
+    stage.innerHTML = F.ORDERS_DOM;
+    stage.querySelectorAll('#ordersList li').forEach(row => {
+      const cancelBtn = Array.from(row.querySelectorAll('button')).find(b => /cancel/i.test(b.textContent));
+      if (!cancelBtn) return;
+      cancelBtn.addEventListener('click', () => {
+        const statusEl = row.querySelector('.status');
+        if (statusEl) statusEl.textContent = 'Cancelled';
+      });
+    });
+    applyDrift(stage, drift);
+    $('#stageInfo').textContent = 'orders-list fixture · ' + (drift || 'pristine');
+    return stage;
+  }
+
+  // ---- nav/menus archetype fixture (T4.2) — view-switch verified by BOTH DOM heading AND
+  // location.hash (the global <a> guard above already blocks default navigation; this handler is the
+  // ONLY thing that moves the hash, so a wrong-link heal would show a MISMATCHED heading/hash pair). --
+  function mountNav(drift) {
+    stage.innerHTML = F.NAV_DOM;
+    stage.querySelectorAll('.nav-link').forEach(a => {
+      a.addEventListener('click', () => {
+        const key = (a.getAttribute('href') || '').replace('#', '');
+        const view = F.NAV_VIEWS[key]; if (!view) return;
+        stage.querySelectorAll('.nav-link').forEach(x => x.classList.toggle('active', x === a));
+        stage.querySelector('#viewTitle').textContent = view.title;
+        stage.querySelector('#viewBody').textContent = view.body;
+        location.hash = key;
+      });
+    });
+    applyDrift(stage, drift);
+    $('#stageInfo').textContent = 'nav-dashboard fixture · ' + (drift || 'pristine');
+    return stage;
+  }
+
+  // ---- app registry (T4.1/T4.2): lets chat "author" + the Runs queue target whichever fixture is
+  // currently selected, instead of the P1 hardcode to the contact form. Archetype is auto-detected
+  // from DOM shape by testgen.authorTests() — no per-app hint needed. -------------------------------
+  const APPS = {
+    'fixture:contact': { label: 'Contact form', mount: mountContact },
+    'fixture:orders':  { label: 'Orders table', mount: mountOrders },
+    'fixture:nav':     { label: 'Dashboard nav', mount: mountNav }
+  };
+
   // one guard so any <a> in a fixture cannot navigate away from panel.html
   document.addEventListener('click', e => {
     if (stage.contains(e.target) && e.target.closest && e.target.closest('a[href]')) e.preventDefault();
@@ -83,7 +129,9 @@
     activeTestIdx: -1, activeStepIdx: -1,
     allRows: [],       // for Report tab across all runs
     paused: false,
-    nextDrift: 'pristine'
+    nextDrift: 'pristine',
+    currentApp: 'fixture:contact',  // T4.1/T4.2: which fixture chat "author"/Runs currently target
+    variantRuns: {}    // T4.3: variantId -> last executeLive() result, for the inline variant table
   };
 
   // ---- tabs ---------------------------------------------------------------------------------------
@@ -107,14 +155,18 @@
     const inp = $('#chatInput'); const txt = (inp.value || '').trim(); if (!txt) return;
     chatMsg('user', esc(txt)); inp.value = '';
     const lower = txt.toLowerCase();
-    if (/\b(author|write|generate|create).*(test|scenario|form|page|screen)\b/.test(lower) || /^author\b/.test(lower)) {
-      mountContact('pristine');
+    if (/\b(author|write|generate|create).*(test|scenario|form|page|screen|table|list|nav|menu)\b/.test(lower) || /^author\b/.test(lower)) {
+      const app = APPS[state.currentApp];
+      app.mount('pristine');
       state.suite = window.__TESTGEN.authorTests(document, {});
+      // T4.3: seed a deterministic data-fuzz variant set onto every case that has a fill step.
+      state.suite.tests.forEach(t => { if (t.steps.some(s => s.action === 'fill')) window.__DATAGEN.attachVariants(t); });
       state.approvedIds = state.suite.tests.map(t => t.id);
       state.droppedIds = [];
+      state.variantRuns = {};
       const n = state.suite.tests.length;
       const oq = state.suite.openQuestions && state.suite.openQuestions.length;
-      chatMsg('agent', 'Found <b>' + n + '</b> scenario' + (n === 1 ? '' : 's') + ' on the contact form (screenType=<code>' + esc(state.suite.screenType) + '</code>)' +
+      chatMsg('agent', 'Found <b>' + n + '</b> scenario' + (n === 1 ? '' : 's') + ' on the ' + esc(app.label) + ' (screenType=<code>' + esc(state.suite.screenType) + '</code>)' +
         (oq ? '. <b>' + oq + '</b> open question' + (oq === 1 ? '' : 's') + ' surfaced for review.' : '.') +
         ' See <b>Review</b> tab.');
       switchTab('review');
@@ -131,6 +183,7 @@
   }
   $('#chatSend').addEventListener('click', chatSend);
   $('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') chatSend(); });
+  $('#appSelect').addEventListener('change', e => { state.currentApp = e.target.value; APPS[state.currentApp].mount('pristine'); });
 
   // ---- review tab (T1.3, mockup 02) --------------------------------------------------------------
   // grouping rule (edge/risk): kind==='smoke' OR any step has no _anchor OR its anchor has no bestLocator
@@ -183,9 +236,11 @@
             const d = document.createElement('div'); d.className = 'steps-detail mut';
             d.innerHTML = t.steps.map((s, i) => (i + 1) + '. ' + esc(s.description) +
               (s.action === 'assert' ? ' → assert "' + esc(s.target) + '"' : '')).join('<br>');
+            d.appendChild(renderVariantBox(t));
             el.appendChild(d);
           }
-        }
+        } else if (act === 'run-variants') { runVariants(tid); renderReview(); }
+        else if (act === 'replay-variant') { replayVariant(tid, btn.dataset.vid); renderReview(); }
       });
     });
     root.querySelectorAll('.ask').forEach(a => {
@@ -240,6 +295,68 @@
     renderReview();
   }
 
+  // ---- data variants (T4.3): inline table in case detail; case×N sub-runs; replay-by-seed ---------
+  function renderVariantBox(t) {
+    const box = document.createElement('div');
+    if (!t._variants || !t._variants.length) return box;
+    let h = '<div class="section-hd" style="margin-top:10px">DATA VARIANTS · seed ' + esc(t._seed) + '</div>' +
+            '<table class="report"><tr><th>kind</th><th>field</th><th>value</th><th>result</th><th></th></tr>';
+    t._variants.forEach(v => {
+      const vid = t.id + '#' + v.id;
+      const r = state.variantRuns[vid];
+      const shown = v.value.length > 24 ? v.value.slice(0, 24) + '…' : (v.value === '' ? '(empty)' : v.value);
+      const resultCell = r ? '<span class="status-' + esc(r.outcome) + '">' + esc(r.outcome) + '</span>' : '<span class="mut">not run</span>';
+      h += '<tr><td>' + esc(v.kind) + '</td><td>' + esc(v.stepTarget) + '</td><td><code>' + esc(shown) + '</code></td>' +
+           '<td>' + resultCell + '</td>' +
+           '<td>' + (r && r.outcome !== 'PASS' ? '<button data-act="replay-variant" data-vid="' + esc(v.id) + '">replay seed</button>' : '') + '</td></tr>';
+    });
+    h += '</table><button data-act="run-variants" style="margin-top:6px">▶ run ' + t._variants.length + ' variants</button>' +
+         '<div class="mut" style="margin-top:4px">Variants reuse this case’s own assertion (unchanged) — an <code>empty</code>/<code>format-invalid</code> value on a required/typed field is EXPECTED to show FAILED (the app correctly rejected it), not a bug.</div>';
+    box.innerHTML = h;
+    return box;
+  }
+
+  // runs every variant of `tid` NOW (pristine drift — fuzzing targets DATA, not DOM drift), synchronously,
+  // one executeLive() per variant, exactly like a single test run — this IS the case×N sub-run.
+  function runVariants(tid) {
+    const t = state.suite.tests.find(x => x.id === tid);
+    if (!t || !t._variants) return;
+    t._variants.forEach(v => {
+      const clone = window.__DATAGEN.buildVariantCase(t, v);
+      const stageEl = APPS[state.currentApp].mount('pristine');
+      const res = window.__RUNTIME.executeLive(stageEl, clone, { brain, ladder });
+      res._driftKind = 'pristine';
+      state.variantRuns[t.id + '#' + v.id] = res;
+      state.allRows.push({
+        schemaVersion: 'flywheel-event/v1', ts: new Date().toISOString(), app: state.currentApp,
+        testId: clone.id, stepId: null, outcome: res.outcome, verify_confidence: res.verify_confidence,
+        category: res.category || 'UNKNOWN', source: 'live', driftKind: 'pristine',
+        healed: res.located, false_heal: false,
+        firstTry: (typeof res.firstTry === 'boolean') ? res.firstTry : null,
+        diagnosis: res.located ? null : (res.prescription || res.category || 'not located'), hitl_decision: null
+      });
+    });
+    chatMsg('agent', 'Ran <b>' + t._variants.length + '</b> data variants for <b>' + esc(tid) + '</b> (seed ' + esc(t._seed) + ').');
+  }
+
+  // replay-by-seed: regenerate the SAME variant from the SAME stored seed (no re-roll) and re-run it —
+  // proves determinism (identical value every time) while giving a one-click repro for a failed case.
+  function replayVariant(tid, vidShort) {
+    const t = state.suite.tests.find(x => x.id === tid);
+    if (!t || !t._variants) return;
+    const v = t._variants.find(x => x.id === vidShort); if (!v) return;
+    // regenerate from the stored seed — assert it matches byte-for-byte (the gate's own honesty check)
+    const field = { stepId: v.id.split(':')[0], type: v.type };
+    const regenerated = window.__DATAGEN.variantsForField(field, t._seed).find(x => x.kind === v.kind);
+    const identical = regenerated && regenerated.value === v.value;
+    const clone = window.__DATAGEN.buildVariantCase(t, v);
+    const stageEl = APPS[state.currentApp].mount('pristine');
+    const res = window.__RUNTIME.executeLive(stageEl, clone, { brain, ladder });
+    state.variantRuns[t.id + '#' + v.id] = res;
+    chatMsg('agent', 'Replayed <b>' + esc(vidShort) + '</b> from seed <b>' + esc(t._seed) + '</b> — regenerated value ' +
+      (identical ? 'matched exactly (deterministic ✓)' : 'DID NOT MATCH — regenerate bug') + '. Outcome: <b>' + esc(res.outcome) + '</b>.');
+  }
+
   // ---- runs tab (T2.1-T2.3, mockup 04) -----------------------------------------------------------
   function renderRuns() {
     const root = $('#tab-runs');
@@ -288,13 +405,13 @@
     // executeLive doesn't take a drift arg — we mount ourselves under the drift, then call the shell.run
     // which will remount pristine internally. To honor the selected drift, we call executeLive directly
     // on our own drift-mounted stage AND record it into the flywheel via toRow so the report picks it up.
-    mountContact(state.nextDrift);
+    APPS[state.currentApp].mount(state.nextDrift);
     const RT = window.__RUNTIME;
     const res = window.__RUNTIME.executeLive(stage, test, { brain, ladder });
     res._driftKind = state.nextDrift;
     // shell.js toRow is not directly exported but createSession keeps its own log. Mirror the row shape here.
     const row = {
-      schemaVersion: 'flywheel-event/v1', ts: new Date().toISOString(), app: 'fixture:contact',
+      schemaVersion: 'flywheel-event/v1', ts: new Date().toISOString(), app: state.currentApp,
       testId: res.id, stepId: null, outcome: res.outcome,
       verify_confidence: res.verify_confidence, category: res.category || 'UNKNOWN',
       // flywheel-event/v1 restricts driftKind to a fixed enum — map our UI-only "remove-target" to
@@ -472,7 +589,7 @@
   }
 
   // ---- boot ---------------------------------------------------------------------------------------
-  mountContact('pristine');
+  APPS[state.currentApp].mount('pristine');
   $('#statusLine').textContent = 'ready';
-  window.__PANEL = { session, state, mountContact, applyDrift, renderReview, renderRuns, renderReport, runNext, switchTab };
+  window.__PANEL = { session, state, APPS, mountContact, mountOrders, mountNav, applyDrift, renderReview, renderRuns, renderReport, runNext, switchTab };
 })();

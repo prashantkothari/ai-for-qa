@@ -151,6 +151,64 @@
       }
     }
 
+    // TABLES/LISTS archetype (T4.1, additive) — a <table> whose per-row action buttons share the SAME
+    // accessible name across rows (margin-0 ambiguity by name alone). Grounded to the K19/K27 lever:
+    // each row action's anchor carries `context = CG.captureContext(el)` (rowText/ordinal/count) so the
+    // runtime's disambiguateByContext can resolve "which row's Cancel" using the row's OWN text (the
+    // customer name) — the only thing distinguishing otherwise-identical buttons.
+    const CG = root.SELFHEAL_CANDGEN;
+    const rowSel = 'table tbody tr, ul li, ol li';
+    const rowsAll = Array.from(doc.querySelectorAll(rowSel)).filter(r => r.querySelector('button'));
+    if (!tests.length && rowsAll.length && CG) {
+      const rows = rowsAll;
+      // only an archetype when >=2 rows share an action name (the genuine ambiguity this archetype targets)
+      const nameCounts = {};
+      rows.forEach(r => r.querySelectorAll('button').forEach(b => { const n = norm(b.textContent); if (n) nameCounts[n] = (nameCounts[n] || 0) + 1; }));
+      const ambiguousNames = Object.keys(nameCounts).filter(n => nameCounts[n] >= 2);
+      if (ambiguousNames.length) {
+        rows.forEach((row, i) => {
+          const rowLabel = norm((row.querySelector('.cust') || row.querySelector('td:nth-child(2)') || row).textContent).slice(0, 40) || ('row ' + (i + 1));
+          const cancelBtn = Array.from(row.querySelectorAll('button')).find(b => /cancel|remove|delete/i.test(b.textContent));
+          if (!cancelBtn) return;
+          const actionName = norm(cancelBtn.textContent);
+          const anchor = S.captureStep(cancelBtn, doc, { stepId: 'row' + i + '_' + actionName.toLowerCase(), container: '#appStage' });
+          anchor.context = CG.captureContext(cancelBtn);   // K19/K27: row-text disambiguator, captured at record time
+          tests.push({ id: 'TB' + (i + 1), title: actionName + ' order for ' + rowLabel, kind: 'positive',
+            goal: 'Cancelling the ' + rowLabel + ' row updates ONLY that row’s status — ' + nameCounts[actionName] +
+                  ' rows share the identical “' + actionName + '” label, so the row’s own text is the only thing telling them apart.',
+            steps: [
+              { description: 'Click ‘' + actionName + '’ in the ' + rowLabel + ' row', action: 'click', target: actionName, value: null,
+                thinking: 'Multiple rows share this exact button label (margin-0 tie by name alone); row-text context (K19/K27) is required to pick the right one.',
+                expected: rowLabel + '’s row shows Cancelled; other rows are unaffected.', _anchor: anchor },
+              { description: 'Assert the correct row changed', thinking: 'Confirms the CORRECT row changed, not a neighbor — the false-heal shape this archetype targets.',
+                action: 'assert', target: rowLabel + ' Cancelled', expected: 'Visible text “' + rowLabel + ' Cancelled” appears (and no OTHER row shows Cancelled).' }
+            ] });
+        });
+        if (!tests.length) openQuestions.push({ id: 'tables-no-cancel', text: 'Table rows found but no Cancel/Remove action to author against — add one?' });
+      }
+    }
+
+    // NAV/MENUS archetype (T4.2, additive) — a <nav> of distinctly-named view-switch links. Verified
+    // by BOTH effects (the Amplitude-pilot pattern): the DOM shows the new view's heading AND
+    // location.hash actually moved (test.verifyType='urlChange' — read by selfheal-runtime.js).
+    const navLinks = Array.from(doc.querySelectorAll('nav a[href^="#"], [role=navigation] a[href^="#"]'));
+    if (!tests.length && navLinks.length >= 2) {
+      navLinks.forEach((a, i) => {
+        const label = norm(a.textContent);
+        if (!label) return;
+        const anchor = S.captureStep(a, doc, { stepId: 'nav' + i, container: '#appStage' });
+        tests.push({ id: 'NV' + (i + 1), title: 'Switch to ' + label, kind: 'positive', verifyType: 'urlChange',
+          goal: 'Selecting ‘' + label + '’ in the nav shows the ' + label + ' view and the URL reflects it (' + (a.getAttribute('href') || '') + ').',
+          steps: [
+            { description: 'Click ‘' + label + '’', action: 'click', target: label, value: null,
+              thinking: 'View-switch cases are verified by effect, not by trusting the click alone.',
+              expected: 'The ' + label + ' view renders and the URL fragment updates.', _anchor: anchor },
+            { description: 'Assert the ' + label + ' view is shown', thinking: 'DOM heading is the visible half of the effect; URL change is checked independently by the runtime.',
+              action: 'assert', target: label, expected: 'Visible heading “' + label + '” appears.' }
+          ] });
+      });
+    }
+
     // FALLBACK — no recognized flow: honest smoke per identifiable control (OpenTest.ai shape, no asserts)
     if (!tests.length) {
       S.WEB.candidates(doc).slice(0, 12).forEach((el, i) => { const ex = S.WEB.extract(el, doc); const n = norm(ex.name); if (!n) return;
@@ -158,8 +216,10 @@
           steps: [{ description: 'Click ' + n, thinking: 'No recognized flow on this screen → enumeration only.', action: 'click', target: n, expected: 'No locator error.', _anchor: S.captureStep(el, doc, { stepId: 'g' + i, container: '#appStage' }) }] }); });
     }
 
-    return { screenType: isLogin ? 'login' : (form && tests.length ? 'forms' : (tests.length ? 'partial' : 'generic')),
-             tests: tests, openQuestions: openQuestions || [] };
+    const screenType = isLogin ? 'login' : (form && tests.length ? 'forms' :
+      (tests.some(t => /^TB/.test(t.id)) ? 'tables' : (tests.some(t => /^NV/.test(t.id)) ? 'nav' :
+      (tests.length ? 'partial' : 'generic'))));
+    return { screenType, tests: tests, openQuestions: openQuestions || [] };
   }
 
   root.__TESTGEN = { authorTests, findControl };

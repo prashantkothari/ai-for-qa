@@ -99,6 +99,59 @@
     </form>`;
   const CONTACT_SUCCESS_DOM = `<div id="thanks"><h1>Thanks!</h1><p>Your message was sent.</p></div>`;
 
+  // ---- TABLES/LISTS archetype fixture (P2 T4.1): an orders LIST whose per-row action buttons
+  // ("Edit"/"Cancel") share the SAME accessible name across all 3 rows — ambiguous by name alone
+  // (margin 0, matchStep would abstain). The only thing that tells the rows apart is their own
+  // row-text (the customer name) — the proven K19/K27 lever (candidate-generation.js
+  // disambiguateByContext). Cancelling a row is a REAL, observable effect (status flips to
+  // "Cancelled") — if the runtime ever resolved the wrong row, a NEIGHBOR row would flip instead,
+  // which is exactly the false-heal shape this archetype is designed to catch.
+  //
+  // DELIBERATE <ul><li> CHOICE, not a literal <table><tr><td>: candidate-generation.js's containerOf()
+  // includes 'td'/'th' in its ROW_TAGS stop-list, so on a real multi-cell <tr> it stops at the
+  // button's OWN <td> (the Actions cell) instead of climbing to the <tr> — the captured rowText would
+  // be "Edit Cancel" on every row (identical, no disambiguating signal). That is a genuine gap in the
+  // shared, heavily-tested containerOf() this session does not touch (broad blast radius, out of
+  // scope for a fixture-level session). A <li> row with the action buttons nested one div deeper
+  // sidesteps it correctly (li IS in ROW_TAGS; the intermediate div is not, so containerOf climbs
+  // straight to the li and captures the customer name too) — an equally real "list" shape per the
+  // T4.1 archetype name, and the one actually proven live in this codebase (Gong/AirPods evidence is
+  // all div/li-based, never a literal <td>-per-action table).
+  const ORDERS_DOM = `
+    <div class="list-wrap">
+      <h2>Orders</h2>
+      <ul id="ordersList" class="orders-list">
+        <li data-oracle="row-1001"><span class="cust">Alice Chen</span> <span class="status">Pending</span>
+          <div class="actions"><button data-oracle="edit-1001">Edit</button> <button data-oracle="cancel-1001">Cancel</button></div></li>
+        <li data-oracle="row-1002"><span class="cust">Bilal Khan</span> <span class="status">Pending</span>
+          <div class="actions"><button data-oracle="edit-1002">Edit</button> <button data-oracle="cancel-1002">Cancel</button></div></li>
+        <li data-oracle="row-1003"><span class="cust">Carla Nunes</span> <span class="status">Pending</span>
+          <div class="actions"><button data-oracle="edit-1003">Edit</button> <button data-oracle="cancel-1003">Cancel</button></div></li>
+      </ul>
+    </div>`;
+
+  // ---- NAV/MENUS archetype fixture (P2 T4.2): a sidebar nav whose links have DISTINCT names (no
+  // disambiguation needed here — this archetype is about verify-by-effect on a URL+DOM change, not
+  // row-text). Clicking a link switches the visible view AND updates location.hash — the runtime
+  // checks BOTH (T4.2: "verify-by-effect on URL/DOM change"), the Amplitude-pilot pattern.
+  const NAV_DOM = `
+    <div class="app-shell">
+      <nav class="sidenav" aria-label="Main" data-oracle="nav">
+        <a href="#dashboard" data-oracle="nav-dashboard" class="nav-link active">Dashboard</a>
+        <a href="#settings" data-oracle="nav-settings" class="nav-link">Settings</a>
+        <a href="#billing" data-oracle="nav-billing" class="nav-link">Billing</a>
+      </nav>
+      <main id="viewport">
+        <h1 id="viewTitle">Dashboard</h1>
+        <p id="viewBody">Welcome back.</p>
+      </main>
+    </div>`;
+  const NAV_VIEWS = {
+    dashboard: { title: 'Dashboard', body: 'Welcome back.' },
+    settings:  { title: 'Settings',  body: 'Manage your account preferences.' },
+    billing:   { title: 'Billing',   body: 'View invoices and payment methods.' }
+  };
+
   root.PRETOTYPE_FIXTURES = { LOGIN_DOM, DASHBOARD_DOM, ERROR_DOM, STUCK_DOM, TESTS, REVIEW, EXPECTED,
-                              CONTACT_DOM, CONTACT_SUCCESS_DOM };
+                              CONTACT_DOM, CONTACT_SUCCESS_DOM, ORDERS_DOM, NAV_DOM, NAV_VIEWS };
 })(typeof window !== 'undefined' ? window : globalThis);

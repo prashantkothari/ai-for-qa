@@ -22,7 +22,14 @@
       <div class="chat-log" id="chatLog">
         <div class="chat-msg agent"><div class="who">AGENT</div>Try: <code>author a test for this form</code> · <code>run</code> · <code>report</code></div>
       </div>
-      <div class="chat-input"><input id="chatInput" placeholder="message agent…"><button class="btn btn-primary" id="chatSend">send</button></div>
+      <div class="chat-input">
+        <select id="appSelect" class="btn" title="Which fixture to author/run against">
+          <option value="fixture:contact">Contact form</option>
+          <option value="fixture:orders">Orders table</option>
+          <option value="fixture:nav">Dashboard nav</option>
+        </select>
+        <input id="chatInput" placeholder="message agent…"><button class="btn btn-primary" id="chatSend">send</button>
+      </div>
     </div>
     <div class="tab-body hide" id="tab-review"></div>
     <div class="tab-body hide" id="tab-runs"></div>
@@ -31,21 +38,22 @@
 </div>
 
 <!-- exact script load order copied from self-heal/shell/shell.html -->
-<script src="../../selfheal-core.js?v=5"></script>
-<script src="../pipeline/candidate-generation.js?v=5"></script>
-<script src="../pipeline/change-diagnosis.js?v=5"></script>
-<script src="../pipeline/failure-reporter.js?v=5"></script>
-<script src="../pipeline/outcome-verification.js?v=5"></script>
-<script src="../schemas/validator.js?v=5"></script>
-<script src="../schemas/flywheel-event.schema.js?v=5"></script>
-<script src="../schemas/false-heal.js?v=5"></script>
-<script src="../pretotype/fixtures.js?v=5"></script>
-<script src="../pretotype/testgen.js?v=5"></script>
-<script src="../pretotype/selfheal-runtime.js?v=5"></script>
-<script src="../report/report.js?v=5"></script>
-<script src="../brain/brain.js?v=5"></script>
-<script src="../pipeline/learning-loop.js?v=5"></script>
-<script src="../tools/hitl-overlay.js?v=5"></script>
-<script src="../shell/shell.js?v=5"></script>
-<script src="panel.js?v=5"></script>
+<script src="../../selfheal-core.js?v=7"></script>
+<script src="../pipeline/candidate-generation.js?v=7"></script>
+<script src="../pipeline/change-diagnosis.js?v=7"></script>
+<script src="../pipeline/failure-reporter.js?v=7"></script>
+<script src="../pipeline/outcome-verification.js?v=7"></script>
+<script src="../schemas/validator.js?v=7"></script>
+<script src="../schemas/flywheel-event.schema.js?v=7"></script>
+<script src="../schemas/false-heal.js?v=7"></script>
+<script src="../pretotype/fixtures.js?v=7"></script>
+<script src="../pretotype/testgen.js?v=7"></script>
+<script src="../pretotype/selfheal-runtime.js?v=7"></script>
+<script src="../report/report.js?v=7"></script>
+<script src="../brain/brain.js?v=7"></script>
+<script src="../pipeline/learning-loop.js?v=7"></script>
+<script src="../tools/hitl-overlay.js?v=7"></script>
+<script src="../shell/shell.js?v=7"></script>
+<script src="datagen.js?v=7"></script>
+<script src="panel.js?v=7"></script>
 </body></html>

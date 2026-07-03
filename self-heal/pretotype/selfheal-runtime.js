@@ -31,7 +31,7 @@
  *   only rows with firstTry===true|false, so absent/null is never miscounted either way.
  */
 (function (root) {
-  const S = root.SELFHEAL, V = root.SELFHEAL_VERIFY;
+  const S = root.SELFHEAL, V = root.SELFHEAL_VERIFY, CG = root.SELFHEAL_CANDGEN;
   let _h = 0; const hash = s => { _h = 0; for (let i = 0; i < s.length; i++) _h = (_h * 31 + s.charCodeAt(i)) >>> 0; return _h; };
 
   // snapshot the observable state of a scope (+ whether a specific anchor element is still present)
@@ -92,11 +92,19 @@
       // L2 but the brain came up cold (element gone/now-ambiguous) -> never guess, fall through to matcher below
     }
 
-    const r = S.matchStep(doc, step._anchor, { gate: true });
+    // K19/K27 wiring (P2 T4.1): when the candidate-generation pipeline module is loaded, route through
+    // disambiguateByContext instead of a bare matchStep — it calls matchStep internally and ONLY
+    // changes the outcome when a margin-TIE exists and the step's captured `context` (rowText/ordinal)
+    // can safely break it (see candidate-generation.js's floor+margin safety gates). When there is no
+    // tie, or no context was recorded, it returns matchStep's own base result unchanged — so every
+    // existing archetype (forms/login) is byte-identical, and only row-action archetypes gain the lever.
+    const r = (CG && typeof CG.disambiguateByContext === 'function')
+      ? CG.disambiguateByContext(doc, step._anchor, { gate: true })
+      : S.matchStep(doc, step._anchor, { gate: true });
     if (r.verdict !== 'heal' || !r.best) return { located: false, acted: false, verdict: r.verdict, result: r, stepId, servedBy: 'matcher', firstTry: null };
     const ft = firstTryFromLocator(doc, step._anchor, r.best.el);
     const ok = act(r.best.el, step.action, step.value);
-    return { located: true, acted: ok, el: r.best.el, stepId, servedBy: 'matcher', firstTry: ft };
+    return { located: true, acted: ok, el: r.best.el, stepId, servedBy: 'matcher', firstTry: ft, via: r.via || null };
   }
 
   // confidence of the effect we can verify (mirrors outcome-verification.CONFIDENCE)
@@ -124,6 +132,7 @@
       const a = locateAndAct(scopeEl, st, { brain: opts.brain, ladder: opts.ladder, testId: test.id });
       row.located = a.located; row.acted = a.acted; row.stepId = a.stepId || null; row.servedBy = a.servedBy || null;
       row.firstTry = (typeof a.firstTry === 'boolean') ? a.firstTry : null;
+      row.via = a.via || null;   // 'context' when K19/K27 row-text disambiguation broke a margin tie
       steps.push(row);
       if (!a.located) { blocked = { st, r: a.result }; break; }
     }
@@ -168,6 +177,19 @@
       verified = null; confidence = 'NONE'; category = 'SMOKE';
       const decSmoke = V.decide(true, { passed: false, confidence: 'NONE' });
       outcome = decSmoke.outcome === 'PASSED_WARNING' ? 'PASS_WARNING' : decSmoke.outcome;   // same translation as below — one outcome vocabulary
+    } else if (test.verifyType === 'urlChange') {
+      // nav/menus archetype (T4.2): verify-by-effect on BOTH the URL and the DOM — corroborating
+      // signals, not either alone. urlChange uses core's OWN verifyEffect (pristine, unmodified);
+      // the DOM half reuses the same textPresent check as every other archetype. HIGH confidence only
+      // when BOTH moved — a click that changes the URL but shows the wrong view (or vice versa) is
+      // exactly the kind of partial/false effect this project exists to catch, so it stays MEDIUM.
+      const urlOk = S.verifyEffect(before, after, { type: 'urlChange' });
+      const domOk = S.verifyEffect(before, after, { type: 'textPresent', value: dashKw });
+      verified = urlOk && domOk;
+      confidence = verified ? 'HIGH' : 'MEDIUM';
+      const dec = V.decide(true, { passed: verified, confidence });
+      outcome = dec.outcome === 'PASSED' ? 'PASS' : (dec.outcome === 'PASSED_WARNING' ? 'PASS_WARNING' : 'FAILED');
+      category = verified ? 'VERIFIED' : 'APP_BUG';
     } else {
       const expect = pickExpect(test, navigatedAway, dashKw);
       // build before/after for core verifyEffect (elementGone uses .has; textPresent uses .text)
