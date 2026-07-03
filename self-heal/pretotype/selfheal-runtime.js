@@ -20,6 +20,15 @@
  *   verify-by-effect below is UNCHANGED and ALWAYS runs regardless of which path located the element —
  *   the false-heal firewall never gets skipped, only re-matching does. Callers that omit opts (or omit
  *   opts.brain/opts.ladder) get byte-identical behaviour to before this change.
+ *
+ * firstTry addition (P1-tightening) — additive READ-ONLY observation, selfheal-core.js untouched:
+ *   each step row now carries firstTry (true|false|null) — did the RECORDED bestLocator still uniquely
+ *   resolve to the element the runtime ended up acting on? true = primary anchor held, no heal was
+ *   needed. false = matcher had to lean on descriptor scoring to relocate (a heal occurred). null =
+ *   inherently N/A (assert/navigate, no bestLocator recorded, or the anchor uses core's role=/name=
+ *   pseudo-selector which is not a real CSS selector). Test-level result.firstTry aggregates across
+ *   locate-only steps: any false → false; all true → true; else null. Downstream report/panel count
+ *   only rows with firstTry===true|false, so absent/null is never miscounted either way.
  */
 (function (root) {
   const S = root.SELFHEAL, V = root.SELFHEAL_VERIFY;
@@ -44,27 +53,50 @@
     return false;
   }
 
+  // firstTry: did the RECORDED bestLocator still uniquely resolve to the element we ended up acting on?
+  // If yes → the primary anchor held; no heal was needed (firstTry=true). If no (locator missing, gone,
+  // or now resolves to a different element) → the matcher had to lean on descriptor scoring to relocate
+  // (firstTry=false, i.e. a heal occurred). Returns null when the recorded anchor never had a bestLocator
+  // (no-anchor descriptor) — that case is inherently "no primary anchor to try first" so we honestly say
+  // unknown, not false. Additive READ-ONLY observation over already-recorded fields — selfheal-core.js
+  // is unchanged.
+  function firstTryFromLocator(doc, anchor, actedEl) {
+    const bl = anchor && anchor.target && anchor.target.bestLocator;
+    if (!bl || !actedEl) return null;
+    if (String(bl).indexOf('role=') === 0) return null;   // core's role+name pseudo-selector is not a real CSS selector; we can't reproduce that fallback here honestly
+    try {
+      const list = doc.querySelectorAll(bl);
+      return list.length === 1 && list[0] === actedEl;
+    } catch (e) { return null; }
+  }
+
   // resolve an OpenTest.ai step's NL target via its captured _anchor (heal-aware), then act.
   // opts.brain/opts.ladder/opts.testId are OPTIONAL (S8) — see header. Omitting any of them falls back
   // to the original always-matcher path unchanged.
   function locateAndAct(scopeEl, step, opts) {
     opts = opts || {};
-    if (!step._anchor) return { located: false, acted: false, reason: 'no anchor' };
+    if (!step._anchor) return { located: false, acted: false, reason: 'no anchor', firstTry: null };
     const stepId = step._anchor.stepId;
+    const doc = scopeEl.ownerDocument;
 
     if (opts.brain && opts.ladder && opts.testId && stepId && opts.ladder.tier(opts.testId, stepId) === 'L2') {
-      const hit = opts.brain.get(opts.testId, stepId, scopeEl.ownerDocument);   // re-verifies live uniqueness itself
+      const hit = opts.brain.get(opts.testId, stepId, doc);   // re-verifies live uniqueness itself
       if (hit) {
+        // Capture firstTry BEFORE act() — a submit-click can replace the DOM, retroactively voiding
+        // the recorded bestLocator ("form submitted → success page → #cSubmit gone") and mis-labelling
+        // a clean first-try match as a heal. Snapshot uniqueness at act time, not after side effects.
+        const ft = firstTryFromLocator(doc, step._anchor, hit.el);
         const ok = act(hit.el, step.action, step.value);
-        return { located: true, acted: ok, el: hit.el, stepId, servedBy: 'brain' };
+        return { located: true, acted: ok, el: hit.el, stepId, servedBy: 'brain', firstTry: ft };
       }
       // L2 but the brain came up cold (element gone/now-ambiguous) -> never guess, fall through to matcher below
     }
 
-    const r = S.matchStep(scopeEl.ownerDocument, step._anchor, { gate: true });
-    if (r.verdict !== 'heal' || !r.best) return { located: false, acted: false, verdict: r.verdict, result: r, stepId, servedBy: 'matcher' };
+    const r = S.matchStep(doc, step._anchor, { gate: true });
+    if (r.verdict !== 'heal' || !r.best) return { located: false, acted: false, verdict: r.verdict, result: r, stepId, servedBy: 'matcher', firstTry: null };
+    const ft = firstTryFromLocator(doc, step._anchor, r.best.el);
     const ok = act(r.best.el, step.action, step.value);
-    return { located: true, acted: ok, el: r.best.el, stepId, servedBy: 'matcher' };
+    return { located: true, acted: ok, el: r.best.el, stepId, servedBy: 'matcher', firstTry: ft };
   }
 
   // confidence of the effect we can verify (mirrors outcome-verification.CONFIDENCE)
@@ -86,13 +118,27 @@
     const before = snapshot(scopeEl, sentinel);
 
     for (const st of test.steps) {
-      const row = { action: st.action, target: st.target, value: st.value || null, located: null, acted: false };
+      const row = { action: st.action, target: st.target, value: st.value || null, located: null, acted: false, firstTry: null };
       if (st.action === 'navigate') { row.acted = true; steps.push(row); continue; }
-      if (st.action === 'assert') { steps.push(row); continue; }     // assert handled by verify below
+      if (st.action === 'assert') { steps.push(row); continue; }     // assert has no locate-and-heal semantics; firstTry stays null so aggregators exclude it
       const a = locateAndAct(scopeEl, st, { brain: opts.brain, ladder: opts.ladder, testId: test.id });
       row.located = a.located; row.acted = a.acted; row.stepId = a.stepId || null; row.servedBy = a.servedBy || null;
+      row.firstTry = (typeof a.firstTry === 'boolean') ? a.firstTry : null;
       steps.push(row);
       if (!a.located) { blocked = { st, r: a.result }; break; }
+    }
+
+    // firstTry aggregation across locate-only steps (assert/navigate excluded — the runtime already
+     //   set their firstTry to null above, so this filter is redundant *now* but keeps the aggregate
+     //   correct if a caller extends the action set later). Semantics:
+     //     any locate step firstTry===false  → test firstTry=false (heal occurred somewhere)
+     //     every locate step firstTry===true → test firstTry=true  (matcher's first choice held throughout)
+     //     otherwise (all null / mixed null with none false, or no locate steps at all) → null (unknown; not counted)
+    function aggregateFirstTry(rows) {
+      const loc = rows.filter(s => s.action !== 'assert' && s.action !== 'navigate');
+      if (loc.some(s => s.firstTry === false)) return false;
+      if (loc.length > 0 && loc.every(s => s.firstTry === true)) return true;
+      return null;
     }
 
     if (blocked) {
@@ -100,7 +146,8 @@
       return { id: test.id, title: test.title, kind: test.kind, goal: test.goal, steps,
                located: false, outcome: blocked.r.verdict === 'abstain' ? 'ABSTAIN' : 'FAILED',
                category: d.category, confidence: 'NONE', verified: false,
-               verify_confidence: 'NONE', prescription: 'add a stable test-id / container hint' };
+               verify_confidence: 'NONE', firstTry: aggregateFirstTry(steps),
+               prescription: 'add a stable test-id / container hint' };
     }
 
     // observe + verify-by-effect (REAL state change)
@@ -134,9 +181,10 @@
     return { id: test.id, title: test.title, kind: test.kind, goal: test.goal, steps,
              located: true, navigatedAway, outcome, category, verified,
              confidence, verify_confidence: confidence,
+             firstTry: aggregateFirstTry(steps),
              prescription: outcome === 'FAILED' ? 'App defect — assertion failed after a REAL action; file a bug' :
                            outcome === 'PASS_WARNING' ? 'unverifiable (no effect declared) — queue for human review' : '—' };
   }
 
-  root.__RUNTIME = { snapshot, act, locateAndAct, executeLive };
+  root.__RUNTIME = { snapshot, act, locateAndAct, executeLive, firstTryFromLocator };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -74,6 +74,27 @@
     return { measured, simulated, manualExcludedCount: validRows.filter(r => r.source === 'manual').length };
   }
 
+  // healRate — measured over rows where the runtime emitted firstTry (true|false). A row with
+  // firstTry absent or firstTry===null is NEVER counted as either (assertions and no-locator anchors
+  // fall here — no locate-and-heal semantics to speak of). Modeled 1:1 on healStats/buildSelfHealRate
+  // above so measured vs simulated stay separated by source; rate is null (not 0) when denominator=0.
+  //   healed        = rows with firstTry === false  (matcher had to lean on descriptor scoring → a heal)
+  //   healEligible  = rows with firstTry === true or false (the ones we can honestly count)
+  function firstTryStats(rows) {
+    const eligible = rows.filter(r => r.firstTry === true || r.firstTry === false);
+    const healed = eligible.filter(r => r.firstTry === false).length;
+    const healEligible = eligible.length;
+    const rate = healEligible > 0 ? healed / healEligible : null;
+    return { healed, healEligible, rate, ratePct: rate === null ? null : Math.round(rate * 100) };
+  }
+  function buildHealRate(validRows) {
+    const measured = firstTryStats(validRows.filter(r => r.source === 'live'));
+    const simulated = firstTryStats(validRows.filter(r => r.source === 'simulated'));
+    measured.label = 'measured';
+    simulated.label = 'simulated';
+    return { measured, simulated, manualExcludedCount: validRows.filter(r => r.source === 'manual').length };
+  }
+
   function buildPerTest(validRows, outcomeValues) {
     const map = Object.create(null);
     validRows.forEach(r => {
@@ -127,6 +148,9 @@
       'selfHealRate.measured': 'measured — source==="live" rows only',
       'selfHealRate.simulated': 'simulated — source==="simulated" rows only; never blended with measured',
       'selfHealRate.manualExcludedCount': 'n/a — source==="manual" (HITL) rows are excluded from the heal rate, counted here so they are not silently dropped',
+      'healRate.measured': 'measured — source==="live" rows only where the runtime emitted firstTry (true|false); assertions/no-locator anchors excluded (firstTry===null/absent — not counted either way)',
+      'healRate.simulated': 'simulated — source==="simulated" rows only with firstTry present; never blended with measured',
+      'healRate.manualExcludedCount': 'n/a — source==="manual" (HITL) rows excluded from the heal rate, counted here so they are not silently dropped',
       'perTest.rowCount': 'measured — schema-valid rows only, grouped per (app, testId)',
       'perTest.outcomeCounts': 'measured — schema-valid rows only',
       'perTest.falseHealCount': 'measured — schema-valid rows for this test ONLY; malformed rows for the same test are NOT counted here (see summary.falseHealInRejectedRows for the gate-level rejected-row count)'
@@ -145,6 +169,7 @@
       },
       clusters: buildClusters(validRows),
       selfHealRate: buildSelfHealRate(validRows),
+      healRate: buildHealRate(validRows),
       perTest: buildPerTest(validRows, outcomeValues),
       rejectedRows,
       labels

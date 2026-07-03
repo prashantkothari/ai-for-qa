@@ -10,8 +10,9 @@
  *   - Highlight overlay is a best-effort: shows the box of the LAST resolved element in the LAST completed
  *     step (not a live frame-by-frame trace since executeLive runs synchronously).
  *   - false-heal counter on the Report tab is MEASURED from live buildReport() over accumulated rows.
- *     Self-heal RATE is deliberately not displayed — we don't blend simulated/measured, and the live
- *     runtime does not emit a per-step "healed vs first-try" flag we could count honestly here.
+ *   - heal-rate widget is MEASURED over live rows where the runtime emitted firstTry (assertions
+ *     excluded); simulated rows are counted separately and NEVER blended into the measured number.
+ *     Rows without firstTry are back-compat and never counted either way — see report.buildHealRate.
  */
 (function () {
   'use strict';
@@ -301,6 +302,11 @@
       // and gets counted in the summary. The UI still shows our finer-grained label.
       source: 'live', driftKind: (['pristine','restyle','localize','appbug'].indexOf(state.nextDrift) !== -1 ? state.nextDrift : 'appbug'),
       healed: res.located, false_heal: false,
+      // firstTry aggregate from the runtime — true=matcher's first choice held throughout the test's
+      // locate steps, false=at least one step needed to heal, null=nothing to count (all asserts, or
+      // no bestLocator on the recorded anchors). Emit null rather than omitting so downstream reads
+      // are explicit; report.buildHealRate treats null exactly the same as absent (not counted).
+      firstTry: (typeof res.firstTry === 'boolean') ? res.firstTry : null,
       diagnosis: res.located ? null : (res.prescription || res.category || 'not located'),
       hitl_decision: null
     };
@@ -436,7 +442,16 @@
     if (!state.allRows.length) { root.innerHTML = '<p class="mut">No runs yet. Run some tests first.</p>'; return; }
     const rep = REP.buildReport(state.allRows);
     const fh = rep.summary.falseHealCount || 0;
-    let h = '<div class="headline"><span class="n">' + fh + '</span> false-heal<span class="tag">measured · live · N=' + state.allRows.length + '</span></div>' +
+    const hm = rep.healRate && rep.healRate.measured;
+    // The heal-rate widget only appears when the measured denominator is non-zero — an honest N=0
+    // never becomes a fabricated "0% (0/0)" number. Simulated is not counted here (panel emits
+    // source:'live' rows exclusively; the report already keeps the buckets separate anyway).
+    let healRateWidget = '';
+    if (hm && hm.healEligible > 0) {
+      healRateWidget = '<span class="tag" title="' + esc((rep.labels && rep.labels['healRate.measured']) || '') + '">' +
+                       hm.ratePct + '% heal-rate (measured · live · N=' + hm.healEligible + ')</span>';
+    }
+    let h = '<div class="headline"><span class="n">' + fh + '</span> false-heal<span class="tag">measured · live · N=' + state.allRows.length + '</span>' + healRateWidget + '</div>' +
             '<div class="mut" style="margin-top:4px">A correct <b>abstain-with-named-reason</b> is a deliverable, not a failure. false-heal is the gating metric.</div>';
     h += '<h3 style="margin-top:14px">Summary</h3>' +
          '<div class="mut">outcomes: ' + esc(JSON.stringify(rep.summary.outcomeCounts || {})) + '</div>' +
@@ -452,7 +467,7 @@
            '<td>' + esc(r.verify_confidence) + '</td><td>' + esc(r.category) + '</td><td>' + esc(r.driftKind) + '</td></tr>';
     });
     h += '</table>';
-    h += '<p class="mut" style="margin-top:8px">Self-heal <i>rate</i> is deliberately NOT displayed here — live executeLive does not emit a per-step "first-try vs healed" flag we could count honestly, and mixing measured + simulated is against project rules. Only false-heal (0 tolerance, measured) is claimed.</p>';
+    h += '<p class="mut" style="margin-top:8px">Heal-rate is measured over steps where the runtime emitted <code>firstTry</code>; assertions and steps whose recorded anchor had no <code>bestLocator</code> are excluded (nothing to first-try). Measured and simulated buckets are never blended. false-heal (0 tolerance, measured) remains the gating metric.</p>';
     root.innerHTML = h;
   }
 

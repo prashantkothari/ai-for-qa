@@ -26,6 +26,7 @@
       driftKind: { type: ['string', 'null'], enum: ['pristine', 'restyle', 'localize', 'appbug', null] },
       healed: { type: ['boolean', 'null'] },                        // true=matcher had to heal; false=cached; null=n/a
       false_heal: { type: 'boolean' },                              // gating metric — must stay 0 in aggregate
+      firstTry: { type: ['boolean', 'null'] },                      // true=recorded bestLocator still resolved uniquely to the acted element; false=matcher had to lean on descriptor scoring to relocate (a heal occurred); null=n/a (assert/navigate, no bestLocator, or role= pseudo-selector). OPTIONAL — absent = unknown, NEVER counted as either in downstream heal-rate.
       diagnosis: { type: ['string', 'null'] },                      // free-form reason for ABSTAIN/FAILED
       hitl_decision: { type: ['string', 'null'] }                   // e.g. 'confirm'|'skip'|'point-to'|null
     },

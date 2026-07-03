@@ -81,6 +81,12 @@ against test-plan/v1 as a cross-check.</small></p>
   const badEventRawDecideLabel = { ...validEventHigh, outcome: 'PASSED_WARNING' };   // regression: bug #2 (raw outcome-verification label, not the runtime's canonical one)
   const badEventBadConf = { ...validEventHigh, verify_confidence: 'kinda' };
   const badEventBadTs = { ...validEventHigh, ts: 'yesterday' };
+  // firstTry (optional, back-compat: absent = unknown, NOT counted either way)
+  const validEventFirstTryTrue  = { ...validEventHigh, firstTry: true };
+  const validEventFirstTryFalse = { ...validEventHigh, firstTry: false };
+  const validEventFirstTryNull  = { ...validEventHigh, firstTry: null };
+  const badEventFirstTryStr     = { ...validEventHigh, firstTry: 'yes' };
+  const badEventFirstTryNum     = { ...validEventHigh, firstTry: 1 };
 
   const validReqTestgen = {
     schemaVersion: 'escalation-request/v1', reason: 'testgen', app: 'amplitude',
@@ -125,6 +131,11 @@ against test-plan/v1 as a cross-check.</small></p>
     ['flywheel:reject-raw-decide-label', FW.EVENT, badEventRawDecideLabel, false],   // regression: bug #2
     ['flywheel:bad-confidence-enum',   FW.EVENT, badEventBadConf,    false],
     ['flywheel:bad-timestamp',         FW.EVENT, badEventBadTs,      false],
+    ['flywheel:firstTry-true',         FW.EVENT, validEventFirstTryTrue,  true ],
+    ['flywheel:firstTry-false',        FW.EVENT, validEventFirstTryFalse, true ],
+    ['flywheel:firstTry-null',         FW.EVENT, validEventFirstTryNull,  true ],
+    ['flywheel:firstTry-string-rejected', FW.EVENT, badEventFirstTryStr,  false],
+    ['flywheel:firstTry-number-rejected', FW.EVENT, badEventFirstTryNum,  false],
     ['escalation-req:valid-testgen',   ES.REQUEST, validReqTestgen,  true ],
     ['escalation-req:valid-nameless',  ES.REQUEST, validReqNameless, true ],
     ['escalation-req:bad-reason-enum', ES.REQUEST, badReqBadReason,  false],
