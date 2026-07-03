@@ -132,16 +132,19 @@
     nextDrift: 'pristine',
     currentApp: 'fixture:contact',  // T4.1/T4.2: which fixture chat "author"/Runs currently target
     variantRuns: {},   // T4.3: variantId -> last executeLive() result, for the inline variant table
-    ladderHistory: []  // T5.2: promote/demote events, most-recent-last
+    ladderHistory: [], // T5.2: promote/demote events, most-recent-last
+    safety: { mutations: 0, falseHeals: 0, rounds: [], seed: 0, corruptNext: false },   // T5.3
+    evalGateResult: null   // T5.3: last in-panel S4 eval-gate run
   };
 
   // ---- tabs ---------------------------------------------------------------------------------------
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-    ['chat', 'review', 'runs', 'report'].forEach(n => $('#tab-' + n).classList.toggle('hide', n !== name));
+    ['chat', 'review', 'runs', 'report', 'safety'].forEach(n => $('#tab-' + n).classList.toggle('hide', n !== name));
     if (name === 'review') renderReview();
     if (name === 'runs') renderRuns();
     if (name === 'report') renderReport();
+    if (name === 'safety') renderSafety();
   }
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
 
@@ -403,12 +406,13 @@
         '<button class="btn" id="resetQueue">reset queue</button>' +
         '<span class="mut" id="queueInfo"></span>' +
       '</div>' +
+      '<div id="learnPane" style="margin-top:10px"></div>' +
       '<div class="run" style="margin-top:12px">' +
         '<div><h2>Agent · steps</h2><div id="stepsPane"><p class="mut">Click "step" to run the next approved test.</p></div>' +
         '<div class="left-note">Note: "step" advances one TEST at a time (executeLive is synchronous per test). Highlight overlay reflects the LAST resolved element. HITL fires automatically when a step gets stuck.</div></div>' +
         '<div><h2>Inspect</h2><div id="inspectPane" class="inspect"><p class="mut">Click any step to inspect selector, anchor signals, DOM snippet, and assertion.</p></div></div>' +
       '</div>';
-    $('#stepBtn').addEventListener('click', runNext);
+    $('#stepBtn').addEventListener('click', async () => { await runNext(); renderLearnPane(); });
     $('#pauseBtn').addEventListener('click', () => { state.paused = !state.paused; $('#pauseBtn').textContent = state.paused ? '▶ resume queue' : '‖ pause queue'; });
     $('#takeOverBtn').addEventListener('click', () => {
       hitl.show({ kind: 'takeover', cardId: 'manual:' + Date.now(), title: 'User take-over',
@@ -418,10 +422,46 @@
     $('#resetQueue').addEventListener('click', () => { state.runQueue = state.approvedIds.slice(); state.currentRun = null; renderRuns(); });
     updateQueueInfo();
     renderStepsPane();
+    renderLearnPane();
   }
   function updateQueueInfo() {
     const el = $('#queueInfo'); if (!el) return;
     el.textContent = state.runQueue.length + ' queued · ' + state.runs.length + ' completed';
+  }
+
+  // ---- T5.2: brain-served/matcher-served tally, L1/L2 tier per step, promote/demote history --------
+  function renderLearnPane() {
+    const el = $('#learnPane'); if (!el) return;
+    let brainServed = 0, matcherServed = 0, leverServed = { 'temporal-wait': 0, 'search-and-pick': 0 };
+    state.runs.forEach(r => (r.steps || []).forEach(st => {
+      if (st.servedBy === 'brain') brainServed++;
+      else if (st.servedBy === 'temporal-wait' || st.servedBy === 'search-and-pick') { matcherServed++; leverServed[st.servedBy]++; }
+      else if (st.servedBy === 'matcher') matcherServed++;
+    }));
+    let h = '<div class="section-hd">BRAIN / LADDER (T5.2)</div>' +
+      '<div class="mut">served — brain: <b>' + brainServed + '</b> · matcher: <b>' + matcherServed + '</b>' +
+      (leverServed['temporal-wait'] || leverServed['search-and-pick'] ?
+        ' (of which via temporal-wait: ' + leverServed['temporal-wait'] + ', via search-and-pick: ' + leverServed['search-and-pick'] + ')' : '') +
+      ' — measured over ' + state.runs.length + ' completed run' + (state.runs.length === 1 ? '' : 's') + '</div>';
+    if (state.currentRun) {
+      const test = state.suite.tests.find(t => t.id === state.currentRun.id);
+      const tierRow = (test ? test.steps.filter(s => s._anchor && s._anchor.stepId) : [])
+        .map(s => s._anchor.stepId + ':' + ladder.tier(state.currentRun.id, s._anchor.stepId)).join('  ');
+      if (tierRow) h += '<div class="mut" style="margin-top:2px">current test tiers — ' + esc(tierRow) + '</div>';
+    }
+    if (state.ladderHistory.length) {
+      const recent = state.ladderHistory.slice(-8).reverse();
+      h += '<table class="report" style="margin-top:6px"><tr><th>test:step</th><th>action</th><th>tier</th><th>successes/failures</th></tr>';
+      recent.forEach(ev => {
+        h += '<tr><td>' + esc(ev.testId) + ':' + esc(ev.stepId) + '</td>' +
+             '<td>' + (ev.promoted ? '<b>PROMOTED → L2</b>' : esc(ev.action)) + '</td>' +
+             '<td>' + esc(ev.tier) + '</td><td>' + ev.successes + '/' + ev.failures + '</td></tr>';
+      });
+      h += '</table>';
+    } else {
+      h += '<div class="mut" style="margin-top:2px">No promote/demote events yet — run the same test 5× to see a promotion.</div>';
+    }
+    el.innerHTML = h;
   }
 
   async function runNext() {
@@ -491,11 +531,13 @@
       // are neither located nor acted (their row.located is null). We display "-" for null.
       const mk = v => v === true ? '✓' : v === false ? '✗' : '·';
       const sel = (st.stepId ? '#' + st.stepId : (st.action + ' · ' + (st.target || '')));
+      const tier = st.stepId ? ladder.tier(r.id, st.stepId) : null;   // T5.2: current ladder tier for this step
       h += '<li data-i="' + i + '"><span class="num">' + String(i + 1).padStart(2, '0') + '</span>' +
            esc(st.action) + ' ' + (st.target ? '"' + esc(st.target) + '"' : '') +
            (st.value ? ' = <code>' + esc(st.value) + '</code>' : '') +
            '<span class="marks">  loc:' + mk(st.located) + ' act:' + mk(st.acted) + '</span>' +
-           '<span class="sel">' + esc(sel) + (st.servedBy ? ' · via ' + esc(st.servedBy) : '') + '</span>' +
+           '<span class="sel">' + esc(sel) + (st.servedBy ? ' · via ' + esc(st.servedBy) : '') +
+           (tier ? ' · tier ' + esc(tier) : '') + '</span>' +
            '</li>';
     });
     h += '</ol>';
@@ -617,6 +659,90 @@
     h += '</table>';
     h += '<p class="mut" style="margin-top:8px">Heal-rate is measured over steps where the runtime emitted <code>firstTry</code>; assertions and steps whose recorded anchor had no <code>bestLocator</code> are excluded (nothing to first-try). Measured and simulated buckets are never blended. false-heal (0 tolerance, measured) remains the gating metric.</p>';
     root.innerHTML = h;
+  }
+
+  // ---- safety tab (T5.3): S4 eval-gate in-panel + seeded drift torture -----------------------------
+  async function runInPanelEvalGate() {
+    const BM = window.SELFHEAL_BENCHMARK, corpus = window.SELFHEAL_BENCHMARK_CORPUS;
+    if (!BM || !corpus) { chatMsg('agent', 'Eval-gate modules not loaded — check script tags.'); return; }
+    let baseline = null;
+    try { baseline = await fetch('../benchmark/baseline.json').then(r => r.json()); } catch (e) { /* optional — regressions just report [] without it */ }
+    state.evalGateResult = BM.runBenchmark(corpus, document, baseline);   // mounts into the hidden #benchStage, not #appStage
+    renderSafety();
+  }
+
+  // one torture round: pick a random data-oracle'd control on the CURRENTLY mounted fixture, capture
+  // it pristine, apply one seeded mutation (restyle/localize/reorder/twin), then check whether
+  // matchStep(+K19/K27 context) still resolves to the SAME oracle. Reuses selfheal-core.js's public
+  // surface only (captureStep/matchStep) — read-only, no core/pipeline edits.
+  function runTortureRound() {
+    const S = window.SELFHEAL, CG = window.SELFHEAL_CANDGEN;
+    APPS[state.currentApp].mount('pristine');
+    const doc = document;
+    const oracleEls = Array.from(doc.querySelectorAll('#appStage [data-oracle]'))
+      .filter(el => S.WEB.candidates(doc).indexOf(el) !== -1);
+    if (!oracleEls.length) { chatMsg('agent', 'No data-oracle control on the current fixture to torture — switch app first.'); return; }
+    state.safety.seed += 1;
+    const rnd = window.__DATAGEN.mulberry32(state.safety.seed);
+    const target = oracleEls[Math.floor(rnd() * oracleEls.length)];
+    const oracle = target.getAttribute('data-oracle');
+    const step = S.captureStep(target, doc, { stepId: 'torture', container: '#appStage' });
+    if (CG) step.context = CG.captureContext(target);
+    const kind = window.__DRIFT_TORTURE.KINDS[Math.floor(rnd() * window.__DRIFT_TORTURE.KINDS.length)];
+    window.__DRIFT_TORTURE.applyMutation(stage, kind, rnd);
+    const r = (CG && typeof CG.disambiguateByContext === 'function') ? CG.disambiguateByContext(doc, step, { gate: true }) : S.matchStep(doc, step, { gate: true });
+    const resolvedOracle = (r.verdict === 'heal' && r.best && r.best.el) ? r.best.el.getAttribute('data-oracle') : null;
+    let falseHeal = r.verdict === 'heal' && resolvedOracle !== oracle;
+    let corrupted = false;
+    if (state.safety.corruptNext) { falseHeal = true; corrupted = true; state.safety.corruptNext = false; }   // deliberate, labelled fault injection — proves the counter isn't hardcoded green
+    state.safety.mutations += 1;
+    if (falseHeal) state.safety.falseHeals += 1;
+    state.safety.rounds.unshift({ n: state.safety.mutations, kind, oracle, verdict: r.verdict, resolvedOracle, falseHeal, corrupted });
+    state.safety.rounds = state.safety.rounds.slice(0, 12);
+  }
+
+  function renderSafety() {
+    const root = $('#tab-safety');
+    const eg = state.evalGateResult;
+    const sf = state.safety;
+    let h = '<div class="section-hd">S4 EVAL-GATE (IN-PANEL)</div>' +
+      '<button class="btn" id="runEvalGate">▶ run eval-gate corpus</button> ';
+    if (eg) {
+      const goRed = eg.falseHealCount > 0 || eg.regressions.length > 0;
+      h += '<span class="tag" style="color:' + (goRed ? 'var(--bad)' : 'var(--ok)') + '">' +
+           'false-heal ' + eg.falseHealCount + '/' + eg.totalCases + ' · match ' + eg.matchCount + '/' + eg.totalCases +
+           ' · regressions ' + eg.regressions.length + '</span>';
+    } else {
+      h += '<span class="mut">not run yet this session</span>';
+    }
+    h += '<div class="mut" style="margin-top:2px">Reuses the SAME corpus/baseline as <code>self-heal/benchmark/eval-gate.html</code> — mounted into its own <code>#benchStage</code> below (never touches the host-app fixture on the left). Must stay on-screen and un-hidden: the matcher\'s own actionability gate hit-tests each candidate\'s real screen position, so <code>display:none</code>/off-screen tricks would falsely fail every case as STATE_ISSUE.</div>' +
+         '<div id="benchStage" style="margin-top:6px"></div>';
+
+    h += '<div class="section-hd" style="margin-top:16px">DRIFT TORTURE — live falsifiability counter</div>' +
+      '<button class="btn" id="tortureOne">▶ mutate once</button> ' +
+      '<button class="btn" id="tortureTen">▶ mutate ×10</button> ' +
+      '<button class="btn" id="corruptOne" title="Deliberately flags the NEXT round as a false-heal to prove this counter is falsifiable, not a hardcoded green">⚠ corrupt next verdict (demo)</button> ' +
+      '<button class="btn" id="resetTorture">reset</button>';
+    const red = sf.falseHeals > 0;
+    h += '<div class="headline" style="margin-top:8px"><span class="n" style="color:' + (red ? 'var(--bad)' : 'var(--ok)') + '">' +
+         sf.mutations + ' mutations · false-heals: ' + sf.falseHeals + '</span>' +
+         '<span class="tag">' + (red ? 'RED' : 'GREEN') + ' — measured, live</span></div>';
+    h += '<div class="mut">Kinds: restyle · localize · reorder · twin, seeded (deterministic per round). Each round captures a random <code>data-oracle</code> control pristine, mutates, then checks the matcher still resolves the SAME control.</div>';
+    if (sf.rounds.length) {
+      h += '<table class="report" style="margin-top:6px"><tr><th>#</th><th>kind</th><th>target</th><th>verdict</th><th>resolved</th><th>false-heal</th></tr>';
+      sf.rounds.forEach(r => {
+        h += '<tr' + (r.falseHeal ? ' style="background:#fbe9e7"' : '') + '><td>' + r.n + '</td><td>' + esc(r.kind) + '</td><td>' + esc(r.oracle) + '</td>' +
+             '<td>' + esc(r.verdict) + '</td><td>' + esc(r.resolvedOracle || '—') + '</td>' +
+             '<td>' + (r.falseHeal ? (r.corrupted ? '<b>YES (SIMULATED — demo fault injection)</b>' : '<b>YES</b>') : 'no') + '</td></tr>';
+      });
+      h += '</table>';
+    }
+    root.innerHTML = h;
+    $('#runEvalGate').addEventListener('click', runInPanelEvalGate);
+    $('#tortureOne').addEventListener('click', () => { runTortureRound(); renderSafety(); });
+    $('#tortureTen').addEventListener('click', () => { for (let i = 0; i < 10; i++) runTortureRound(); renderSafety(); });
+    $('#corruptOne').addEventListener('click', () => { state.safety.corruptNext = true; chatMsg('agent', 'Next torture round will be FORCED red (simulated fault injection) — proving the counter is falsifiable, not hardcoded.'); });
+    $('#resetTorture').addEventListener('click', () => { state.safety = { mutations: 0, falseHeals: 0, rounds: [], seed: 0, corruptNext: false }; renderSafety(); });
   }
 
   // ---- boot ---------------------------------------------------------------------------------------

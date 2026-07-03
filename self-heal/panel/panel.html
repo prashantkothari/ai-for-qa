@@ -1,7 +1,7 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>QA Agent — panel (P1)</title>
 <meta http-equiv="Cache-Control" content="no-store">
-<link rel="stylesheet" href="panel.css">
+<link rel="stylesheet" href="panel.css?v=14">
 </head><body>
 <div class="layout">
   <div class="stage-wrap">
@@ -17,6 +17,7 @@
       <div class="tab" data-tab="review">review</div>
       <div class="tab" data-tab="runs">runs</div>
       <div class="tab" data-tab="report">report</div>
+      <div class="tab" data-tab="safety">safety</div>
     </div>
     <div class="tab-body" id="tab-chat">
       <div class="chat-log" id="chatLog">
@@ -34,29 +35,32 @@
     <div class="tab-body hide" id="tab-review"></div>
     <div class="tab-body hide" id="tab-runs"></div>
     <div class="tab-body hide" id="tab-report"></div>
+    <div class="tab-body hide" id="tab-safety"></div>
   </div>
 </div>
-
 <!-- exact script load order copied from self-heal/shell/shell.html -->
-<script src="../../selfheal-core.js?v=9"></script>
-<script src="../pipeline/candidate-generation.js?v=9"></script>
-<script src="../pipeline/change-diagnosis.js?v=9"></script>
-<script src="../pipeline/failure-reporter.js?v=9"></script>
-<script src="../pipeline/outcome-verification.js?v=9"></script>
-<script src="../pipeline/search-and-pick.js?v=9"></script>
-<script src="../pipeline/temporal-wait.js?v=9"></script>
-<script src="../schemas/validator.js?v=9"></script>
-<script src="../schemas/flywheel-event.schema.js?v=9"></script>
-<script src="../schemas/false-heal.js?v=9"></script>
-<script src="../benchmark/eval-gate.js?v=9"></script>
-<script src="../pretotype/fixtures.js?v=9"></script>
-<script src="../pretotype/testgen.js?v=9"></script>
-<script src="../pretotype/selfheal-runtime.js?v=9"></script>
-<script src="../report/report.js?v=9"></script>
-<script src="../brain/brain.js?v=9"></script>
-<script src="../pipeline/learning-loop.js?v=9"></script>
-<script src="../tools/hitl-overlay.js?v=9"></script>
-<script src="../shell/shell.js?v=9"></script>
-<script src="datagen.js?v=9"></script>
-<script src="panel.js?v=9"></script>
+<script src="../../selfheal-core.js?v=14"></script>
+<script src="../pipeline/candidate-generation.js?v=14"></script>
+<script src="../pipeline/change-diagnosis.js?v=14"></script>
+<script src="../pipeline/failure-reporter.js?v=14"></script>
+<script src="../pipeline/outcome-verification.js?v=14"></script>
+<script src="../pipeline/search-and-pick.js?v=14"></script>
+<script src="../pipeline/temporal-wait.js?v=14"></script>
+<script src="../schemas/validator.js?v=14"></script>
+<script src="../schemas/flywheel-event.schema.js?v=14"></script>
+<script src="../schemas/false-heal.js?v=14"></script>
+<script src="../pretotype/fixtures.js?v=14"></script>
+<script src="../pretotype/payment-fixtures.js?v=14"></script>
+<script src="../benchmark/corpus.js?v=14"></script>
+<script src="../benchmark/eval-gate.js?v=14"></script>
+<script src="../pretotype/testgen.js?v=14"></script>
+<script src="../pretotype/selfheal-runtime.js?v=14"></script>
+<script src="drift-torture.js?v=14"></script>
+<script src="../report/report.js?v=14"></script>
+<script src="../brain/brain.js?v=14"></script>
+<script src="../pipeline/learning-loop.js?v=14"></script>
+<script src="../tools/hitl-overlay.js?v=14"></script>
+<script src="../shell/shell.js?v=14"></script>
+<script src="datagen.js?v=14"></script>
+<script src="panel.js?v=14"></script>
 </body></html>
