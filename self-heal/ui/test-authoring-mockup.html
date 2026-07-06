@@ -1,0 +1,241 @@
+<title>Insurance test cases — module, scenario & data</title>
+<style>
+  :root{
+    --ground:#f5f7f8; --panel:#ffffff; --ink:#1b2530; --text:#3f4d58; --muted:#68757f; --faint:#96a1aa;
+    --hair:#e5eaed; --hair-soft:#eef2f4;
+    --accent:#0d6c74; --accent-soft:#e6f0f0; --sel:#edf4f4;
+    --chip-k:#eef2f5; --chip-v:#ffffff; --chip-bd:#e1e7ea; --data-bg:#f8fafb;
+    --pos:#2f7d55; --bnd:#2b62a8; --neg:#c04a3b; --edge:#986a1c; --state:#5d4f92; --flag:#75539f;
+    --ready:#2f7d55; --ready-bg:#e8f2ec; --draft:#68757f; --draft-bg:#eef1f3; --dec:#986a1c; --dec-bg:#f6eeda;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .app{display:flex;flex-direction:column;height:100vh}
+
+  .bar{display:flex;align-items:center;gap:12px;padding:13px 20px;background:var(--panel);border-bottom:1px solid var(--hair)}
+  .bar h1{font-size:15px;font-weight:600;margin:0;letter-spacing:-.01em}
+  .bar .ctx{font-size:12.5px;color:var(--muted)}
+
+  .cols{display:flex;flex:1;min-height:0}
+
+  /* left nav */
+  .nav{width:300px;flex:none;background:var(--panel);border-right:1px solid var(--hair);overflow-y:auto;padding:10px 0}
+  .mod{padding:12px 18px 4px;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  .feat>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;padding:7px 18px;font-weight:600;font-size:13.5px;color:var(--ink);outline:none}
+  .feat>summary::-webkit-details-marker{display:none}
+  .feat>summary:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+  .feat .tw{width:12px;height:12px;color:var(--faint);transition:transform .16s;flex:none}
+  .feat[open] .tw{transform:rotate(90deg)}
+  .scn-item{display:flex;align-items:center;gap:9px;padding:6px 18px 6px 37px;cursor:pointer;font-size:13px;color:#42505a;border-left:2px solid transparent}
+  .scn-item:hover{background:var(--hair-soft)}
+  .scn-item.active{background:var(--sel);border-left-color:var(--accent);color:var(--ink);font-weight:600}
+  .scn-item .n{margin-left:auto;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+
+  /* right pane */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .head{padding:22px 30px 0}
+  .d-crumb{font-size:12px;color:var(--muted);margin:0 0 4px}
+  .d-title{font-size:20px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+  .d-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .d-meta b{color:#39464f;font-weight:600}
+
+  /* tabs + tools */
+  .tabrow{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--hair);padding:0 30px}
+  .tab{font:inherit;font-size:13.5px;color:var(--muted);background:none;border:none;padding:9px 4px;margin-right:18px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .tabrow .spacer{flex:1}
+  .mini{font:inherit;font-size:12.5px;color:var(--accent);background:none;border:1px solid var(--hair);padding:4px 10px;border-radius:7px;cursor:pointer}
+  .mini:hover{background:var(--accent-soft);border-color:var(--accent-soft)}
+
+  .body{flex:1;overflow-y:auto;padding:8px 30px 60px}
+
+  /* detail cards */
+  .case{border-top:1px solid var(--hair);padding:15px 0}
+  .case:first-child{border-top:none}
+  .chead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;cursor:pointer}
+  .cvt{width:12px;height:12px;color:var(--faint);transition:transform .16s;flex:none;align-self:center}
+  .case.closed .cvt{transform:rotate(-90deg)}
+  .type{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;flex:none;width:78px}
+  .type .d{width:7px;height:7px;border-radius:50%;flex:none}
+  .cid{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+  .cname{font-weight:600;font-size:14.5px;color:var(--ink)}
+  .traces{margin-left:auto;font-size:11px;color:var(--faint);font-family:ui-monospace,monospace}
+  .cbody{margin-left:100px}
+  .case.closed .cbody{display:none}
+  .expect{margin-top:7px;font-size:13.5px;color:var(--text)}
+  .expect .lab{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:600;margin-right:6px}
+  .expect b{color:var(--ink);font-weight:600}
+  .data{margin-top:10px;background:var(--data-bg);border:1px solid var(--hair);border-radius:8px;padding:9px 10px;display:flex;flex-wrap:wrap;gap:6px}
+  .pair{display:inline-flex;font-size:12.5px;border:1px solid var(--chip-bd);border-radius:6px;overflow:hidden;font-variant-numeric:tabular-nums}
+  .pair .k{background:var(--chip-k);color:var(--muted);padding:2.5px 8px}
+  .pair .v{background:var(--chip-v);color:var(--ink);padding:2.5px 8px;font-weight:600}
+  .pair.hl .v{color:var(--edge)} .pair.bad .v{color:var(--neg)}
+  .flag{margin-top:11px;font-size:13px;color:#4c3b66;border-left:2px solid var(--flag);padding:2px 0 2px 12px}
+  .flag b{color:var(--flag);font-weight:600}
+
+  /* list / export table */
+  .tablewrap{overflow-x:auto;border:1px solid var(--hair);border-radius:9px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:860px}
+  th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--hair);white-space:nowrap;background:#fafbfc}
+  td{padding:11px 12px;border-bottom:1px solid var(--hair-soft);vertical-align:top;color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  td .cid{color:var(--accent)}
+  td.type-cell{font-weight:600;white-space:nowrap}
+  td .dm{color:var(--muted);font-size:12px}
+  td b{color:var(--ink);font-weight:600}
+  .status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:2.5px 9px;border-radius:20px;white-space:nowrap}
+  .st-ready{color:var(--ready);background:var(--ready-bg)} .st-draft{color:var(--draft);background:var(--draft-bg)} .st-dec{color:var(--dec);background:var(--dec-bg)}
+
+  .foot{margin-top:22px;font-size:12px;color:var(--faint);max-width:66ch;line-height:1.6}
+  .foot code{font-size:11.5px;background:var(--panel);border:1px solid var(--hair);border-radius:4px;padding:1px 5px}
+
+  @media(max-width:780px){
+    .cols{flex-direction:column}.nav{width:auto;max-height:34vh;border-right:none;border-bottom:1px solid var(--hair)}
+    .head,.tabrow,.body{padding-left:16px;padding-right:16px}.cbody{margin-left:0}
+  }
+</style>
+
+<div class="app">
+  <div class="bar"><h1>Test Authoring</h1><span class="ctx">AIA iPOS+ · Financial Health Review</span></div>
+  <div class="cols">
+    <nav class="nav" id="nav" aria-label="modules and scenarios"></nav>
+    <section class="main">
+      <div class="head" id="head"></div>
+      <div class="tabrow">
+        <button class="tab on" id="tabDetail">Detail</button>
+        <button class="tab" id="tabList">List</button>
+        <span class="spacer"></span>
+        <button class="mini" id="collapse">Collapse all</button>
+      </div>
+      <div class="body" id="body"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  module:"Financial Health Review",
+  features:[
+    {name:"Priorities & Needs — TPD",scenarios:[
+      {id:"s1",name:"TPD need is captured & sized correctly",ac:"AC-TPD-1",technique:"Decision table + BVA",cases:[
+        {type:"Positive",dot:"--pos",id:"TPD-01",name:"Standard applicant — need computed",traces:"AC-TPD-1",status:"ready",
+         pre:"Contact + SQS quote started",steps:"Enter priorities → TPD",
+         expect:'TPD sum-assured = <b>needs-formula(income, dependents, liabilities)</b>, carried to Selected Plans',
+         data:[["age","35"],["income","$60,000"],["dependents","2"],["liabilities","$150,000"],["existing TPD","$0"]]},
+        {type:"Boundary",dot:"--bnd",id:"TPD-02",name:"Entry-age floor — 17 vs 18",traces:"AC-TPD-age",status:"ready",
+         pre:"New applicant",steps:"Set DOB → request quote",
+         expect:'age <b>17 rejected</b> ("min entry age 18"); <b>18 accepted</b>',data:[["age","17",1],["age","18"]]},
+        {type:"Boundary",dot:"--bnd",id:"TPD-03",name:"Sum-assured cap — request over max",traces:"AC-TPD-cap",status:"ready",
+         pre:"Product max = $5M",steps:"Request cover above max",
+         expect:'cover <b>clamped to product max</b>, cap message shown, no silent over-issue',data:[["requested","$5,100,000"],["product max","$5,000,000",1]]},
+        {type:"State",dot:"--state",id:"TPD-04",name:"Applicant declines TPD priority",traces:"AC-TPD-opt",status:"draft",
+         pre:"Other needs selected",steps:"Uncheck TPD priority",
+         expect:'TPD <b>excluded from plan</b>, downstream needs recalculated, no orphaned line',data:[["TPD priority","unchecked"],["other needs","CI + income"]]},
+      ]},
+      {id:"s2",name:"Invalid financial inputs are rejected",ac:"AC-validation",technique:"Equivalence + fuzzing",cases:[
+        {type:"Negative",dot:"--neg",id:"TPD-05",name:"Income zero / negative / non-numeric",traces:"AC-validation",status:"ready",
+         pre:"About-You step",steps:"Enter bad income value",
+         expect:'validation error, <b>no quote produced</b>, no NaN premium downstream',data:[["income","$0",2],["income","−$1",2],["income",'"abc"',2],["income","99999999999",2]]},
+        {type:"Negative",dot:"--neg",id:"TPD-06",name:"Dependents out of range",traces:"AC-validation",status:"draft",
+         pre:"About-You step",steps:"Enter out-of-range count",
+         expect:'values <b>&lt;0 or &gt;20 rejected</b>, formula never runs on bad count',data:[["dependents","−1",2],["dependents","999",2]]},
+      ]},
+      {id:"s3",name:"Underinsurance flagged for suitability",ac:"REG-suitability",technique:"Decision table",cases:[
+        {type:"Edge",dot:"--edge",id:"TPD-07",name:"Existing cover far below computed need",traces:"REG-suitability",status:"dec",
+         pre:"Existing policy present",steps:"Compare need vs existing",
+         expect:'shortfall <b>flagged for advisor justification</b> before proceeding',data:[["computed need","$200,000"],["existing cover","$50,000",1]],
+         flag:'<b>Abstain — needs product / compliance decision.</b> The threshold that triggers the suitability flag isn\'t defined (any gap? &gt;25%? absolute $?). Raised as a question, not asserted.'},
+      ]},
+    ]},
+    {name:"Investment Risk",scenarios:[
+      {id:"s4",name:"Risk-profile score maps to correct band",ac:"AC-risk-band",technique:"Decision table + BVA",cases:[
+        {type:"Positive",dot:"--pos",id:"RSK-01",name:"Mid score → Balanced profile",traces:"AC-risk-band",status:"ready",
+         pre:"Questionnaire complete",steps:"Submit answers",
+         expect:'profile = <b>Balanced</b>, only Balanced-tier funds offered',data:[["score","18 / 40"],["rule","15–24 = Balanced"]]},
+        {type:"Boundary",dot:"--bnd",id:"RSK-02",name:"Band edge — 14 vs 15",traces:"AC-risk-band",status:"ready",
+         pre:"Questionnaire complete",steps:"Score at band edge",
+         expect:'14 = <b>Conservative</b>; 15 = <b>Balanced</b> (edge goes to higher band)',data:[["score","14",1],["score","15"]]},
+        {type:"Edge",dot:"--edge",id:"RSK-03",name:"Profile mismatch vs selected fund",traces:"REG-suitability",status:"dec",
+         pre:"Profile assigned",steps:"Pick fund above risk band",
+         expect:'Conservative client picking Aggressive fund → <b>mismatch warning + justification</b>',data:[["profile","Conservative"],["selected fund","Aggressive Growth",1]]},
+      ]},
+    ]},
+  ]
+};
+const ST = {ready:["Ready","st-ready"],draft:["Draft","st-draft"],dec:["Needs decision","st-dec"]};
+
+const nav=document.getElementById('nav'),head=document.getElementById('head'),body=document.getElementById('body');
+let activeId="s1", view="detail";
+
+const byId=id=>{for(const f of DATA.features)for(const s of f.scenarios)if(s.id===id)return{s,f};};
+const dataMini=d=>d.map(x=>`${x[0]} ${x[1]}`).join(", ");
+
+function renderNav(){
+  let h=`<div class="mod">${DATA.module}</div>`;
+  for(const f of DATA.features){
+    h+=`<details class="feat" open><summary><svg class="tw" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>${f.name}</summary>`;
+    for(const s of f.scenarios)h+=`<div class="scn-item${s.id===activeId?' active':''}" data-id="${s.id}" tabindex="0" role="button">${s.name}<span class="n">${s.cases.length}</span></div>`;
+    h+=`</details>`;
+  }
+  nav.innerHTML=h;
+  nav.querySelectorAll('.scn-item').forEach(el=>{
+    el.onclick=()=>select(el.dataset.id);
+    el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(el.dataset.id);}};
+  });
+}
+function renderHead(){
+  const {s,f}=byId(activeId);
+  head.innerHTML=`<p class="d-crumb">${DATA.module} · ${f.name}</p><h2 class="d-title">${s.name}</h2>
+    <div class="d-meta"><span><b>${s.cases.length}</b> test cases</span><span>Technique · <b>${s.technique}</b></span><span>Traces · <b>${s.ac}</b></span></div>`;
+}
+function renderBody(){
+  const {s}=byId(activeId);
+  document.getElementById('collapse').style.visibility = view==='detail'?'visible':'hidden';
+  if(view==='detail'){
+    let h='';
+    for(const c of s.cases){
+      h+=`<div class="case"><div class="chead">
+        <svg class="cvt" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="type" style="color:var(${c.dot})"><span class="d" style="background:var(${c.dot})"></span>${c.type}</span>
+        <span class="cid">${c.id}</span><span class="cname">${c.name}</span><span class="traces">${c.traces}</span></div>
+        <div class="cbody"><div class="expect"><span class="lab">Expect</span>${c.expect}</div>
+        <div class="data">${c.data.map(d=>{const cl=d[2]===2?' bad':d[2]===1?' hl':'';return `<span class="pair${cl}"><span class="k">${d[0]}</span><span class="v">${d[1]}</span></span>`;}).join('')}</div>
+        ${c.flag?`<div class="flag">${c.flag}</div>`:''}</div></div>`;
+    }
+    body.innerHTML=h;
+    body.querySelectorAll('.chead').forEach(hd=>hd.onclick=()=>hd.parentElement.classList.toggle('closed'));
+  } else {
+    let rows='';
+    for(const c of s.cases){
+      const st=ST[c.status];
+      rows+=`<tr><td><span class="status ${st[1]}">${st[0]}</span></td>
+        <td><span class="cid">${c.id}</span></td>
+        <td class="type-cell" style="color:var(${c.dot})">${c.type}</td>
+        <td><b>${c.name}</b></td>
+        <td class="dm">${byId(activeId).s.technique}</td>
+        <td class="dm">${c.pre}</td>
+        <td class="dm">${dataMini(c.data)}</td>
+        <td class="dm">${c.steps}</td>
+        <td>${c.expect}</td>
+        <td class="dm">${c.traces}</td></tr>`;
+    }
+    body.innerHTML=`<div class="tablewrap"><table><thead><tr>
+      <th>Status</th><th>ID</th><th>Type</th><th>Test case</th><th>Technique</th><th>Preconditions</th><th>Data</th><th>Steps</th><th>Expected</th><th>Traces</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="foot">Values are <code>asserted</code> from the stated rules, not measured from a live system. This List view is the export shape (add / reorder columns on export).</p>`;
+  }
+}
+function select(id){activeId=id;renderNav();renderHead();renderBody();}
+function setView(v){view=v;document.getElementById('tabDetail').classList.toggle('on',v==='detail');document.getElementById('tabList').classList.toggle('on',v==='list');renderBody();}
+
+document.getElementById('tabDetail').onclick=()=>setView('detail');
+document.getElementById('tabList').onclick=()=>setView('list');
+const cbtn=document.getElementById('collapse');
+cbtn.onclick=()=>{const cases=body.querySelectorAll('.case');const anyOpen=[...cases].some(c=>!c.classList.contains('closed'));cases.forEach(c=>c.classList.toggle('closed',anyOpen));cbtn.textContent=anyOpen?'Expand all':'Collapse all';};
+
+renderNav();renderHead();renderBody();
+</script>
