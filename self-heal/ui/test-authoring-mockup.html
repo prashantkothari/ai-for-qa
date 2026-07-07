@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Authoring &amp; Execution — AIA iPOS+ Financial Health Review</title>
+<style>
+  :root{
+    --teal:#0d8b8b;
+    --teal-dark:#0a6f6f;
+    --teal-tint:#e6f4f4;
+    --ink:#1c2529;
+    --ink-2:#48555c;
+    --ink-3:#7a878e;
+    --line:#e3e8ea;
+    --line-2:#eef2f3;
+    --bg:#f6f8f8;
+    --panel:#ffffff;
+    --pass:#1f9d55;
+    --fail:#d1435b;
+    --block:#c77700;
+    --notrun:#9aa6ac;
+    --radius:8px;
+    --shadow:0 1px 2px rgba(20,40,45,.05), 0 1px 3px rgba(20,40,45,.06);
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    font-size:13.5px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- top bar ---------- */
+  .topbar{
+    height:52px;display:flex;align-items:center;gap:12px;
+    padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:-.01em;}
+  .brand .mark{width:22px;height:22px;border-radius:6px;background:var(--teal);
+    display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700;}
+  .brand .sub{color:var(--ink-3);font-weight:500;font-size:12px;}
+  .topbar .spacer{flex:1;}
+  .topbar .crumb{color:var(--ink-3);font-size:12px;}
+  .topbar .crumb b{color:var(--ink-2);font-weight:600;}
+
+  /* ---------- layout ---------- */
+  .layout{display:flex;height:calc(100vh - 52px);}
+  .nav{
+    width:310px;min-width:310px;background:var(--panel);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* ---------- view switch ---------- */
+  .viewswitch{padding:12px 14px 10px;border-bottom:1px solid var(--line-2);}
+  .viewswitch .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-3);font-weight:650;margin:0 2px 7px;}
+  .seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:2px;}
+  .seg button{
+    flex:1;border:0;background:transparent;padding:6px 8px;border-radius:5px;
+    font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-2);cursor:pointer;
+  }
+  .seg button.active{background:var(--panel);color:var(--teal-dark);box-shadow:var(--shadow);}
+
+  .navscroll{flex:1;overflow-y:auto;padding:8px 8px 24px;}
+
+  /* ---------- tree ---------- */
+  .tree{list-style:none;margin:0;padding:0;}
+  .node{user-select:none;}
+  .row{
+    display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;cursor:pointer;
+    color:var(--ink-2);position:relative;
+  }
+  .row:hover{background:var(--line-2);}
+  .row.selected{background:var(--teal-tint);color:var(--teal-dark);}
+  .row.selected .caret,.row.selected .rowtext{color:var(--teal-dark);}
+  .caret{width:12px;font-size:9px;color:var(--ink-3);flex:none;transition:transform .12s;display:inline-block;text-align:center;}
+  .caret.open{transform:rotate(90deg);}
+  .caret.leaf{visibility:hidden;}
+  .rowtext{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ic{width:15px;flex:none;text-align:center;font-size:12px;color:var(--ink-3);}
+  .row .count{font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;}
+  .children{margin:0;padding:0 0 0 15px;list-style:none;
+    border-left:1px solid var(--line-2);margin-left:11px;}
+  .children.collapsed{display:none;}
+  .lvl-mod .rowtext{font-weight:650;color:var(--ink);}
+  .lvl-mod.selected .rowtext{color:var(--teal-dark);}
+
+  /* dots */
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+  .dot.pass{background:var(--pass);}
+  .dot.fail{background:var(--fail);}
+  .dot.block{background:var(--block);}
+  .dot.notrun{background:var(--notrun);}
+
+  /* run node meta */
+  .runmeta{font-size:10.5px;color:var(--ink-3);padding:0 8px 6px 42px;margin-top:-2px;}
+  .runmeta .plat{color:var(--ink-2);font-weight:600;}
+
+  /* ---------- main tabs ---------- */
+  .maintabs{
+    display:flex;align-items:center;gap:2px;padding:10px 18px 0;border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  .maintabs .titleblock{margin-bottom:9px;}
+  .maintabs .titleblock h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em;}
+  .maintabs .titleblock .meta{font-size:12px;color:var(--ink-3);margin-top:2px;}
+  .tabrow{display:flex;gap:2px;margin-left:auto;align-self:flex-end;}
+  .tab{
+    border:0;background:transparent;font:inherit;font-weight:600;font-size:13px;color:var(--ink-3);
+    padding:8px 14px;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;
+  }
+  .tab:hover{color:var(--ink-2);}
+  .tab.active{color:var(--teal-dark);border-bottom-color:var(--teal);}
+
+  .content{flex:1;overflow:auto;padding:18px;}
+  .content.listmode{overflow:hidden;display:flex;flex-direction:column;padding:14px 18px 18px;}
+
+  /* ---------- run summary bar ---------- */
+  .runsummary{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px;
+    display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  }
+  .runsummary .rs-title{font-weight:650;font-size:14.5px;}
+  .runsummary .rs-sub{font-size:12px;color:var(--ink-3);margin-top:2px;}
+  .runsummary .rs-meta{display:flex;gap:22px;flex-wrap:wrap;}
+  .rs-metaitem .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:650;}
+  .rs-metaitem .v{font-size:12.5px;color:var(--ink);font-weight:600;margin-top:1px;}
+  .counts{display:flex;gap:6px;margin-left:auto;align-items:center;}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;
+    padding:5px 11px;border-radius:20px;border:1px solid var(--line);background:var(--bg);
+    font-variant-numeric:tabular-nums;
+  }
+  .pill .dot{width:8px;height:8px;}
+  .pill.pass{color:var(--pass);}.pill.fail{color:var(--fail);}
+  .pill.block{color:var(--block);}.pill.notrun{color:var(--notrun);}
+  .rate-bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden;display:flex;width:100%;margin-top:12px;}
+  .rate-bar > span{display:block;height:100%;}
+  .rate-bar .s-pass{background:var(--pass);}
+  .rate-bar .s-fail{background:var(--fail);}
+  .rate-bar .s-block{background:var(--block);}
+  .rate-bar .s-notrun{background:var(--notrun);}
+
+  /* ---------- detail cards ---------- */
+  .scenario-head{margin-bottom:14px;}
+  .scenario-head h2{font-size:15px;margin:0 0 4px;font-weight:650;}
+  .scenario-head p{margin:0;color:var(--ink-2);font-size:12.5px;max-width:70ch;}
+  .tagline{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px;}
+  .tag{font-size:11px;color:var(--ink-2);border:1px solid var(--line);border-radius:5px;padding:2px 8px;background:var(--panel);}
+  .tag b{color:var(--ink);font-weight:600;}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;
+  }
+  .card-head{display:flex;align-items:center;gap:11px;padding:12px 14px;cursor:pointer;}
+  .card-head:hover{background:var(--line-2);}
+  .card-head .caret{font-size:10px;}
+  .cid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink-3);
+    background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 6px;flex:none;}
+  .ctitle{font-weight:600;flex:1;}
+  /* category chip — thin bordered, typographic color only (no filled pills) */
+  .ctype{font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:5px;flex:none;
+    border:1px solid var(--line);background:var(--panel);letter-spacing:.02em;
+    text-transform:lowercase;}
+  .ctype.cat-positive,.ctype.cat-alt-valid{color:var(--teal-dark);}
+  .ctype.cat-negative,.ctype.cat-boundary{color:var(--fail);}
+  .ctype.cat-regulatory{color:var(--block);}
+  .ctype.cat-edge,.ctype.cat-state{color:var(--block);}
+  .ctype.cat-property{color:var(--ink-2);}
+  .card-body{padding:2px 14px 15px;border-top:1px solid var(--line-2);display:none;}
+  .card.open .card-body{display:block;}
+  .card.open .card-head .caret{transform:rotate(90deg);}
+
+  .step-block{margin-top:13px;}
+  .step-block .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:650;margin-bottom:6px;}
+  ol.steps{margin:0;padding-left:20px;}
+  ol.steps li{margin:3px 0;color:var(--ink);}
+  ol.steps li .exp{color:var(--ink-2);font-size:12px;}
+  ol.steps li .exp::before{content:"→ ";color:var(--teal);}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
+  .chip{
+    display:inline-flex;align-items:baseline;gap:6px;font-size:11.5px;
+    border:1px solid var(--line);border-radius:6px;padding:4px 9px;background:var(--bg);
+  }
+  .chip .k{color:var(--ink-3);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}
+  .chip .v{color:var(--ink);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;}
+
+  /* ---------- list / table ---------- */
+  .tabletools{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+  .tabletools .hint{font-size:12px;color:var(--ink-3);}
+  .tabletools .spacer{flex:1;}
+  .btn{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 11px;
+    font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-2);cursor:pointer;}
+  .btn:hover{border-color:var(--ink-3);color:var(--ink);}
+  .tablewrap{flex:1;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);}
+  table{border-collapse:separate;border-spacing:0;width:100%;min-width:1020px;font-size:12.5px;}
+  thead th{
+    position:sticky;top:0;background:var(--panel);text-align:left;font-weight:650;color:var(--ink-2);
+    font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;
+    border-bottom:1px solid var(--line);white-space:nowrap;z-index:1;
+  }
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap;color:var(--ink);}
+  tbody tr:hover{background:var(--line-2);}
+  tbody tr:last-child td{border-bottom:0;}
+  td.id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink-3);}
+  td.name{white-space:normal;min-width:230px;font-weight:550;color:var(--ink);}
+  .mini{font-size:11px;font-weight:650;padding:2px 8px;border-radius:5px;display:inline-block;}
+  .mini.auto{color:var(--teal-dark);border:1px solid var(--teal);background:var(--teal-tint);}
+  .mini.manual{color:var(--ink-2);border:1px solid var(--line);background:var(--bg);}
+  .platcell{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);}
+  .platcell .pic{font-size:12px;}
+  .statuscell{font-weight:650;display:inline-flex;align-items:center;gap:6px;}
+  .statuscell.pass{color:var(--pass);}
+  .statuscell.fail{color:var(--fail);}
+  .statuscell.block{color:var(--block);}
+  .statuscell.notrun{color:var(--notrun);}
+  .assignee{display:inline-flex;align-items:center;gap:7px;}
+  .avatar{width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;
+    font-size:10px;font-weight:700;flex:none;}
+  .muted{color:var(--ink-3);}
+  .type-chip{font-size:11px;color:var(--ink-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px;background:var(--bg);}
+
+  .emptyhint{color:var(--ink-3);font-size:13px;padding:40px;text-align:center;}
+
+  /* ---------- lifecycle + priority + trace (shared) ---------- */
+  .lifecycle{font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    padding:2px 8px;border-radius:5px;}
+  .lc-active{color:var(--pass);border:1px solid #bfe6cd;background:#eef8f1;}
+  .lc-draft{color:var(--block);border:1px solid #f0d8ab;background:#fdf5e6;}
+  .lc-deprecated{color:var(--ink-3);border:1px solid var(--line);background:var(--bg);text-decoration:line-through;}
+  .prio{font-weight:700;font-size:11.5px;font-variant-numeric:tabular-nums;}
+  .prio-P1{color:var(--fail);}
+  .prio-P2{color:var(--block);}
+  .prio-P3{color:var(--ink-3);}
+  .tracelink{color:var(--teal-dark);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px;border-bottom:1px dotted var(--teal);cursor:pointer;}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--ink-2);}
+
+  /* ---------- drawer ---------- */
+  .drawer-backdrop{position:fixed;inset:0;background:rgba(20,35,40,.28);opacity:0;visibility:hidden;
+    transition:opacity .18s;z-index:40;}
+  .drawer-backdrop.show{opacity:1;visibility:visible;}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:480px;max-width:92vw;background:var(--panel);
+    border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(20,40,45,.10);
+    transform:translateX(100%);transition:transform .2s ease;z-index:41;display:flex;flex-direction:column;}
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{padding:16px 18px 12px;border-bottom:1px solid var(--line);}
+  .dh-idrow{display:flex;align-items:center;gap:8px;}
+  .dh-idrow .drawer-close{margin-left:auto;border:0;background:transparent;font-size:16px;color:var(--ink-3);
+    cursor:pointer;line-height:1;padding:4px 6px;border-radius:6px;}
+  .dh-idrow .drawer-close:hover{background:var(--line-2);color:var(--ink);}
+  .dh-title{display:flex;align-items:center;gap:12px;margin-top:10px;}
+  .dh-title > span:first-child{font-size:15px;font-weight:650;flex:1;line-height:1.3;}
+  .drawer-body{flex:1;overflow-y:auto;padding:16px 18px 40px;}
+  .drawer-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;padding-bottom:16px;
+    border-bottom:1px solid var(--line-2);}
+  .dm-k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:650;}
+  .dm-v{font-size:12.5px;color:var(--ink);margin-top:2px;font-weight:550;}
+  .drawer-sec{margin-top:18px;}
+  .drawer-sec .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+    font-weight:650;margin-bottom:8px;}
+  .exec-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);}
+  table.exec-history{min-width:640px;font-size:11.5px;}
+  table.exec-history thead th{font-size:10px;padding:7px 9px;}
+  table.exec-history tbody td{padding:7px 9px;}
+  table.exec-history tr.cur{background:var(--teal-tint);}
+  /* trace tag pills (in drawer) */
+  .tracetags{display:flex;flex-wrap:wrap;gap:6px;}
+  .tracetag{font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    border:1px solid var(--line);border-radius:5px;padding:1px 7px;background:var(--bg);color:var(--ink-2);}
+  .tracetag.reg{color:var(--block);border-color:#f0d8ab;background:#fdf5e6;}
+  /* oracle full-width row */
+  .oracle-row{grid-column:1 / -1;padding-top:10px;margin-top:4px;border-top:1px dashed var(--line-2);}
+  .oracle-row .dm-k{margin-bottom:3px;}
+  .oracle-row .dm-v{font-style:italic;color:var(--ink-2);font-weight:500;line-height:1.5;}
+  /* abstain banner */
+  .abstain-banner{border:1px solid #f2c2cb;background:#fdeef1;color:var(--fail);
+    border-radius:var(--radius);padding:12px 14px;margin-top:14px;}
+  .abstain-banner .ab-hd{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+  .abstain-banner .ab-body{color:var(--ink);font-size:12.5px;line-height:1.5;}
+  .abstain-banner .ab-needed{color:var(--ink-2);font-size:11.5px;margin-top:6px;}
+  .abstain-note{margin-top:12px;color:var(--ink-3);font-size:12px;font-style:italic;}
+  /* abstain pill in status column */
+  .abstain-pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+    padding:2px 9px;border-radius:20px;border:1px solid var(--line);background:var(--bg);color:var(--ink-2);}
+  .abstain-pill .qid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--ink-3);}
+  .ai-stub{border:1px dashed var(--line);border-radius:var(--radius);background:var(--bg);padding:12px 14px;}
+  .ai-stub .lbl{margin-bottom:4px;}
+  .ai-stub-body{font-size:12px;color:var(--ink-3);line-height:1.5;}
+
+  /* ---------- version picker ---------- */
+  .verpick{display:inline-flex;align-items:center;gap:8px;margin-right:14px;}
+  .verpick-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:650;}
+  .verpick select{
+    font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:5px 26px 5px 10px;cursor:pointer;
+    -webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%237a878e' stroke-width='1.5' d='M1 1l4 4 4-4'/></svg>");
+    background-repeat:no-repeat;background-position:right 9px center;
+  }
+  .verpick select:hover{border-color:var(--ink-3);}
+  .verpick select:focus{outline:2px solid var(--teal-tint);outline-offset:1px;border-color:var(--teal);}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <span class="mark">iP</span>
+      <span>iPOS+ Test Studio</span>
+      <span class="sub">· AIA Financial Health Review</span>
+    </div>
+    <div class="spacer"></div>
+    <label class="verpick" title="Switch mockup version">
+      <span class="verpick-lbl">Version</span>
+      <select id="verSelect">
+        <option value="test-authoring-mockup.html" selected>v1 · Baseline (no AI)</option>
+        <option value="test-authoring-mockup-v2.html">v2 · With AI (Part B)</option>
+      </select>
+    </label>
+    <div class="crumb" id="crumb"></div>
+  </div>
+  <script>
+    (function(){
+      const sel=document.getElementById("verSelect");
+      // Force selection to match the file we're actually viewing (defeats bfcache/autofill drift).
+      const here=(location.pathname.split("/").pop()||"").toLowerCase();
+      for(const opt of sel.options){ if(opt.value.toLowerCase()===here){ sel.value=opt.value; break; } }
+      sel.addEventListener("change",e=>{
+        const target=e.target.value;
+        if(target && target.toLowerCase()!==here) location.assign(target);
+      });
+    })();
+  </script>
+
+  <div class="layout">
+    <!-- LEFT NAV -->
+    <aside class="nav">
+      <div class="viewswitch">
+        <div class="lbl">Group tests by</div>
+        <div class="seg" id="viewseg">
+          <button data-view="module" class="active">Module</button>
+          <button data-view="release">Release</button>
+        </div>
+      </div>
+      <div class="navscroll">
+        <ul class="tree" id="tree"></ul>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="maintabs">
+        <div class="titleblock">
+          <h1 id="mainTitle">Financial Needs Analysis</h1>
+          <div class="meta" id="mainMeta"></div>
+        </div>
+        <div class="tabrow">
+          <button class="tab active" data-tab="detail">Detail</button>
+          <button class="tab" data-tab="list">List</button>
+        </div>
+      </div>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+
+  <!-- CASE DETAIL DRAWER -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true"></aside>
+
+<script>
+/* =========================================================================
+   DATA MODEL
+   -------------------------------------------------------------------------
+   Test cases are the atoms. They live once, referenced by both views.
+   MODULE view groups cases by Module > Feature > Scenario.
+   RELEASE view groups Release > Run, where a Run is an execution of a suite
+   of cases against a platform, producing per-case CaseResults.
+   ========================================================================= */
+
+// ---- Test cases (authoring atoms) ----------------------------------------
+// category: positive | alt-valid | negative | boundary | edge | state | regulatory | property
+// technique: decision-table | BVA | equivalence | state-transition | rule-lawyer |
+//            property-based | pairwise | metamorphic | MBT | fault-injection |
+//            contract | differential | use-case
+// exec: auto | manual ; lifecycle: active | draft | deprecated
+// traces: mix of AC-refs and regulatory tags (needs-based-selling, suitability,
+//         replacement-justification, disclosure)
+// abstain (optional): {q, reason} — case is not runnable until product/compliance answer
+// TODO: persona filter — behavioural profiles (Young Single, Family Breadwinner,
+//   Near-Retirement, High-Net-Worth, Existing-Policyholder) will filter cases here.
+const CASES = {
+  // ================================================================
+  // SUB-FLOW A — Priorities & Needs: TPD (Total & Permanent Disability)
+  // ================================================================
+  A1:{id:"TC-A1",title:"TPD flagged as needed, valid coverage",category:"positive",technique:"decision-table",exec:"auto",
+    assignee:"Priya S.",author:"Priya S.",priority:"P1",req:"AC-PN1",updated:"2026-06-20",lifecycle:"active",
+    dv:"A-DV1 (TPD on, mid-range sum)",
+    oracle:"Need recorded; TPD carried into Needs Analysis + Selected Plans; advances to next section.",
+    traces:["AC-PN1","needs-based-selling"],
+    steps:[
+      {a:"On Priorities & Needs, toggle TPD = needed",e:"TPD row enabled; sum field appears"},
+      {a:"Enter S$500,000 → Next",e:"Need recorded; screen advances"}],
+    data:[{k:"TPD",v:"Needed"},{k:"Sum assured",v:"S$500,000"},{k:"Profile",v:"Set-24"}]},
+  A2:{id:"TC-A2",title:"TPD not needed (opt-out)",category:"alt-valid",technique:"decision-table",exec:"auto",
+    assignee:"Priya S.",author:"Priya S.",priority:"P2",req:"AC-PN1",updated:"2026-06-20",lifecycle:"active",
+    dv:"A-DV2 (TPD off)",
+    oracle:"No TPD need created; no TPD plan surfaces downstream; advances.",
+    traces:["AC-PN1"],
+    steps:[{a:"Toggle TPD off → Next",e:"Sum field hidden; no TPD row on Selected Plans"}],
+    data:[{k:"TPD",v:"Off"}]},
+  A3:{id:"TC-A3",title:"Coverage = minimum allowed",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-PN2",updated:"2026-06-22",lifecycle:"active",
+    dv:"A-DV3 (sum = min)",
+    oracle:"Accepted (min inclusive [assert] — pending Q-A1).",
+    traces:["AC-PN2"],
+    steps:[{a:"Enter min sum S$10,000 → Next",e:"Accepted; advances"}],
+    data:[{k:"Sum",v:"S$10,000"},{k:"Class",v:"min"}]},
+  A4:{id:"TC-A4",title:"Coverage = just below minimum",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-PN2",updated:"2026-06-22",lifecycle:"active",
+    dv:"A-DV4 (min − 1)",
+    oracle:'Rejected with specific "below minimum" message; no advance.',
+    traces:["AC-PN2"],
+    steps:[{a:"Enter S$9,999 → Next",e:"Inline error: below minimum"}],
+    data:[{k:"Sum",v:"S$9,999"},{k:"Expected",v:"BELOW_MIN"}]},
+  A5:{id:"TC-A5",title:"Coverage = maximum allowed",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-PN2",updated:"2026-06-23",lifecycle:"active",
+    dv:"A-DV5 (sum = max)",
+    oracle:"Accepted (max inclusive [assert]).",
+    traces:["AC-PN2"],
+    steps:[{a:"Enter S$5,000,000 → Next",e:"Accepted"}],
+    data:[{k:"Sum",v:"S$5,000,000"}]},
+  A6:{id:"TC-A6",title:"Coverage = just above maximum",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-PN2",updated:"2026-06-23",lifecycle:"active",
+    dv:"A-DV6 (max + 1)",
+    oracle:"Rejected; specific over-limit message.",
+    traces:["AC-PN2"],
+    steps:[{a:"Enter S$5,000,001 → Next",e:"Inline error: above max"}],
+    data:[{k:"Sum",v:"S$5,000,001"}]},
+  A7:{id:"TC-A7",title:"TPD needed but coverage left blank",category:"negative",technique:"equivalence",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-PN2",updated:"2026-06-24",lifecycle:"active",
+    dv:"A-DV7 (empty)",
+    oracle:'Blocked; "coverage required" field error; no advance.',
+    traces:["AC-PN2"],
+    steps:[{a:"Toggle TPD on → leave sum blank → Next",e:"Field-required error"}],
+    data:[{k:"Sum",v:"(empty)"}]},
+  A8:{id:"TC-A8",title:"Non-numeric / malformed amount",category:"negative",technique:"equivalence",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-PN2",updated:"2026-06-24",lifecycle:"active",
+    dv:'A-DV8 ("abc", "$$$", "1,000,00", emoji)',
+    oracle:"Rejected or sanitized per spec; never stored as-is; no crash.",
+    traces:["AC-PN2","data-var"],
+    steps:[{a:'Enter "abc" then "$$$" → Next',e:"Non-numeric rejected"}],
+    data:[{k:"Sample",v:'"abc"'},{k:"Sample",v:'"1,000,00"'}]},
+  A9:{id:"TC-A9",title:"Zero / negative coverage",category:"negative",technique:"BVA",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-PN2",updated:"2026-06-24",lifecycle:"active",
+    dv:"A-DV9 (0, −1)",
+    oracle:"Both rejected as invalid coverage.",
+    traces:["AC-PN2"],
+    steps:[{a:"Enter 0 → Next",e:"Rejected"},{a:"Enter −1 → Next",e:"Rejected"}],
+    data:[{k:"Values",v:"0, −1"}]},
+  A10:{id:"TC-A10",title:"Toggle TPD on→off→on (state revert)",category:"state",technique:"state-transition",exec:"manual",
+    assignee:"Wei T.",author:"Wei T.",priority:"P2",req:"AC-PN1",updated:"2026-06-25",lifecycle:"active",
+    dv:"A-DV1 then off then on",
+    oracle:'Prior sum not silently retained as a "phantom" need; state consistent.',
+    traces:["AC-PN1"],
+    steps:[
+      {a:"Enable TPD, enter sum",e:"Sum captured"},
+      {a:"Disable, then re-enable",e:"Sum cleared; no phantom persisted"}],
+    data:[{k:"Sequence",v:"on → off → on"}]},
+  A11:{id:"TC-A11",title:"Coverage well below computed need (underinsurance)",category:"regulatory",technique:"decision-table",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P1",req:"AC-PN1",updated:"2026-07-04",lifecycle:"draft",
+    dv:"A-DV10 (sum S$50k vs need S$800k)",
+    oracle:"Pending resolution of underinsurance threshold rule.",
+    traces:["needs-based-selling","suitability"],
+    abstain:{q:"Q-A2",reason:"Underinsurance threshold undefined; no honest oracle."},
+    steps:[],data:[]},
+  A12:{id:"TC-A12",title:"Recommend TPD sum with no needs basis",category:"regulatory",technique:"rule-lawyer",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P1",req:"AC-PN1",updated:"2026-07-04",lifecycle:"draft",
+    dv:"A-DV11 (unjustified)",
+    oracle:"Principle [assert]: needs-based selling requires documented need behind coverage. Pending Q-A3.",
+    traces:["needs-based-selling","disclosure"],
+    abstain:{q:"Q-A3",reason:"Enforcement in-tool vs advisor-only is unspecified; cannot assert oracle."},
+    steps:[],data:[]},
+
+  // E-block cross-field priorities (sit under Priorities & Needs)
+  E1:{id:"TC-E1",title:"4 needs on/off × amounts interaction",category:"positive",technique:"pairwise",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-PN1",updated:"2026-06-28",lifecycle:"active",
+    dv:"E-DV1 (pairwise TPD/CI/DI/Retirement)",
+    oracle:"Each combination sizes total need correctly; no combo crashes or double-counts.",
+    traces:["AC-PN1"],
+    steps:[{a:"Run pairwise set of 4 needs × sum classes",e:"All 16 combos computed"}],
+    data:[{k:"Combos",v:"pairwise 16"}]},
+  E2:{id:"TC-E2",title:"Recommended premium vs stated budget",category:"regulatory",technique:"decision-table",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P1",req:"AC-PN1",updated:"2026-07-04",lifecycle:"draft",
+    dv:"budget $X, recommended $Y",
+    oracle:"Pending affordability threshold definition.",
+    traces:["suitability"],
+    abstain:{q:"Q-E1",reason:"Affordability threshold undefined; no honest pass/fail line."},
+    steps:[],data:[]},
+  E3:{id:"TC-E3",title:"Age × goal horizon × retirement consistency",category:"edge",technique:"pairwise",exec:"auto",
+    assignee:"Wei T.",author:"Wei T.",priority:"P2",req:"AC-PN1",updated:"2026-06-28",lifecycle:"active",
+    dv:"E-DV2 (conflicting age/horizon/retire triples)",
+    oracle:"Cross-field inconsistency flagged (ties B6 / Q-B3).",
+    traces:["suitability"],
+    steps:[{a:"Set age 55, retire 60, goal horizon 20y",e:"Inconsistency flag raised"}],
+    data:[{k:"Age",v:"55"},{k:"Retire",v:"60"},{k:"Horizon",v:"20y"}]},
+
+  // ================================================================
+  // SUB-FLOW B — Needs Analysis: Add Goal
+  // ================================================================
+  B1:{id:"TC-B1",title:"Add one valid goal",category:"positive",technique:"use-case",exec:"auto",
+    assignee:"Rahul M.",author:"Rahul M.",priority:"P1",req:"AC-NA1",updated:"2026-06-19",lifecycle:"active",
+    dv:"B-DV1 (Education, S$200k, 10y)",
+    oracle:"Goal row created with entered values; contributes to computed need.",
+    traces:["AC-NA1"],
+    steps:[{a:"Add Goal → Education / S$200k / 10y → Save",e:"Row appears; total need updated"}],
+    data:[{k:"Type",v:"Education"},{k:"Target",v:"S$200,000"},{k:"Horizon",v:"10y"}]},
+  B2:{id:"TC-B2",title:"Add three distinct goals (Set-24 parity)",category:"positive",technique:"use-case",exec:"auto",
+    assignee:"Rahul M.",author:"Rahul M.",priority:"P1",req:"AC-NA1",updated:"2026-06-19",lifecycle:"active",
+    dv:"B-DV1,2,3",
+    oracle:"3 rows; total need = Σ goals [assert additive] — pending Q-B1.",
+    traces:["AC-NA1"],
+    steps:[{a:"Add Education, Retirement, Home goals",e:"3 rows; total need sums"}],
+    data:[{k:"Goals",v:"3"},{k:"Σ target",v:"S$1,500,000"}]},
+  B3:{id:"TC-B3",title:"Target = minimum allowed",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Rahul M.",author:"Rahul M.",priority:"P2",req:"AC-NA2",updated:"2026-06-20",lifecycle:"active",
+    dv:"B-DV4 (target = S$1,000)",
+    oracle:"Accepted (min inclusive [assert]).",
+    traces:["AC-NA2"],
+    steps:[{a:"Add Goal → target S$1,000 → Save",e:"Accepted"}],
+    data:[{k:"Target",v:"S$1,000"}]},
+  B4:{id:"TC-B4",title:"Target = just below minimum",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Rahul M.",author:"Rahul M.",priority:"P2",req:"AC-NA2",updated:"2026-06-20",lifecycle:"active",
+    dv:"B-DV5 (min − 1)",
+    oracle:"Rejected; specific error.",
+    traces:["AC-NA2"],
+    steps:[{a:"Enter S$999 → Save",e:"Rejected"}],
+    data:[{k:"Target",v:"S$999"}]},
+  B5:{id:"TC-B5",title:"Horizon = 0 years / today",category:"boundary",technique:"BVA",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P2",req:"AC-NA2",updated:"2026-07-04",lifecycle:"draft",
+    dv:"B-DV6 (horizon 0)",
+    oracle:"Same-year goal validity undefined.",
+    traces:["AC-NA2"],
+    abstain:{q:"Q-B2",reason:"Is a same-year (0-horizon) goal valid? Undefined by product."},
+    steps:[],data:[]},
+  B6:{id:"TC-B6",title:"Horizon beyond retirement age",category:"edge",technique:"BVA",exec:"auto",
+    assignee:"Wei T.",author:"Wei T.",priority:"P2",req:"AC-NA2",updated:"2026-06-27",lifecycle:"active",
+    dv:"B-DV7 (horizon > (retire−current age))",
+    oracle:"[assert] Should reconcile with retirement age; flag inconsistency (Q-B3).",
+    traces:["AC-NA2","suitability"],
+    steps:[{a:"Retire age 60, current 45, horizon 20y → Save",e:"Cross-field flag raised"}],
+    data:[{k:"Retire",v:"60"},{k:"Age",v:"45"},{k:"Horizon",v:"20y"}]},
+  B7:{id:"TC-B7",title:"Empty required field",category:"negative",technique:"equivalence",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-NA2",updated:"2026-06-21",lifecycle:"active",
+    dv:"B-DV8 (blank target)",
+    oracle:"Blocked; field-required error.",
+    traces:["AC-NA2"],
+    steps:[{a:"Save with blank target",e:"Field-required error"}],
+    data:[{k:"Target",v:"(blank)"}]},
+  B8:{id:"TC-B8",title:"Non-numeric / huge / precision target",category:"negative",technique:"equivalence",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-NA2",updated:"2026-06-21",lifecycle:"active",
+    dv:"B-DV9 (text, 1e12, decimals)",
+    oracle:"Rejected / sanitized; no overflow; no crash.",
+    traces:["AC-NA2","data-var"],
+    steps:[{a:'Enter "abc", 1e12, 3-dp cents → Save',e:"Rejected / sanitized"}],
+    data:[{k:"Samples",v:"text, 1e12, 3-dp"}]},
+  B9:{id:"TC-B9",title:"Duplicate goal (same type twice)",category:"edge",technique:"rule-lawyer",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P2",req:"AC-NA1",updated:"2026-07-04",lifecycle:"draft",
+    dv:"B-DV10 (two identical goals)",
+    oracle:"Duplicate handling undefined.",
+    traces:["AC-NA1"],
+    abstain:{q:"Q-B4",reason:"Merge, sum, or reject duplicates? Behavior undefined."},
+    steps:[],data:[]},
+  B10:{id:"TC-B10",title:"Add goal then delete it",category:"state",technique:"state-transition",exec:"auto",
+    assignee:"Rahul M.",author:"Rahul M.",priority:"P2",req:"AC-NA1",updated:"2026-06-22",lifecycle:"active",
+    dv:"B-DV1 then delete",
+    oracle:"Row removed; total need decreases by exactly that goal (no sticky contribution).",
+    traces:["AC-NA1"],
+    steps:[{a:"Add goal → Save → delete row",e:"Row gone; total need drops correctly"}],
+    data:[{k:"Ops",v:"add + delete"}]},
+  B11:{id:"TC-B11",title:"Edit a saved goal's target",category:"state",technique:"state-transition",exec:"auto",
+    assignee:"Rahul M.",author:"Rahul M.",priority:"P2",req:"AC-NA1",updated:"2026-06-22",lifecycle:"active",
+    dv:"B-DV1→edit to B-DV4",
+    oracle:"Row + total need recompute; old value not retained.",
+    traces:["AC-NA1"],
+    steps:[{a:"Edit target from S$200k to S$1k → Save",e:"Row + total recompute"}],
+    data:[{k:"From",v:"S$200,000"},{k:"To",v:"S$1,000"}]},
+  B12:{id:"TC-B12",title:"Zero goals then proceed",category:"negative",technique:"equivalence",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P2",req:"AC-NA1",updated:"2026-07-04",lifecycle:"draft",
+    dv:"B-DV11 (0 goals)",
+    oracle:"Zero-goal gating undefined.",
+    traces:["AC-NA1"],
+    abstain:{q:"Q-B5",reason:"Is proceeding with zero goals allowed? Gating undefined."},
+    steps:[],data:[]},
+  B13:{id:"TC-B13",title:"INVARIANT: total need ≥ 0, exact recompute on every op",category:"property",technique:"property-based",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P1",req:"AC-NA1",updated:"2026-06-29",lifecycle:"active",
+    dv:"200 generated goal sets (Hypothesis)",
+    oracle:"Runnable now: total_need ≥ 0 and recomputes exactly on every add/edit/delete. Aggregation formula parameterised pending Q-B1.",
+    traces:["AC-NA1"],
+    steps:[{a:"Fuzz 200 goal sets with add/edit/delete",e:"No drift; no negative total"}],
+    data:[{k:"Runs",v:"200"},{k:"Formula",v:"plain-sum (default)"}]},
+  B14:{id:"TC-B14",title:"Goal need drives recommended coverage",category:"regulatory",technique:"rule-lawyer",exec:"manual",
+    assignee:"Priya S.",author:"Priya S.",priority:"P1",req:"AC-NA1",updated:"2026-06-30",lifecycle:"active",
+    dv:"B-DV1,2,3",
+    oracle:"[assert] Recommended coverage traces to summed need (needs-based selling); flag if plan ignores need.",
+    traces:["needs-based-selling","suitability"],
+    steps:[{a:"Complete Needs Analysis → view Selected Plans",e:"Recommended cover ≈ Σ needs"}],
+    data:[{k:"Σ need",v:"S$1,500,000"}]},
+  E4:{id:"TC-E4",title:"Metamorphic: reorder goals ⇒ same total need",category:"property",technique:"metamorphic",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-NA1",updated:"2026-06-29",lifecycle:"active",
+    dv:"same goals, shuffled order",
+    oracle:"total_need(order₁) == total_need(order₂).",
+    traces:["AC-NA1"],
+    steps:[{a:"Shuffle goal order 20 times",e:"Total unchanged"}],
+    data:[{k:"Shuffles",v:"20"}]},
+  E5:{id:"TC-E5",title:"Metamorphic: scale one goal up ⇒ need never decreases",category:"property",technique:"metamorphic",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-NA1",updated:"2026-06-29",lifecycle:"active",
+    dv:"goal target ↑",
+    oracle:"Recommended need is monotonic non-decreasing.",
+    traces:["AC-NA1"],
+    steps:[{a:"Scale each goal target +10%",e:"Need never drops"}],
+    data:[{k:"Delta",v:"+10%"}]},
+
+  // ================================================================
+  // SUB-FLOW C — Investment Risk: profile assessment
+  // ================================================================
+  C1:{id:"TC-C1",title:"Lowest-risk answers → Conservative",category:"positive",technique:"decision-table",exec:"auto",
+    assignee:"Aisha R.",author:"Aisha R.",priority:"P1",req:"AC-IR1",updated:"2026-06-24",lifecycle:"active",
+    dv:"C-DV1 (all low)",
+    oracle:"Profile = most conservative band; label + score consistent.",
+    traces:["AC-IR1"],
+    steps:[{a:"Answer all items at lowest option → Submit",e:"Profile = Conservative"}],
+    data:[{k:"Selection",v:"all-min"}]},
+  C2:{id:"TC-C2",title:"Set-24 answers → its band",category:"positive",technique:"decision-table",exec:"auto",
+    assignee:"Aisha R.",author:"Aisha R.",priority:"P1",req:"AC-IR1",updated:"2026-06-24",lifecycle:"active",
+    dv:"C-DV2 (Set 24)",
+    oracle:"Same profile as scripted run (regression parity).",
+    traces:["AC-IR1","regression"],
+    steps:[{a:"Answer with Set 24 selections → Submit",e:"Profile matches baseline"}],
+    data:[{k:"Selection",v:"Set-24"}]},
+  C3:{id:"TC-C3",title:"Highest-risk answers → Aggressive",category:"positive",technique:"decision-table",exec:"auto",
+    assignee:"Aisha R.",author:"Aisha R.",priority:"P1",req:"AC-IR1",updated:"2026-06-24",lifecycle:"active",
+    dv:"C-DV3 (all high)",
+    oracle:"Profile = most aggressive band.",
+    traces:["AC-IR1"],
+    steps:[{a:"Answer all items at highest option → Submit",e:"Profile = Aggressive"}],
+    data:[{k:"Selection",v:"all-max"}]},
+  C4:{id:"TC-C4",title:"Score at band boundary (lower edge)",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-IR2",updated:"2026-06-25",lifecycle:"active",
+    dv:"C-DV4 (score = band cutoff)",
+    oracle:"Lands in the band the cutoff belongs to [assert inclusive] — pending Q-C1.",
+    traces:["AC-IR2"],
+    steps:[{a:"Answer to hit exact cutoff → Submit",e:"Band matches inclusivity rule"}],
+    data:[{k:"Score",v:"cutoff"}]},
+  C5:{id:"TC-C5",title:"Score one point below boundary",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-IR2",updated:"2026-06-25",lifecycle:"active",
+    dv:"C-DV5 (cutoff − 1)",
+    oracle:"Lands in the lower band (no off-by-one drift).",
+    traces:["AC-IR2"],
+    steps:[{a:"Answer to score cutoff − 1 → Submit",e:"Band = lower"}],
+    data:[{k:"Score",v:"cutoff − 1"}]},
+  C6:{id:"TC-C6",title:"All bands reachable (coverage)",category:"alt-valid",technique:"decision-table",exec:"auto",
+    assignee:"Aisha R.",author:"Aisha R.",priority:"P2",req:"AC-IR1",updated:"2026-06-26",lifecycle:"active",
+    dv:"C-DV6 (per-band sets)",
+    oracle:"Every defined profile band is producible; none unreachable/duplicated.",
+    traces:["AC-IR1"],
+    steps:[{a:"Submit one set per band",e:"All bands reachable"}],
+    data:[{k:"Bands",v:"5"}]},
+  C7:{id:"TC-C7",title:"Submit with unanswered question",category:"negative",technique:"equivalence",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-IR2",updated:"2026-06-25",lifecycle:"active",
+    dv:"C-DV7 (one blank)",
+    oracle:'Blocked; "all questions required"; no partial score.',
+    traces:["AC-IR2"],
+    steps:[{a:"Leave 1 item blank → Submit",e:"Blocked"}],
+    data:[{k:"Blank",v:"1 item"}]},
+  C8:{id:"TC-C8",title:"Change answers → re-score",category:"state",technique:"state-transition",exec:"auto",
+    assignee:"Aisha R.",author:"Aisha R.",priority:"P2",req:"AC-IR1",updated:"2026-06-26",lifecycle:"active",
+    dv:"C-DV1→C-DV3",
+    oracle:"Profile updates to new band; stale profile not retained downstream.",
+    traces:["AC-IR1"],
+    steps:[{a:"Submit low → back → change to high → resubmit",e:"Profile band updates"}],
+    data:[{k:"From",v:"Conservative"},{k:"To",v:"Aggressive"}]},
+  C9:{id:"TC-C9",title:"Contradictory answers (low-tolerance + high-goal)",category:"edge",technique:"rule-lawyer",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P2",req:"AC-IR2",updated:"2026-07-04",lifecycle:"draft",
+    dv:"C-DV8 (inconsistent)",
+    oracle:"Inconsistency-flag behavior undefined.",
+    traces:["AC-IR2","suitability"],
+    abstain:{q:"Q-C2",reason:"Does iPOS+ flag internal inconsistency in risk answers? Undefined."},
+    steps:[],data:[]},
+  C10:{id:"TC-C10",title:"INVARIANT: riskier answers ⇒ profile never drops",category:"property",technique:"property-based",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P1",req:"AC-IR1",updated:"2026-06-30",lifecycle:"active",
+    dv:"200 generated answer sets",
+    oracle:"For all: profile band is ≥ prior band (monotonic).",
+    traces:["AC-IR1"],
+    steps:[{a:"Perturb one answer upward across 200 sets",e:"Band never decreases"}],
+    data:[{k:"Runs",v:"200"}]},
+  C11:{id:"TC-C11",title:"Profile gates eligible plans (suitability)",category:"regulatory",technique:"rule-lawyer",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P1",req:"AC-IR3",updated:"2026-07-04",lifecycle:"draft",
+    dv:"C-DV1 (conservative)",
+    oracle:"[assert] Plans offered must suit the profile; pending exact gating rule.",
+    traces:["AC-IR3","suitability"],
+    abstain:{q:"Q-C3",reason:"Exact profile→eligible-plan gating rule undefined."},
+    steps:[],data:[]},
+  C12:{id:"TC-C12",title:"Profile ↔ selected plan mismatch override",category:"regulatory",technique:"state-transition",exec:"manual",
+    assignee:"Priya S.",author:"Priya S.",priority:"P1",req:"AC-IR3",updated:"2026-06-30",lifecycle:"active",
+    dv:"C-DV1 + risky plan",
+    oracle:"[assert] Requires justification / warning for suitability override; flag if silently allowed.",
+    traces:["suitability","disclosure"],
+    steps:[
+      {a:"Conservative profile computed",e:"Profile band = Conservative"},
+      {a:"Force-select an aggressive plan → Next",e:"Justification or block enforced"}],
+    data:[{k:"Profile",v:"Conservative"},{k:"Plan",v:"Aggressive"}]},
+
+  // ================================================================
+  // SUB-FLOW D — Replacement & Switching: DIP
+  // ================================================================
+  D1:{id:"TC-D1",title:"No existing DIP → no replacement",category:"positive",technique:"decision-table",exec:"auto",
+    assignee:"Wei T.",author:"Wei T.",priority:"P1",req:"AC-RS1",updated:"2026-06-27",lifecycle:"active",
+    dv:"D-DV1 (no existing DIP)",
+    oracle:"No replacement branch triggered; no disclosure forms required; advances.",
+    traces:["AC-RS1"],
+    steps:[{a:"Indicate no existing DIP → Next",e:"Advances; no replacement forms"}],
+    data:[{k:"DIP",v:"none"}]},
+  D2:{id:"TC-D2",title:"Existing DIP, no reduction/switch",category:"alt-valid",technique:"decision-table",exec:"auto",
+    assignee:"Wei T.",author:"Wei T.",priority:"P2",req:"AC-RS1",updated:"2026-06-27",lifecycle:"active",
+    dv:"D-DV2 (existing, unchanged)",
+    oracle:"Recorded; no replacement obligations triggered.",
+    traces:["AC-RS1"],
+    steps:[{a:"Declare existing, no change → Next",e:"No obligations triggered"}],
+    data:[{k:"DIP",v:"existing"},{k:"Change",v:"none"}]},
+  D3:{id:"TC-D3",title:"Reduced investment in existing DIP",category:"regulatory",technique:"decision-table",exec:"manual",
+    assignee:"Wei T.",author:"AI draft",priority:"P1",req:"AC-RS1",updated:"2026-07-04",lifecycle:"draft",
+    dv:"D-DV3 (reduce amount)",
+    oracle:"Dual-branch pending Q-D1: if reduction triggers replacement → justification required; else advances.",
+    traces:["AC-RS1","replacement-justification"],
+    abstain:{q:"Q-D1",reason:"Does reduction (not full switch) trigger replacement justification path? Rule undefined."},
+    steps:[],data:[]},
+  D4:{id:"TC-D4",title:"Full switch: surrender existing → new DIP",category:"regulatory",technique:"decision-table",exec:"manual",
+    assignee:"Wei T.",author:"Wei T.",priority:"P1",req:"AC-RS2",updated:"2026-06-28",lifecycle:"active",
+    dv:"D-DV4 (switch)",
+    oracle:"[assert] Replacement flagged; disclosure + suitability justification mandatory before proceeding.",
+    traces:["AC-RS2","replacement-justification","disclosure"],
+    steps:[
+      {a:"Declare surrender of existing DIP → new DIP",e:"Replacement path opens"},
+      {a:"Attempt Next",e:"Blocked until justification + disclosure"}],
+    data:[{k:"Old DIP",v:"S$200,000"},{k:"New DIP",v:"S$180,000"}]},
+  D5:{id:"TC-D5",title:"Reduction amount = boundary (full vs partial)",category:"boundary",technique:"BVA",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-RS1",updated:"2026-06-28",lifecycle:"active",
+    dv:"D-DV5 (reduce = full balance)",
+    oracle:"Treated as full switch, not partial (no gap at 100%) — [assert] pending Q-D2.",
+    traces:["AC-RS1"],
+    steps:[{a:"Enter reduction = 100% of balance → Next",e:"Classified as full switch"}],
+    data:[{k:"Reduce",v:"100%"}]},
+  D6:{id:"TC-D6",title:"Reduction > existing balance",category:"negative",technique:"BVA",exec:"auto",
+    assignee:"Chen L.",author:"Chen L.",priority:"P2",req:"AC-RS2",updated:"2026-06-28",lifecycle:"active",
+    dv:"D-DV6 (reduce > balance)",
+    oracle:"Rejected; can't reduce more than held.",
+    traces:["AC-RS2"],
+    steps:[{a:"Reduce S$250k of S$200k balance → Next",e:"Rejected"}],
+    data:[{k:"Balance",v:"S$200,000"},{k:"Reduce",v:"S$250,000"}]},
+  D7:{id:"TC-D7",title:"Replacement declared but justification blank",category:"regulatory",technique:"rule-lawyer",exec:"auto",
+    assignee:"Priya S.",author:"Priya S.",priority:"P1",req:"AC-RS2",updated:"2026-06-29",lifecycle:"active",
+    dv:"D-DV7 (no rationale)",
+    oracle:"[assert] Blocked — replacement requires documented justification; no advance.",
+    traces:["replacement-justification","disclosure"],
+    steps:[
+      {a:"Declare switch → leave justification empty → Next",e:"Blocked with regulatory error"}],
+    data:[{k:"Justification",v:"(blank)"}]},
+  D8:{id:"TC-D8",title:"Replacement declared but disclosure not acknowledged",category:"regulatory",technique:"rule-lawyer",exec:"auto",
+    assignee:"Priya S.",author:"Priya S.",priority:"P1",req:"AC-RS2",updated:"2026-06-29",lifecycle:"active",
+    dv:"D-DV8 (disclosure unticked)",
+    oracle:"[assert] Blocked until required disclosures acknowledged.",
+    traces:["disclosure"],
+    steps:[{a:"Declare switch, do not tick disclosure → Next",e:"Blocked"}],
+    data:[{k:"Disclosure",v:"unticked"}]},
+  D9:{id:"TC-D9",title:'Declare switch → revert to "no switch"',category:"state",technique:"state-transition",exec:"auto",
+    assignee:"Rahul M.",author:"Rahul M.",priority:"P2",req:"AC-RS1",updated:"2026-06-29",lifecycle:"active",
+    dv:"D-DV4 then D-DV1",
+    oracle:"Replacement obligations + justification/disclosure requirements cleared; no orphaned mandatory flags.",
+    traces:["AC-RS1"],
+    steps:[
+      {a:"Declare switch",e:"Obligations added"},
+      {a:"Change to none",e:"Obligations cleared"}],
+    data:[{k:"Sequence",v:"switch → none"}]},
+  D10:{id:"TC-D10",title:"Inconsistent: Insurance History shows DIP, here says none",category:"edge",technique:"differential",exec:"manual",
+    assignee:"Wei T.",author:"AI draft",priority:"P2",req:"AC-RS1",updated:"2026-07-04",lifecycle:"draft",
+    dv:"D-DV9 (contradicts history)",
+    oracle:"Cross-section consistency enforcement unknown.",
+    traces:["AC-RS1","suitability"],
+    abstain:{q:"Q-D3",reason:"Does iPOS+ enforce cross-section consistency (Insurance History ↔ Replacement)?"},
+    steps:[],data:[]},
+  D11:{id:"TC-D11",title:"Switch to objectively worse terms (suitability)",category:"regulatory",technique:"rule-lawyer",exec:"manual",
+    assignee:"Priya S.",author:"AI draft",priority:"P1",req:"AC-RS2",updated:"2026-07-04",lifecycle:"draft",
+    dv:"D-DV10 (new DIP worse)",
+    oracle:"Suitability rule for worse-terms switch undefined.",
+    traces:["suitability","replacement-justification"],
+    abstain:{q:"Q-D4",reason:'Suitability criteria for "is this switch in the client\'s interest?" undefined.'},
+    steps:[],data:[]},
+  D12:{id:"TC-D12",title:"Regression parity with Set 24",category:"positive",technique:"differential",exec:"auto",
+    assignee:"Marcus L.",author:"Marcus L.",priority:"P2",req:"AC-RS1",updated:"2026-06-29",lifecycle:"active",
+    dv:"D-DV11 (Set 24)",
+    oracle:"Behaves identically to current scripted run.",
+    traces:["AC-RS1","regression"],
+    steps:[{a:"Enter Set-24 DIP stance → Next",e:"Behaviour matches baseline"}],
+    data:[{k:"Profile",v:"Set-24"}]},
+};
+
+// ---- MODULE view structure -----------------------------------------------
+// Mirrors the FHR wizard journey: About You → Priorities & Needs → Needs
+// Analysis → Investment Risk → Replacement & Switching.
+const MODULE_TREE = {
+  name:"Financial Health Review",
+  features:[
+    {name:"About You / Priorities & Needs", scenarios:[
+      {name:"TPD coverage (Sub-flow A)",           cases:["A1","A2","A3","A4","A5","A6","A7","A8","A9","A10","A11","A12"]},
+      {name:"Cross-field priorities (E-block)",    cases:["E1","E2","E3"]}]},
+    {name:"Needs Analysis", scenarios:[
+      {name:"Add Goal (Sub-flow B)",               cases:["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12"]},
+      {name:"Total-need invariants (properties)",  cases:["B13","B14","E4","E5"]}]},
+    {name:"Investment Risk", scenarios:[
+      {name:"Profile assessment (Sub-flow C)",     cases:["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10"]},
+      {name:"Suitability gating",                  cases:["C11","C12"]}]},
+    {name:"Replacement & Switching", scenarios:[
+      {name:"DIP paths (Sub-flow D)",              cases:["D1","D2","D3","D4","D5","D6","D9","D12"]},
+      {name:"Regulatory guards",                   cases:["D7","D8","D10","D11"]}]},
+  ]
+};
+
+// ---- RELEASE view structure (Release > Run > CaseResult) ------------------
+// CaseResult status: pass | fail | block | notrun ; optional d: defect ref
+// Run carries QA execution context: env + build make a result trustworthy.
+const RELEASES = [
+  {
+    id:"REL-FHR-1.0", name:"REL-FHR-1.0 — Baseline audit",
+    runs:[
+      { id:"RUN-FHR-1001", name:"Smoke Test", suite:"Critical FHR happy paths",
+        platform:"web", env:"UAT", build:"iPOS-3.4.0", executedBy:"Priya S.", lastRun:"2026-06-28 09:14",
+        results:[
+          {c:"A1",s:"pass"},{c:"B1",s:"pass"},{c:"B2",s:"pass"},
+          {c:"C1",s:"pass"},{c:"C2",s:"pass"},{c:"D1",s:"pass"},{c:"D12",s:"pass"}]},
+      { id:"RUN-FHR-1002", name:"Regression Test", suite:"Full sub-flow A/B/C/D",
+        platform:"web", env:"UAT", build:"iPOS-3.4.0", executedBy:"Marcus L.", lastRun:"2026-06-29 18:40",
+        results:[
+          // Sub-flow A
+          {c:"A1",s:"pass"},{c:"A2",s:"pass"},{c:"A3",s:"pass"},{c:"A4",s:"fail",d:"JIRA-7841"},
+          {c:"A5",s:"pass"},{c:"A6",s:"pass"},{c:"A7",s:"pass"},{c:"A8",s:"pass"},{c:"A9",s:"pass"},
+          {c:"A10",s:"block",d:"JIRA-7855"},{c:"A11",s:"notrun"},{c:"A12",s:"notrun"},
+          // E-block
+          {c:"E1",s:"pass"},{c:"E2",s:"notrun"},{c:"E3",s:"pass"},
+          // Sub-flow B
+          {c:"B1",s:"pass"},{c:"B2",s:"pass"},{c:"B3",s:"pass"},{c:"B4",s:"pass"},{c:"B5",s:"notrun"},
+          {c:"B6",s:"fail",d:"JIRA-7862"},{c:"B7",s:"pass"},{c:"B8",s:"pass"},{c:"B9",s:"notrun"},
+          {c:"B10",s:"pass"},{c:"B11",s:"pass"},{c:"B12",s:"notrun"},{c:"B13",s:"pass"},{c:"B14",s:"pass"},
+          {c:"E4",s:"pass"},{c:"E5",s:"pass"},
+          // Sub-flow C
+          {c:"C1",s:"pass"},{c:"C2",s:"pass"},{c:"C3",s:"pass"},{c:"C4",s:"fail",d:"JIRA-7870"},
+          {c:"C5",s:"pass"},{c:"C6",s:"pass"},{c:"C7",s:"pass"},{c:"C8",s:"pass"},{c:"C9",s:"notrun"},
+          {c:"C10",s:"pass"},{c:"C11",s:"notrun"},{c:"C12",s:"pass"},
+          // Sub-flow D
+          {c:"D1",s:"pass"},{c:"D2",s:"pass"},{c:"D3",s:"notrun"},{c:"D4",s:"pass"},{c:"D5",s:"pass"},
+          {c:"D6",s:"pass"},{c:"D7",s:"pass"},{c:"D8",s:"pass"},{c:"D9",s:"pass"},{c:"D10",s:"notrun"},
+          {c:"D11",s:"notrun"},{c:"D12",s:"pass"}]},
+    ]
+  },
+  {
+    id:"REL-FHR-1.1", name:"REL-FHR-1.1 — Regulatory pass",
+    runs:[
+      { id:"RUN-FHR-1101", name:"Regression Test", suite:"Regulatory + abstain focus",
+        platform:"mobile", env:"Staging", build:"iPOS-3.5.0-rc2", executedBy:"Priya S.", lastRun:"2026-07-05 16:27",
+        results:[
+          // regulatory / abstain cases: all abstains report notrun (correctly not runnable)
+          {c:"A11",s:"notrun"},{c:"A12",s:"notrun"},
+          {c:"E2",s:"notrun"},
+          {c:"B5",s:"notrun"},{c:"B9",s:"notrun"},{c:"B12",s:"notrun"},
+          {c:"B14",s:"fail",d:"JIRA-7910"},
+          {c:"C9",s:"notrun"},{c:"C11",s:"notrun"},
+          {c:"C12",s:"fail",d:"JIRA-7912"},
+          {c:"D3",s:"notrun"},{c:"D10",s:"notrun"},{c:"D11",s:"notrun"},
+          // assertable regulatory rules
+          {c:"D4",s:"pass"},{c:"D7",s:"pass"},{c:"D8",s:"pass"}]},
+    ]
+  },
+  {
+    id:"REL-FHR-1.2", name:"REL-FHR-1.2 — Smoke re-verify",
+    runs:[
+      { id:"RUN-FHR-1201", name:"Smoke Test", suite:"Post-fix smoke",
+        platform:"mobile", env:"UAT", build:"iPOS-3.5.0", executedBy:"Aisha R.", lastRun:"2026-07-06 10:02",
+        results:[
+          {c:"A1",s:"pass"},{c:"A4",s:"pass"},{c:"B1",s:"pass"},{c:"B6",s:"pass"},
+          {c:"C1",s:"pass"},{c:"C4",s:"pass"},{c:"D1",s:"pass"},{c:"D4",s:"pass"},{c:"D12",s:"pass"}]},
+    ]
+  },
+];
+
+// derive: which release a case belongs to (for List "Release/Sprint" column)
+// use the newest release a case appears in
+const CASE_RELEASE = {};
+RELEASES.forEach(rel=>rel.runs.forEach(run=>run.results.forEach(r=>{CASE_RELEASE[r.c]=rel.id;})));
+
+/* =========================================================================
+   STATE
+   ========================================================================= */
+const STATE = {
+  view:"module",              // module | release
+  tab:"detail",               // detail | list
+  // module selection
+  modScenario:null,           // {feature, scenario} indexes
+  // release selection
+  releaseRun:null,            // {relIdx, runIdx}
+};
+
+const $ = s=>document.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const STATUS_LABEL={pass:"Passed",fail:"Failed",block:"Blocked",notrun:"Not run"};
+const PLAT_ICON={web:"🖥",mobile:"📱"};
+const initials = n => n.split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase();
+
+// ---- status rollups (shared by tree dots + drawer) -----------------------
+// group health precedence: fail > block > pass > notrun
+// (a group is green if anything passed and nothing failed/blocked; grey only if nothing has run)
+const STATUS_RANK={fail:3,block:2,pass:1,notrun:0};
+// all run results for a case, newest-first, with run/release context
+function caseHistory(caseId){
+  const hist=[];
+  RELEASES.forEach(rel=>rel.runs.forEach(run=>{
+    const res=run.results.find(r=>r.c===caseId);
+    if(res) hist.push({rel,run,status:res.s,defect:res.d||null});
+  }));
+  return hist.sort((a,b)=>b.run.lastRun.localeCompare(a.run.lastRun));
+}
+// a case's CURRENT status = its most-recent executed run; "notrun" if never executed
+// Abstained cases are treated as "notrun" for rollup — they can't be executed
+// against a real oracle until product/compliance answers, so they don't drag
+// group health either up or down.
+function caseRollupStatus(caseId){
+  const tc = CASES[caseId];
+  if(tc && tc.abstain) return "notrun";
+  const executed=caseHistory(caseId).filter(h=>h.status!=="notrun"); // newest-first
+  return executed.length ? executed[0].status : "notrun";
+}
+// worst status across a set of cases (deprecated cases excluded from health)
+function groupStatus(caseIds){
+  const active=caseIds.filter(id=>CASES[id] && CASES[id].lifecycle!=="deprecated");
+  if(!active.length) return "notrun";
+  return active.map(caseRollupStatus)
+    .reduce((w,s)=>STATUS_RANK[s]>STATUS_RANK[w]?s:w,"notrun");
+}
+
+/* =========================================================================
+   TREE RENDERING
+   ========================================================================= */
+function renderTree(){
+  const tree = $("#tree"); tree.innerHTML="";
+  if(STATE.view==="module") renderModuleTree(tree);
+  else renderReleaseTree(tree);
+}
+
+function branch(parentUl, {level, icon, text, count, dot, open, selected, onClick, hasChildren}){
+  const li = el("li","node");
+  const row = el("div","row"+(selected?" selected":"")+(level==="mod"?" lvl-mod":""));
+  const caret = el("span","caret"+(hasChildren?(open?" open":""):" leaf"),"▶");
+  row.appendChild(caret);
+  if(icon) row.appendChild(el("span","ic",icon));
+  if(dot) row.appendChild(el("span","dot "+dot));
+  row.appendChild(el("span","rowtext",text));
+  if(count!=null) row.appendChild(el("span","count",count));
+  li.appendChild(row);
+  const kids = el("ul","children"+(open?"":" collapsed"));
+  li.appendChild(kids);
+  row.addEventListener("click",e=>{
+    e.stopPropagation();
+    if(hasChildren){ kids.classList.toggle("collapsed"); caret.classList.toggle("open"); }
+    if(onClick) onClick();
+  });
+  parentUl.appendChild(li);
+  return kids;
+}
+
+function renderModuleTree(tree){
+  const m = MODULE_TREE;
+  const totalCases = m.features.reduce((n,f)=>n+f.scenarios.reduce((k,s)=>k+s.cases.length,0),0);
+  const modKids = branch(tree,{level:"mod",icon:"▦",text:m.name,count:totalCases,open:true,hasChildren:true});
+  m.features.forEach((f,fi)=>{
+    const fCount=f.scenarios.reduce((k,s)=>k+s.cases.length,0);
+    const featOpen = true;
+    const fCases=f.scenarios.flatMap(s=>s.cases);
+    const featKids = branch(modKids,{level:"feat",icon:"◧",text:f.name,count:fCount,
+      dot:groupStatus(fCases),open:featOpen,hasChildren:true});
+    f.scenarios.forEach((s,si)=>{
+      const sel = STATE.modScenario && STATE.modScenario.f===fi && STATE.modScenario.s===si;
+      branch(featKids,{level:"scen",icon:"◦",text:s.name,count:s.cases.length,
+        dot:groupStatus(s.cases),selected:sel,hasChildren:false,
+        onClick:()=>{ STATE.modScenario={f:fi,s:si}; selectModuleScenario(); }});
+    });
+  });
+}
+
+function runCounts(run){
+  const c={pass:0,fail:0,block:0,notrun:0};
+  run.results.forEach(r=>c[r.s]++);
+  return c;
+}
+
+function renderReleaseTree(tree){
+  RELEASES.forEach((rel,ri)=>{
+    const relCount = rel.runs.length;
+    const relKids = branch(tree,{level:"mod",icon:"🏷",text:rel.name,count:relCount+" runs",open:true,hasChildren:true});
+    rel.runs.forEach((run,ki)=>{
+      const c=runCounts(run);
+      const dot = c.fail?"fail":(c.block?"block":"pass");
+      const sel = STATE.releaseRun && STATE.releaseRun.r===ri && STATE.releaseRun.k===ki;
+      const kids = branch(relKids,{level:"run",icon:"▶",text:run.name,dot:dot,
+        selected:sel,hasChildren:false,
+        onClick:()=>{ STATE.releaseRun={r:ri,k:ki}; selectRun(); }});
+      // run meta line
+      const meta = el("div","runmeta");
+      meta.innerHTML = `<span class="plat">${PLAT_ICON[run.platform]} ${run.platform}</span> · ${run.lastRun.split(" ")[0]} · ${c.pass}✓ ${c.fail}✕ ${c.block}▮`;
+      kids.parentElement.appendChild(meta);
+    });
+  });
+}
+
+/* =========================================================================
+   SELECTION HANDLERS
+   ========================================================================= */
+function selectModuleScenario(){
+  if(!STATE.modScenario) STATE.modScenario={f:0,s:0};
+  renderTree(); render();
+}
+function selectRun(){
+  if(!STATE.releaseRun) STATE.releaseRun={r:0,k:0};
+  renderTree(); render();
+}
+
+/* =========================================================================
+   MAIN RENDER
+   ========================================================================= */
+function currentCases(){
+  if(STATE.view==="module"){
+    const {f,s}=STATE.modScenario;
+    return MODULE_TREE.features[f].scenarios[s].cases.map(id=>CASES[id]);
+  } else {
+    const {r,k}=STATE.releaseRun;
+    return RELEASES[r].runs[k].results.map(res=>({...CASES[res.c], _status:res.s}));
+  }
+}
+
+function render(){
+  // header
+  if(STATE.view==="module"){
+    const {f,s}=STATE.modScenario;
+    const feat=MODULE_TREE.features[f], scen=feat.scenarios[s];
+    $("#mainTitle").textContent = scen.name;
+    $("#mainMeta").textContent = `${MODULE_TREE.name} › ${feat.name} · ${scen.cases.length} test cases`;
+    $("#crumb").innerHTML = `Module view · <b>${feat.name}</b>`;
+  } else {
+    const {r,k}=STATE.releaseRun;
+    const rel=RELEASES[r], run=rel.runs[k];
+    $("#mainTitle").textContent = `${run.name} — ${rel.name.split("—")[0].trim()}`;
+    $("#mainMeta").textContent = `${run.suite} · ${PLAT_ICON[run.platform]} ${run.platform} · run ${run.id}`;
+    $("#crumb").innerHTML = `Release view · <b>${rel.name.split("—")[0].trim()} / ${run.name}</b>`;
+  }
+  // content
+  if(STATE.tab==="detail") renderDetail();
+  else renderList();
+}
+
+/* ---- DETAIL ---- */
+function renderDetail(){
+  const content=$("#content"); content.className="content"; content.innerHTML="";
+
+  // when a run is selected, show a run summary above the cards
+  if(STATE.view==="release"){
+    const {r,k}=STATE.releaseRun;
+    content.appendChild(runSummaryEl(RELEASES[r], RELEASES[r].runs[k]));
+  }
+
+  const cases=currentCases();
+  cases.forEach((tc,idx)=>content.appendChild(caseCard(tc, idx===0)));
+}
+
+// Regulatory trace tags get typographic color; AC-refs stay neutral.
+const REG_TRACES = new Set(["needs-based-selling","suitability","replacement-justification","disclosure"]);
+function traceTagsHtml(traces){
+  if(!traces || !traces.length) return '<span class="muted">—</span>';
+  return '<div class="tracetags">'+traces.map(t=>
+    `<span class="tracetag${REG_TRACES.has(t)?' reg':''}">${t}</span>`
+  ).join("")+'</div>';
+}
+function abstainBannerEl(tc){
+  const b=el("div","abstain-banner");
+  b.innerHTML =
+    `<div class="ab-hd">ⓘ Abstain — ${tc.abstain.q}</div>`+
+    `<div class="ab-body">${tc.abstain.reason}</div>`+
+    `<div class="ab-needed"><b>Needed from:</b> product / compliance.</div>`;
+  return b;
+}
+
+function caseCard(tc, open){
+  const card=el("div","card"+(open?" open":""));
+  const head=el("div","card-head");
+  head.appendChild(el("span","caret","▶"));
+  head.appendChild(el("span","cid",tc.id));
+  head.appendChild(el("span","ctitle",tc.title));
+  if(tc._status){
+    head.appendChild(el("span","statuscell "+tc._status,
+      `<span class="dot ${tc._status}"></span>${STATUS_LABEL[tc._status]}`));
+  }
+  head.appendChild(el("span","ctype cat-"+tc.category, tc.category));
+  card.appendChild(head);
+
+  const body=el("div","card-body");
+  if(tc.abstain){
+    body.appendChild(abstainBannerEl(tc));
+    const on=el("div","abstain-note","This case is not runnable until the question is resolved.");
+    body.appendChild(on);
+  } else {
+    // steps
+    const sb=el("div","step-block");
+    sb.appendChild(el("div","lbl","Steps &amp; expected"));
+    const ol=el("ol","steps");
+    tc.steps.forEach(st=>{
+      ol.appendChild(el("li",null,`${st.a} <span class="exp">${st.e}</span>`));
+    });
+    sb.appendChild(ol); body.appendChild(sb);
+    // data chips
+    const db=el("div","step-block");
+    db.appendChild(el("div","lbl","Test data"));
+    const chips=el("div","chips");
+    tc.data.forEach(d=>chips.appendChild(el("span","chip",`<span class="k">${d.k}</span><span class="v">${d.v}</span>`)));
+    db.appendChild(chips); body.appendChild(db);
+  }
+  card.appendChild(body);
+
+  head.addEventListener("click",()=>card.classList.toggle("open"));
+  return card;
+}
+
+function runSummaryEl(rel, run){
+  const c=runCounts(run);
+  const total=run.results.length;
+  const box=el("div","runsummary");
+  const left=el("div");
+  left.appendChild(el("div","rs-title",`${run.name} · ${rel.name.split("—")[0].trim()}`));
+  left.appendChild(el("div","rs-sub",`${run.suite} — suite of ${total} cases`));
+  box.appendChild(left);
+
+  const meta=el("div","rs-meta");
+  const mk=(k,v)=>{const d=el("div","rs-metaitem");d.appendChild(el("div","k",k));d.appendChild(el("div","v",v));return d;};
+  meta.appendChild(mk("Platform",`${PLAT_ICON[run.platform]} ${run.platform}`));
+  meta.appendChild(mk("Executed by",run.executedBy));
+  meta.appendChild(mk("Last run",run.lastRun));
+  box.appendChild(meta);
+
+  const counts=el("div","counts");
+  counts.appendChild(el("span","pill pass",`<span class="dot pass"></span>${c.pass} passed`));
+  counts.appendChild(el("span","pill fail",`<span class="dot fail"></span>${c.fail} failed`));
+  counts.appendChild(el("span","pill block",`<span class="dot block"></span>${c.block} blocked`));
+  if(c.notrun) counts.appendChild(el("span","pill notrun",`<span class="dot notrun"></span>${c.notrun} not run`));
+  box.appendChild(counts);
+
+  // rate bar spans full width (own row)
+  const bar=el("div","rate-bar");
+  const pct=n=>total? (n/total*100):0;
+  bar.innerHTML =
+    `<span class="s-pass" style="width:${pct(c.pass)}%"></span>`+
+    `<span class="s-fail" style="width:${pct(c.fail)}%"></span>`+
+    `<span class="s-block" style="width:${pct(c.block)}%"></span>`+
+    `<span class="s-notrun" style="width:${pct(c.notrun)}%"></span>`;
+  box.appendChild(bar);
+  return box;
+}
+
+/* ---- LIST (management / execution-tracking) ---- */
+function renderList(){
+  const content=$("#content"); content.className="content listmode"; content.innerHTML="";
+
+  const tools=el("div","tabletools");
+  const hint = STATE.view==="release"
+    ? "Execution tracking for the selected run — status reflects this run."
+    : "Management view for the selected scenario — status is latest known.";
+  tools.appendChild(el("span","hint",hint));
+  tools.appendChild(el("div","spacer"));
+  tools.appendChild(el("button","btn","Export"));
+  content.appendChild(tools);
+
+  const wrap=el("div","tablewrap");
+  const table=el("table");
+  table.innerHTML=`<thead><tr>
+    <th>ID</th><th>Type</th><th>Test case</th><th>Manual / Auto</th>
+    <th>Platform</th><th>Release / Sprint</th><th>Assignee</th><th>Last run</th><th>Status</th>
+  </tr></thead>`;
+  const tb=el("tbody");
+
+  const rows = listRows();
+  rows.forEach(r=>{
+    const tr=el("tr");
+    tr.style.cursor="pointer";
+    tr.addEventListener("click",()=>openDrawer(r.key, r.runId));
+    // Status cell: abstain wins over notrun/other; else normal status label.
+    const statusCell = r.abstain
+      ? `<span class="abstain-pill">Abstain · <span class="qid">${r.abstain.q}</span></span>`
+      : `<span class="statuscell ${r.status}"><span class="dot ${r.status}"></span>${STATUS_LABEL[r.status]}</span>`;
+    tr.innerHTML=
+      `<td class="id">${r.id}</td>`+
+      `<td><span class="ctype cat-${r.category}">${r.category}</span></td>`+
+      `<td class="name">${r.title}</td>`+
+      `<td><span class="mini ${r.exec}">${r.exec==="auto"?"Auto":"Manual"}</span></td>`+
+      `<td><span class="platcell"><span class="pic">${PLAT_ICON[r.platform]}</span>${r.platform}</span></td>`+
+      `<td>${r.release}</td>`+
+      `<td><span class="assignee"><span class="avatar">${initials(r.assignee)}</span>${r.assignee}</span></td>`+
+      `<td class="${r.lastRun==="—"?"muted":""}">${r.lastRun}</td>`+
+      `<td>${statusCell}</td>`;
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb);
+  wrap.appendChild(table);
+  content.appendChild(wrap);
+}
+
+function listRows(){
+  if(STATE.view==="release"){
+    const {r,k}=STATE.releaseRun;
+    const rel=RELEASES[r], run=rel.runs[k];
+    return run.results.map(res=>{
+      const tc=CASES[res.c];
+      return {key:res.c,runId:run.id,id:tc.id,category:tc.category,title:tc.title,exec:tc.exec,platform:run.platform,
+        release:rel.id,assignee:tc.assignee,
+        lastRun:(res.s==="notrun"||tc.abstain)?"—":run.lastRun,
+        status:res.s, abstain:tc.abstain||null};
+    });
+  } else {
+    const {f,s}=STATE.modScenario;
+    const scen=MODULE_TREE.features[f].scenarios[s];
+    return scen.cases.map(id=>{
+      const tc=CASES[id];
+      // find latest run touching this case for status/platform/lastrun
+      let latest=null, relId=CASE_RELEASE[id]||"—";
+      RELEASES.forEach(rel=>rel.runs.forEach(run=>{
+        const hit=run.results.find(x=>x.c===id && x.s!=="notrun");
+        if(hit && (!latest || run.lastRun>latest.lastRun)) latest={...hit,platform:run.platform,lastRun:run.lastRun,runId:run.id};
+      }));
+      return {key:id,runId:latest?latest.runId:null,id:tc.id,category:tc.category,title:tc.title,exec:tc.exec,
+        platform:latest?latest.platform:"web",release:relId,assignee:tc.assignee,
+        lastRun:tc.abstain?"—":(latest?latest.lastRun:"—"),
+        status:tc.abstain?"notrun":(latest?latest.s:"notrun"),
+        abstain:tc.abstain||null};
+    });
+  }
+}
+
+/* =========================================================================
+   WIRING
+   ========================================================================= */
+$("#viewseg").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  STATE.view=b.dataset.view;
+  [...$("#viewseg").children].forEach(x=>x.classList.toggle("active",x===b));
+  if(STATE.view==="module" && !STATE.modScenario) STATE.modScenario={f:0,s:0};
+  if(STATE.view==="release" && !STATE.releaseRun) STATE.releaseRun={r:0,k:0};
+  renderTree(); render();
+});
+
+document.querySelector(".tabrow").addEventListener("click",e=>{
+  const b=e.target.closest(".tab"); if(!b) return;
+  STATE.tab=b.dataset.tab;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===b));
+  render();
+});
+
+/* =========================================================================
+   CASE DETAIL DRAWER (opened from List grid rows)
+   ========================================================================= */
+const LIFECYCLE_LABEL={active:"Active",draft:"Draft",deprecated:"Deprecated"};
+
+function openDrawer(caseId, runId){
+  const tc=CASES[caseId]; if(!tc) return;
+  const hist=caseHistory(caseId);
+  // status shown in header = the run the row came from, else worst rollup
+  let ctx = runId ? hist.find(h=>h.run.id===runId) : null;
+  const headStatus = ctx ? ctx.status : caseRollupStatus(caseId);
+
+  const d=$("#drawer");
+  d.innerHTML="";
+
+  // header
+  const head=el("div","drawer-head");
+  const idrow=el("div","dh-idrow");
+  idrow.innerHTML=`<span class="cid">${tc.id}</span>`+
+    `<span class="ctype cat-${tc.category}">${tc.category}</span>`+
+    `<span class="mini ${tc.exec}">${tc.exec==="auto"?"Auto":"Manual"}</span>`+
+    `<span class="lifecycle lc-${tc.lifecycle}">${LIFECYCLE_LABEL[tc.lifecycle]}</span>`;
+  const closeBtn=el("button","drawer-close","✕");
+  closeBtn.addEventListener("click",closeDrawer);
+  idrow.appendChild(closeBtn);
+  head.appendChild(idrow);
+  const titleRow=el("div","dh-title");
+  const statusHtml = tc.abstain
+    ? `<span class="abstain-pill">Abstain · <span class="qid">${tc.abstain.q}</span></span>`
+    : `<span class="statuscell ${headStatus}"><span class="dot ${headStatus}"></span>${STATUS_LABEL[headStatus]}</span>`;
+  titleRow.innerHTML=`<span>${tc.title}</span>${statusHtml}`;
+  head.appendChild(titleRow);
+  d.appendChild(head);
+
+  const body=el("div","drawer-body");
+
+  // meta grid
+  const meta=el("div","drawer-meta");
+  const mk=(k,v)=>`<div class="dm-item"><div class="dm-k">${k}</div><div class="dm-v">${v}</div></div>`;
+  meta.innerHTML=
+    mk("Category",`<span class="ctype cat-${tc.category}">${tc.category}</span>`)+
+    mk("Technique",`<span class="mono">${tc.technique}</span>`)+
+    mk("Priority",`<span class="prio prio-${tc.priority}">${tc.priority}</span>`)+
+    mk("Assignee",`<span class="assignee"><span class="avatar">${initials(tc.assignee)}</span>${tc.assignee}</span>`)+
+    mk("Platform (last)",`${ctx?PLAT_ICON[ctx.run.platform]+" "+ctx.run.platform:"—"}`)+
+    mk("Release / Sprint",CASE_RELEASE[caseId]||"—")+
+    mk("Requirement",`<span class="tracelink">${tc.req}</span>`)+
+    mk("Last updated",tc.updated)+
+    mk("Author",tc.author)+
+    mk("Data variation",tc.dv?`<span class="mono">${tc.dv}</span>`:'<span class="muted">—</span>')+
+    `<div class="dm-item" style="grid-column:1 / -1;"><div class="dm-k">Traces</div><div class="dm-v" style="margin-top:6px;">${traceTagsHtml(tc.traces)}</div></div>`+
+    `<div class="dm-item oracle-row"><div class="dm-k">Expected oracle</div><div class="dm-v">${tc.oracle||"—"}</div></div>`;
+  body.appendChild(meta);
+
+  if(tc.abstain){
+    body.appendChild(abstainBannerEl(tc));
+    body.appendChild(el("div","abstain-note","This case is not runnable until the question is resolved."));
+  } else {
+    // steps
+    const sb=el("div","drawer-sec");
+    sb.appendChild(el("div","lbl","Steps &amp; expected"));
+    const ol=el("ol","steps");
+    tc.steps.forEach(st=>ol.appendChild(el("li",null,`${st.a} <span class="exp">${st.e}</span>`)));
+    sb.appendChild(ol); body.appendChild(sb);
+
+    // test data
+    const db=el("div","drawer-sec");
+    db.appendChild(el("div","lbl","Test data"));
+    const chips=el("div","chips");
+    tc.data.forEach(x=>chips.appendChild(el("span","chip",`<span class="k">${x.k}</span><span class="v">${x.v}</span>`)));
+    db.appendChild(chips); body.appendChild(db);
+  }
+
+  // execution history
+  const eh=el("div","drawer-sec");
+  eh.appendChild(el("div","lbl",`Execution history · ${hist.filter(h=>h.status!=="notrun").length} runs`));
+  if(!hist.length){
+    eh.appendChild(el("div","muted","Never scheduled in a run."));
+  } else {
+    const t=el("table","exec-history");
+    // Status + Defect first (triage essentials, always visible); build/env/date scroll.
+    t.innerHTML=`<thead><tr><th>Status</th><th>Defect</th><th>Run</th><th>Release</th><th>Platform</th><th>Build</th><th>Env</th><th>Date</th></tr></thead>`;
+    const tb=el("tbody");
+    hist.forEach(h=>{
+      const cur = runId && h.run.id===runId;
+      const tr=el("tr",cur?"cur":null);
+      tr.innerHTML=
+        `<td><span class="statuscell ${h.status}"><span class="dot ${h.status}"></span>${STATUS_LABEL[h.status]}</span></td>`+
+        `<td>${h.defect?`<span class="tracelink">${h.defect}</span>`:'<span class="muted">—</span>'}</td>`+
+        `<td>${h.run.name}</td>`+
+        `<td>${h.rel.id}</td>`+
+        `<td><span class="platcell"><span class="pic">${PLAT_ICON[h.run.platform]}</span>${h.run.platform}</span></td>`+
+        `<td class="mono">${h.run.build}</td>`+
+        `<td>${h.run.env}</td>`+
+        `<td class="muted">${h.run.lastRun}</td>`;
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    const wrap=el("div","exec-wrap"); wrap.appendChild(t); eh.appendChild(wrap);
+  }
+  body.appendChild(eh);
+
+  // AI insights stub (Part B — pending wireframe review)
+  const ai=el("div","drawer-sec ai-stub");
+  ai.innerHTML=`<div class="lbl">⚡ Insights</div>`+
+    `<div class="ai-stub-body">Agent insights (flaky detection, learn-from-bug, coverage) land here — pending design review.</div>`;
+  body.appendChild(ai);
+
+  d.appendChild(body);
+
+  // show
+  $("#drawerBackdrop").classList.add("show");
+  d.classList.add("open");
+  d.setAttribute("aria-hidden","false");
+}
+
+function closeDrawer(){
+  $("#drawer").classList.remove("open");
+  $("#drawer").setAttribute("aria-hidden","true");
+  $("#drawerBackdrop").classList.remove("show");
+}
+$("#drawerBackdrop").addEventListener("click",closeDrawer);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDrawer(); });
+
+// init
+STATE.modScenario={f:0,s:0};
+STATE.releaseRun={r:0,k:0};
+renderTree();
+render();
+</script>
+</body>
+</html>

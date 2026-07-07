@@ -1,0 +1,817 @@
+--- a/self-heal/ui/test-authoring-mockup.html	2026-07-06 19:26:29
++++ b/self-heal/ui/test-authoring-mockup.html
+@@ -295,6 +295,119 @@
+   .ai-stub{border:1px dashed var(--line);border-radius:var(--radius);background:var(--bg);padding:12px 14px;}
+   .ai-stub .lbl{margin-bottom:4px;}
+   .ai-stub-body{font-size:12px;color:var(--ink-3);line-height:1.5;}
++
++  /* ---------- Part B: AI Insights strip in drawer ---------- */
++  .ai-insights{border:1px solid var(--line);border-radius:var(--radius);background:#fafcfc;padding:6px 0;}
++  .ai-insights .lbl{padding:10px 14px 4px;}
++  .insight{padding:10px 14px;border-top:1px dashed var(--line-2);}
++  .insight:first-of-type{border-top:0;}
++  .insight-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
++  .insight-head .ih-title{font-weight:650;font-size:12.5px;color:var(--ink);}
++  .insight-head .ih-conf{font-size:11px;color:var(--ink-3);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
++  .insight-head .prov{font-size:10.5px;font-weight:650;text-transform:lowercase;letter-spacing:.03em;
++    border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--ink-2);background:var(--bg);}
++  .prov.measured{color:var(--teal-dark);border-color:#bfdcdc;background:var(--teal-tint);}
++  .prov.proxy{color:var(--block);border-color:#f0d8ab;background:#fdf5e6;}
++  .prov.asserted{color:var(--ink-2);}
++  .prov.abstained{color:var(--fail);border-color:#f2c2cb;background:#fdeef1;}
++  .insight-body{font-size:12px;color:var(--ink-2);margin-top:5px;line-height:1.5;}
++  .insight-body .evid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-3);font-size:11px;}
++  .insight-actions{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap;}
++  .insight-actions .btn{padding:4px 9px;font-size:11.5px;}
++
++  /* ---------- Part B: reusable modal ---------- */
++  .modal-backdrop{position:fixed;inset:0;background:rgba(20,35,40,.32);opacity:0;visibility:hidden;
++    transition:opacity .16s;z-index:60;display:grid;place-items:center;padding:24px;}
++  .modal-backdrop.show{opacity:1;visibility:visible;}
++  .modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;
++    box-shadow:0 12px 40px rgba(20,40,45,.18);max-width:560px;width:100%;max-height:82vh;
++    display:flex;flex-direction:column;overflow:hidden;}
++  .modal-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);}
++  .modal-head .m-title{font-weight:650;font-size:14px;flex:1;}
++  .modal-head .m-close{border:0;background:transparent;font-size:16px;color:var(--ink-3);cursor:pointer;
++    padding:4px 6px;border-radius:6px;}
++  .modal-head .m-close:hover{background:var(--line-2);color:var(--ink);}
++  .modal-body{padding:14px 16px;overflow-y:auto;font-size:12.5px;color:var(--ink);line-height:1.5;}
++  .modal-body .m-section{margin-bottom:12px;}
++  .modal-body .m-section:last-child{margin-bottom:0;}
++  .modal-body .m-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:650;margin-bottom:4px;}
++  .modal-foot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;}
++  .modal-foot .spacer{flex:1;}
++  .modal-foot .audit{font-size:11.5px;color:var(--ink-3);}
++  .btn-primary{background:var(--teal);border:1px solid var(--teal);color:#fff;}
++  .btn-primary:hover{background:var(--teal-dark);border-color:var(--teal-dark);color:#fff;}
++
++  /* Change-set modal rows */
++  .cs-row{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px dashed var(--line-2);}
++  .cs-row:last-child{border-bottom:0;}
++  .cs-row input[type=checkbox]{margin-top:3px;}
++  .cs-row.warn .cs-title{color:var(--fail);}
++  .cs-row .cs-title{font-weight:600;font-size:12.5px;color:var(--ink);}
++  .cs-row .cs-detail{font-size:11.5px;color:var(--ink-2);margin-top:2px;}
++  .cs-row .cs-detail .old{color:var(--ink-3);text-decoration:line-through;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
++  .cs-row .cs-detail .new{color:var(--teal-dark);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
++  .cs-row .prov{margin-left:6px;}
++
++  /* Toast */
++  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
++    background:var(--ink);color:#fff;padding:9px 16px;border-radius:20px;font-size:12.5px;
++    box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:70;opacity:0;transition:opacity .18s;pointer-events:none;}
++  .toast.show{opacity:1;}
++
++  /* ---------- Part B: conversational authoring bar ---------- */
++  .cbar-wrap{border-top:1px solid var(--line);background:var(--panel);padding:8px 18px 10px;
++    display:flex;flex-direction:column;gap:6px;flex:none;}
++  .cbar-chat{font-size:12.5px;background:var(--teal-tint);border:1px solid #bfdcdc;
++    border-radius:8px;padding:8px 12px;color:var(--ink);line-height:1.5;}
++  .cbar-clarify{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-2);flex-wrap:wrap;}
++  .cbar-clarify .q{font-weight:600;}
++  .cbar-clarify .chip-btn{border:1px solid var(--teal);color:var(--teal-dark);background:var(--teal-tint);
++    border-radius:14px;padding:2px 10px;font:inherit;font-size:11.5px;cursor:pointer;}
++  .cbar-clarify .chip-btn:hover{background:var(--teal);color:#fff;}
++  .cbar-input-row{display:flex;gap:6px;align-items:center;}
++  .cbar-input-row .prefix{color:var(--teal);font-weight:700;font-size:13px;padding:0 2px 0 4px;}
++  .cbar-input-row input{flex:1;border:1px solid var(--line);border-radius:7px;padding:8px 11px;
++    font:inherit;font-size:13px;color:var(--ink);background:var(--panel);}
++  .cbar-input-row input:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-tint);}
++  .cbar-input-row .cbar-submit{border:1px solid var(--teal);background:var(--teal);color:#fff;
++    border-radius:7px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;}
++  .cbar-examples{display:flex;gap:6px;flex-wrap:wrap;}
++  .cbar-examples .ex{font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:14px;
++    padding:2px 9px;cursor:pointer;background:var(--bg);}
++  .cbar-examples .ex:hover{color:var(--ink);border-color:var(--ink-3);}
++
++  /* Draft preview card (inline in content) */
++  .draft-card{border:1.5px dashed var(--teal);background:#f2fafa;border-radius:var(--radius);
++    padding:12px 14px;margin-bottom:12px;}
++  .draft-card .dc-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
++  .draft-card .dc-title{font-weight:650;flex:1;}
++  .draft-card .dc-body{font-size:12px;color:var(--ink-2);line-height:1.5;}
++  .draft-card .dc-body b{color:var(--ink);}
++  .draft-card .dc-actions{margin-top:9px;display:flex;gap:6px;}
++
++  /* Smart-CTA strip */
++  .cta-strip{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
++  .runsummary .cta-strip{margin-top:10px;width:100%;}
++  .scenario-head .cta-strip{margin-top:8px;}
++
++  /* Row action menu (⋯ in list) */
++  .rowmenu-trigger{border:0;background:transparent;color:var(--ink-3);cursor:pointer;
++    font-size:14px;padding:0 6px;border-radius:4px;line-height:1;margin-left:6px;}
++  .rowmenu-trigger:hover{background:var(--line-2);color:var(--ink);}
++  .rowmenu{position:fixed;background:var(--panel);border:1px solid var(--line);
++    border-radius:6px;box-shadow:var(--shadow);padding:4px;z-index:50;min-width:150px;}
++  .rowmenu button{display:block;width:100%;text-align:left;border:0;background:transparent;
++    font:inherit;font-size:12px;padding:6px 8px;color:var(--ink);cursor:pointer;border-radius:4px;}
++  .rowmenu button:hover{background:var(--line-2);}
++
++  /* Activity link */
++  .activity-link{margin-left:auto;font-size:12px;color:var(--teal-dark);cursor:pointer;
++    border:0;background:transparent;border-bottom:1px dotted var(--teal);padding:0;font:inherit;}
++  .audit-list{list-style:none;padding:0;margin:0;}
++  .audit-list li{padding:8px 0;border-bottom:1px dashed var(--line-2);font-size:12px;color:var(--ink-2);}
++  .audit-list li:last-child{border-bottom:0;}
++  .audit-list li b{color:var(--ink);font-weight:600;}
++  .audit-list li .when{color:var(--ink-3);font-size:11px;margin-left:4px;}
+ </style>
+ </head>
+ <body>
+@@ -336,6 +449,19 @@
+         </div>
+       </div>
+       <div class="content" id="content"></div>
++
++      <!-- Part B: conversational authoring bar -->
++      <div class="cbar-wrap" id="cbarWrap">
++        <div class="cbar-chat" id="cbarChat" style="display:none;"></div>
++        <div class="cbar-clarify" id="cbarClarify" style="display:none;"></div>
++        <div class="cbar-input-row">
++          <span class="prefix">✎</span>
++          <input id="cbarInput" type="text"
++            placeholder='Ask or author — e.g. "add a negative case for expired NRIC at submission"'>
++          <button class="cbar-submit" id="cbarSubmit">↵</button>
++        </div>
++        <div class="cbar-examples" id="cbarExamples"></div>
++      </div>
+     </main>
+   </div>
+ 
+@@ -343,6 +469,12 @@
+   <div class="drawer-backdrop" id="drawerBackdrop"></div>
+   <aside class="drawer" id="drawer" aria-hidden="true"></aside>
+ 
++  <!-- Part B: reusable modal + toast -->
++  <div class="modal-backdrop" id="modalBackdrop">
++    <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
++  </div>
++  <div class="toast" id="toast"></div>
++
+ <script>
+ /* =========================================================================
+    DATA MODEL
+@@ -1048,8 +1180,20 @@
+   if(STATE.view==="release"){
+     const {r,k}=STATE.releaseRun;
+     content.appendChild(runSummaryEl(RELEASES[r], RELEASES[r].runs[k]));
++  } else {
++    // Module view: scenario header with Suggest-missing-edge-cases CTA
++    const {f,s}=STATE.modScenario;
++    const scen=MODULE_TREE.features[f].scenarios[s];
++    const sh=el("div","scenario-head");
++    sh.innerHTML=`<h2>${scen.name} <button class="btn" style="margin-left:8px;font-size:11.5px;padding:3px 9px;" id="suggestEdgeBtn">Suggest missing edge cases</button></h2>`+
++      `<p>Scenario covers ${scen.cases.length} cases in ${MODULE_TREE.features[f].name}.</p>`;
++    content.appendChild(sh);
++    sh.querySelector("#suggestEdgeBtn").addEventListener("click",e=>{e.stopPropagation();openSuggestEdgeCasesModal(scen);});
+   }
+ 
++  // Draft card, if any
++  if(STATE.draft){ content.appendChild(draftCardEl(STATE.draft)); }
++
+   const cases=currentCases();
+   cases.forEach((tc,idx)=>content.appendChild(caseCard(tc, idx===0)));
+ }
+@@ -1125,6 +1269,10 @@
+   meta.appendChild(mk("Platform",`${PLAT_ICON[run.platform]} ${run.platform}`));
+   meta.appendChild(mk("Executed by",run.executedBy));
+   meta.appendChild(mk("Last run",run.lastRun));
++  // Activity link (audit trail)
++  const act=el("button","activity-link","Activity ▾");
++  act.addEventListener("click",e=>{e.stopPropagation();openActivityModal();});
++  meta.appendChild(act);
+   box.appendChild(meta);
+ 
+   const counts=el("div","counts");
+@@ -1143,6 +1291,15 @@
+     `<span class="s-block" style="width:${pct(c.block)}%"></span>`+
+     `<span class="s-notrun" style="width:${pct(c.notrun)}%"></span>`;
+   box.appendChild(bar);
++
++  // Smart CTA strip
++  const ctas=el("div","cta-strip");
++  const b1=el("button","btn","Summarize run");
++  b1.addEventListener("click",()=>openSummarizeRunModal(rel,run));
++  const b2=el("button","btn","Auto-assign failures");
++  b2.addEventListener("click",()=>openAutoAssignModal(rel,run));
++  ctas.appendChild(b1); ctas.appendChild(b2);
++  box.appendChild(ctas);
+   return box;
+ }
+ 
+@@ -1171,11 +1328,18 @@
+   rows.forEach(r=>{
+     const tr=el("tr");
+     tr.style.cursor="pointer";
+-    tr.addEventListener("click",()=>openDrawer(r.key, r.runId));
++    tr.addEventListener("click",(ev)=>{
++      const trig=ev.target.closest(".rowmenu-trigger");
++      if(trig){ ev.stopPropagation(); openRowMenu(trig, r.key, r.runId); return; }
++      openDrawer(r.key, r.runId);
++    });
+     // Status cell: abstain wins over notrun/other; else normal status label.
++    // Failed cases get a ⋯ mini-menu (Explain failure / Create defect / Retry).
++    const rowMenu = (r.status==="fail")
++      ? `<button class="rowmenu-trigger" data-menu-case="${r.key}" title="Actions">⋯</button>` : "";
+     const statusCell = r.abstain
+       ? `<span class="abstain-pill">Abstain · <span class="qid">${r.abstain.q}</span></span>`
+-      : `<span class="statuscell ${r.status}"><span class="dot ${r.status}"></span>${STATUS_LABEL[r.status]}</span>`;
++      : `<span class="statuscell ${r.status}"><span class="dot ${r.status}"></span>${STATUS_LABEL[r.status]}${rowMenu}</span>`;
+     tr.innerHTML=
+       `<td class="id">${r.id}</td>`+
+       `<td><span class="ctype cat-${r.category}">${r.category}</span></td>`+
+@@ -1345,11 +1509,8 @@
+   }
+   body.appendChild(eh);
+ 
+-  // AI insights stub (Part B — pending wireframe review)
+-  const ai=el("div","drawer-sec ai-stub");
+-  ai.innerHTML=`<div class="lbl">⚡ Insights</div>`+
+-    `<div class="ai-stub-body">Agent insights (flaky detection, learn-from-bug, coverage) land here — pending design review.</div>`;
+-  body.appendChild(ai);
++  // AI insights strip (Part B)
++  body.appendChild(buildInsightsStrip(caseId, hist));
+ 
+   d.appendChild(body);
+ 
+@@ -1366,12 +1527,578 @@
+ }
+ $("#drawerBackdrop").addEventListener("click",closeDrawer);
+ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDrawer(); });
++
++/* =========================================================================
++   PART B — AI + conversational authoring (all mock; no real model)
++   ========================================================================= */
++
++// Resolved bugs the "learn-from-bug" agent has memory of.
++// Each resolved bug maps to: (a) the case whose oracle needs an update,
++// (b) a suggested new case draft, (c) additional trace tags, (d) an abstain row.
++const RESOLVED_BUGS = {
++  "JIRA-7841":{ // A4 fail — below-minimum wording bug
++    caseId:"A4", req:"AC-PN2", resolved:"2026-07-02",
++    changes:[
++      {sel:true, kind:"oracle", tcId:"A4",
++        old:'Rejected with specific "below minimum" message; no advance.',
++        neu:'Rejected with specific "below minimum (S$10,000)" message; no advance.',
++        prov:"proxy"},
++      {sel:true, kind:"new",  title:"Reject sum with thousands-separator noise",
++        detail:"Category: negative · rationale: fix widened sanitization; a new case pins that.",
++        prov:"proxy"},
++      {sel:false, kind:"trace", tcId:"A4", detail:"Add trace tag regression:JIRA-7841", prov:"asserted"},
++      {sel:false, kind:"abstain", tcId:"A5",
++        detail:"TC-A5 (upper bound) may also drift — fix scope unclear; needs a human.",
++        prov:"abstained"},
++    ]
++  },
++  "JIRA-7862":{ // B6 fail — retirement-consistency
++    caseId:"B6", req:"AC-NA2", resolved:"2026-07-03",
++    changes:[
++      {sel:true, kind:"oracle", tcId:"B6",
++        old:"[assert] Should reconcile with retirement age; flag inconsistency (Q-B3).",
++        neu:"[assert] Cross-field flag raised when horizon > (retire − current age); wording matches new copy.",
++        prov:"proxy"},
++      {sel:true, kind:"new", title:"Horizon exactly equals retirement gap",
++        detail:"Category: boundary · rationale: fix moved comparator; pin equality behaviour.",
++        prov:"measured"},
++      {sel:false, kind:"abstain", tcId:"E3",
++        detail:"E3 shares the comparator — abstain until we know if the fix touched E3's path.",
++        prov:"abstained"},
++    ]
++  },
++  "JIRA-7870":{ // C4 fail — band boundary
++    caseId:"C4", req:"AC-IR2", resolved:"2026-07-04",
++    changes:[
++      {sel:true, kind:"oracle", tcId:"C4",
++        old:"Lands in the band the cutoff belongs to [assert inclusive] — pending Q-C1.",
++        neu:"Lands in the higher band at the exact cutoff (inclusivity resolved by Q-C1 answer).",
++        prov:"proxy"},
++      {sel:true, kind:"trace", tcId:"C4", detail:"Add trace tag regression:JIRA-7870", prov:"asserted"},
++    ]
++  },
++};
+ 
++// Audit log — hand-authored trail shown in the Activity modal.
++const AUDIT_LOG = [
++  {who:"Priya S.", action:"Marked TC-C6 as flaky",        source:"drawer insight",       when:"2 h ago"},
++  {who:"Priya S.", action:"Accepted change from JIRA-7841", source:"Learn-from-bug",     when:"yesterday"},
++  {who:"Marcus L.",action:"Discarded self-heal on TC-A5", source:"drawer insight (abstain)", when:"yesterday"},
++  {who:"Priya S.", action:"Drafted question Q-A2 → product/compliance", source:"abstain-blocker", when:"2 d ago"},
++  {who:"Aisha R.", action:"Added TC-B6 to next mobile run", source:"coverage insight",    when:"3 d ago"},
++];
++
++// A hard-coded "flaky" marker for the demo — a case whose recent runs alternate.
++// C6 will be treated as flaky (mixed pass/fail across runs — used for demo).
++// We synthesize the pattern via a lookup rather than fabricating a run history.
++const FLAKY_CASES = {
++  C6: {passes:4, fails:2, runs:6, platform:"mobile", evidence:["RUN-FHR-1002","RUN-FHR-1101"]},
++};
++
++// -------------- Insight computation --------------
++function buildInsightsStrip(caseId, hist){
++  const tc = CASES[caseId];
++  const wrap = el("div","drawer-sec ai-insights");
++  wrap.appendChild(el("div","lbl","⚡ Insights"));
++  const insights = computeInsights(caseId, tc, hist);
++  if(!insights.length){
++    const empty=el("div","insight");
++    empty.innerHTML=`<div class="insight-body">No signals yet — not enough runs to draw a conclusion.</div>`;
++    wrap.appendChild(empty);
++    return wrap;
++  }
++  insights.forEach(ins=>wrap.appendChild(renderInsight(ins, caseId)));
++  return wrap;
++}
++
++function computeInsights(caseId, tc, hist){
++  const out=[];
++  // 1) Flaky signal
++  if(FLAKY_CASES[caseId]){
++    const f=FLAKY_CASES[caseId];
++    out.push({
++      type:"flaky", title:"Flaky signal", prov:"measured", conf:"●●●○",
++      body:`passed ${f.passes} / failed ${f.fails} across ${f.runs} runs, fails only on ${PLAT_ICON[f.platform]} ${f.platform} → likely env, not a product bug`,
++      evidence:`evidence: ${f.evidence.join(", ")}`,
++      actions:[
++        {label:"Mark flaky", handler:()=>openConfirmModal({
++          title:"Mark case flaky",
++          body:`Mark <b>${tc.id}</b> as flaky? The row will surface a flaky badge and be excluded from group health rollups.`,
++          accept:"Mark flaky", onAccept:()=>toast(`Marked ${tc.id} flaky (mock)`)
++        })},
++        {label:"Open defect", handler:()=>openConfirmModal({
++          title:"Open defect for flaky signal",
++          body:`Draft a defect linking runs <span class="mono">${f.evidence.join(", ")}</span> and platform <b>${f.platform}</b>?`,
++          accept:"Open defect", onAccept:()=>toast(`Defect drafted (mock)`)
++        })},
++      ]
++    });
++  }
++  // 2) Learn from bug — latest fail with a defect resolved
++  const failWithBug = hist.find(h=>h.status==="fail" && h.defect && RESOLVED_BUGS[h.defect]);
++  if(failWithBug){
++    const rb = RESOLVED_BUGS[failWithBug.defect];
++    const oracleChange = rb.changes.find(c=>c.kind==="oracle");
++    out.push({
++      type:"learn", title:"Learn from bug", prov:"proxy", conf:"●●○○",
++      body:`${failWithBug.defect} (resolved) touched this area — the expected oracle here looks stale.`+
++        (oracleChange?` Proposed: <span class="old">${escapeHtml(short(oracleChange.old))}</span> → <span class="new">${escapeHtml(short(oracleChange.neu))}</span>`:""),
++      actions:[
++        {label:"Review change", handler:()=>openChangeSetModal(failWithBug.defect)},
++        {label:"Dismiss", handler:()=>toast("Insight dismissed (mock)")},
++      ]
++    });
++  }
++  // 3) Coverage — never executed on some platform this release
++  const platsRun = new Set(hist.filter(h=>h.status!=="notrun").map(h=>h.run.platform));
++  const missing = ["web","mobile"].filter(p=>!platsRun.has(p));
++  if(missing.length && !tc.abstain){
++    const plat = missing[0];
++    out.push({
++      type:"coverage", title:"Coverage", prov:"measured", conf:"",
++      body:`never run on ${PLAT_ICON[plat]} ${plat} in the observed releases.`,
++      actions:[
++        {label:`Add to next ${plat} run`, handler:()=>openConfirmModal({
++          title:`Add ${tc.id} to next ${plat} run`,
++          body:`Schedule <b>${tc.id}</b> for the next ${plat} run? (Applies on next execution.)`,
++          accept:"Schedule", onAccept:()=>toast(`Scheduled ${tc.id} for next ${plat} run (mock)`)
++        })},
++      ]
++    });
++  }
++  // 4) Abstain-blocker
++  if(tc.abstain){
++    out.push({
++      type:"abstain-blocker", title:"Abstain-blocker", prov:"abstained", conf:"",
++      body:`Blocked by <b>${tc.abstain.q}</b>: ${escapeHtml(tc.abstain.reason)}`,
++      actions:[
++        {label:"Draft question to product/compliance", handler:()=>openConfirmModal({
++          title:`Draft question ${tc.abstain.q}`,
++          body:`Draft an email to product/compliance asking:<br><i>${escapeHtml(tc.abstain.reason)}</i>`,
++          accept:"Draft", onAccept:()=>toast("Question drafted (mock)")
++        })},
++      ]
++    });
++  }
++  // 5) Priority suggestion — Abstain when only 1 executed run of history.
++  const executedRuns = hist.filter(h=>h.status!=="notrun").length;
++  if(executedRuns===1 && !tc.abstain){
++    out.push({
++      type:"priority-abstain", title:"Priority suggestion", prov:"abstained", conf:"",
++      body:`ⓘ Abstain — only 1 run of history, not enough signal to recommend a change.`,
++      actions:[]
++    });
++  }
++  return out;
++}
++
++function short(s,n=64){ if(!s) return ""; return s.length>n?s.slice(0,n-1)+"…":s; }
++function escapeHtml(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
++
++function renderInsight(ins, caseId){
++  const row=el("div","insight");
++  const head=el("div","insight-head");
++  head.innerHTML=`<span class="ih-title">▸ ${ins.title}</span>`+
++    (ins.conf?`<span class="ih-conf">confidence ${ins.conf}</span>`:"")+
++    `<span class="prov ${ins.prov}">${ins.prov}</span>`;
++  row.appendChild(head);
++  const body=el("div","insight-body"); body.innerHTML=ins.body;
++  if(ins.evidence){ body.innerHTML += `<div class="evid">${escapeHtml(ins.evidence)}</div>`; }
++  row.appendChild(body);
++  if(ins.actions && ins.actions.length){
++    const acts=el("div","insight-actions");
++    ins.actions.forEach(a=>{
++      const b=el("button","btn",a.label);
++      b.addEventListener("click",e=>{e.stopPropagation();a.handler();});
++      acts.appendChild(b);
++    });
++    row.appendChild(acts);
++  }
++  return row;
++}
++
++// -------------- Modal component --------------
++function openModal({title, bodyHtml, footHtml, onMount}){
++  const m=$("#modal");
++  m.innerHTML=
++    `<div class="modal-head"><div class="m-title">${title}</div>`+
++    `<button class="m-close" aria-label="Close">✕</button></div>`+
++    `<div class="modal-body">${bodyHtml}</div>`+
++    (footHtml?`<div class="modal-foot">${footHtml}</div>`:"");
++  $("#modalBackdrop").classList.add("show");
++  m.querySelector(".m-close").addEventListener("click",closeModal);
++  if(onMount) onMount(m);
++}
++function closeModal(){ $("#modalBackdrop").classList.remove("show"); }
++$("#modalBackdrop").addEventListener("click",e=>{ if(e.target.id==="modalBackdrop") closeModal(); });
++
++function openConfirmModal({title, body, accept="Apply", onAccept}){
++  openModal({
++    title, bodyHtml:`<div class="m-section">${body}</div>`,
++    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
++      `<button class="btn" data-act="cancel">Cancel</button>`+
++      `<button class="btn btn-primary" data-act="accept">${escapeHtml(accept)}</button>`,
++    onMount:m=>{
++      m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
++      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{closeModal(); if(onAccept) onAccept();});
++    }
++  });
++}
++
++function openChangeSetModal(bugRef){
++  const rb = RESOLVED_BUGS[bugRef]; if(!rb) return;
++  const rows = rb.changes.map((c,i)=>{
++    if(c.kind==="oracle"){
++      return `<div class="cs-row">
++        <input type="checkbox" ${c.sel?"checked":""} data-ci="${i}">
++        <div><div class="cs-title">Update ${c.tcId} oracle <span class="prov ${c.prov}">${c.prov}</span></div>
++        <div class="cs-detail"><span class="old">${escapeHtml(short(c.old,80))}</span> ▸ <span class="new">${escapeHtml(short(c.neu,80))}</span></div></div>
++      </div>`;
++    }
++    if(c.kind==="new"){
++      return `<div class="cs-row">
++        <input type="checkbox" ${c.sel?"checked":""} data-ci="${i}">
++        <div><div class="cs-title">NEW case draft: ${escapeHtml(c.title)} <span class="prov ${c.prov}">${c.prov}</span></div>
++        <div class="cs-detail">${escapeHtml(c.detail)}</div></div>
++      </div>`;
++    }
++    if(c.kind==="trace"){
++      return `<div class="cs-row">
++        <input type="checkbox" ${c.sel?"checked":""} data-ci="${i}">
++        <div><div class="cs-title">Add trace tag on ${c.tcId} <span class="prov ${c.prov}">${c.prov}</span></div>
++        <div class="cs-detail">${escapeHtml(c.detail)}</div></div>
++      </div>`;
++    }
++    if(c.kind==="abstain"){
++      return `<div class="cs-row warn">
++        <input type="checkbox" disabled>
++        <div><div class="cs-title">⚠ Abstain — ${c.tcId} <span class="prov ${c.prov}">${c.prov}</span></div>
++        <div class="cs-detail">${escapeHtml(c.detail)}</div></div>
++      </div>`;
++    }
++    return "";
++  }).join("");
++  openModal({
++    title:`Suggested change set · from ${bugRef}`,
++    bodyHtml:`<div class="m-section"><div class="m-lbl">Resolved ${escapeHtml(rb.resolved)} · maps to ${rb.caseId} + ${escapeHtml(rb.req)}</div>${rows}</div>`,
++    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
++      `<button class="btn" data-act="discard">Discard</button>`+
++      `<button class="btn btn-primary" data-act="accept">Accept selected</button>`,
++    onMount:m=>{
++      m.querySelector('[data-act="discard"]').addEventListener("click",closeModal);
++      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{
++        const n=m.querySelectorAll('input[data-ci]:checked').length;
++        closeModal(); toast(`Applied ${n} change${n===1?"":"s"} from ${bugRef} (mock)`);
++      });
++    }
++  });
++}
++
++function openSummarizeRunModal(rel, run){
++  const c=runCounts(run);
++  const fails=run.results.filter(r=>r.s==="fail");
++  const failList=fails.map(f=>`<li><b>${f.c}</b> — ${escapeHtml(CASES[f.c]?CASES[f.c].title:"")}${f.d?` <span class="mono">(${f.d})</span>`:""}</li>`).join("");
++  openModal({
++    title:`Summarize run · ${run.name}`,
++    bodyHtml:
++      `<div class="m-section"><div class="m-lbl">Headline</div>`+
++      `<div>${c.pass} passed · <b style="color:var(--fail)">${c.fail} failed</b> · ${c.block} blocked · ${c.notrun} not run (of ${run.results.length}).</div></div>`+
++      `<div class="m-section"><div class="m-lbl">Cluster (proxy — heuristic on defect + platform)</div>`+
++      `<div>${fails.filter(f=>f.d).length} real (has defect ref) · ${fails.filter(f=>!f.d).length} unclustered · flagged flaky candidates: <b>TC-C6</b>.</div></div>`+
++      (fails.length?`<div class="m-section"><div class="m-lbl">Failures</div><ul>${failList}</ul></div>`:""),
++    footHtml:`<span class="audit">Provenance: measured (counts) · proxy (cluster)</span><div class="spacer"></div>`+
++      `<button class="btn btn-primary" data-act="close">Close</button>`,
++    onMount:m=>m.querySelector('[data-act="close"]').addEventListener("click",closeModal)
++  });
++}
++
++function openAutoAssignModal(rel, run){
++  const fails=run.results.filter(r=>r.s==="fail");
++  const assignments = fails.map(f=>{
++    const tc=CASES[f.c]; const owner=tc?tc.author:"—";
++    return `<li><b>${f.c}</b> → <span class="assignee"><span class="avatar">${initials(owner)}</span>${owner}</span> <span class="prov proxy">proxy</span> <span class="mono">(by past history)</span></li>`;
++  }).join("");
++  openModal({
++    title:`Auto-assign failures · ${run.name}`,
++    bodyHtml:
++      (fails.length
++        ? `<div class="m-section"><div class="m-lbl">Proposed assignments (heuristic: author of the case)</div><ul>${assignments}</ul></div>`
++        : `<div class="m-section">No failures in this run — nothing to assign.</div>`),
++    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
++      `<button class="btn" data-act="cancel">Cancel</button>`+
++      `<button class="btn btn-primary" data-act="accept">Apply</button>`,
++    onMount:m=>{
++      m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
++      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{closeModal();toast(`Assigned ${fails.length} failure${fails.length===1?"":"s"} (mock)`);});
++    }
++  });
++}
++
++function openSuggestEdgeCasesModal(scen){
++  const suggestions = [
++    {title:"Whitespace-only input", cat:"negative", conf:"●●●○", prov:"measured", why:"Common oversight in similar boundary sets."},
++    {title:"Locale-formatted digits (SG vs US separators)", cat:"boundary", conf:"●●○○", prov:"proxy", why:"Data-variation gap seen in adjacent scenarios."},
++    {title:"Copy-paste emoji or RTL chars into amount field", cat:"negative", conf:"●●○○", prov:"proxy", why:"Historical bugs (JIRA-7841 family) hint at sanitizer gaps."},
++    {title:"Abstain — value-boundary rule at zero for optional needs", cat:"—", conf:"", prov:"abstained", why:"Rule unspecified; cannot assert oracle."},
++  ];
++  const rows = suggestions.map((s,i)=>{
++    if(s.prov==="abstained"){
++      return `<div class="cs-row warn"><input type="checkbox" disabled>
++        <div><div class="cs-title">⚠ ${escapeHtml(s.title)} <span class="prov ${s.prov}">${s.prov}</span></div>
++        <div class="cs-detail">${escapeHtml(s.why)}</div></div></div>`;
++    }
++    return `<div class="cs-row"><input type="checkbox" checked data-ci="${i}">
++      <div><div class="cs-title">${escapeHtml(s.title)} <span class="ctype cat-${s.cat}">${s.cat}</span> <span class="prov ${s.prov}">${s.prov}</span></div>
++      <div class="cs-detail">confidence ${s.conf} · ${escapeHtml(s.why)}</div></div></div>`;
++  }).join("");
++  openModal({
++    title:`Suggest missing edge cases · ${scen.name}`,
++    bodyHtml:`<div class="m-section"><div class="m-lbl">Draft additions (nothing applied without accept)</div>${rows}</div>`,
++    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
++      `<button class="btn" data-act="cancel">Discard</button>`+
++      `<button class="btn btn-primary" data-act="accept">Add selected as drafts</button>`,
++    onMount:m=>{
++      m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
++      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{
++        const n=m.querySelectorAll('input[data-ci]:checked').length;
++        closeModal(); toast(`Added ${n} draft case${n===1?"":"s"} (mock)`);
++      });
++    }
++  });
++}
++
++function openActivityModal(){
++  const items = AUDIT_LOG.map(a=>
++    `<li><b>${escapeHtml(a.action)}</b> — ${escapeHtml(a.who)} <span class="when">· ${escapeHtml(a.when)}</span><br>`+
++    `<span class="muted" style="font-size:11px;">source: ${escapeHtml(a.source)}</span></li>`
++  ).join("");
++  openModal({
++    title:"Recent AI activity",
++    bodyHtml:`<div class="m-section"><ul class="audit-list">${items}</ul></div>`,
++    footHtml:`<span class="audit">Every accepted agent action is logged (mock).</span><div class="spacer"></div>`+
++      `<button class="btn btn-primary" data-act="close">Close</button>`,
++    onMount:m=>m.querySelector('[data-act="close"]').addEventListener("click",closeModal)
++  });
++}
++
++// -------------- Row menu (⋯ on failed rows) --------------
++function openRowMenu(triggerEl, caseId, runId){
++  document.querySelectorAll(".rowmenu").forEach(x=>x.remove());
++  const rect=triggerEl.getBoundingClientRect();
++  const menu=el("div","rowmenu");
++  const mk=(lbl,fn)=>{const b=el("button",null,lbl);b.addEventListener("click",e=>{e.stopPropagation();menu.remove();fn();});return b;};
++  menu.appendChild(mk("Explain failure",()=>openConfirmModal({
++    title:`Explain failure · ${caseId}`,
++    body:`Heuristic explanation for <b>${caseId}</b>: latest run failed with an expected-value mismatch. Likely candidates: recent oracle drift (see Learn-from-bug in drawer), platform-specific rendering, or flaky env.`,
++    accept:"OK", onAccept:()=>{}
++  })));
++  menu.appendChild(mk("Create defect",()=>openConfirmModal({
++    title:`Create defect · ${caseId}`,
++    body:`Draft a JIRA defect for <b>${caseId}</b>? A ticket stub will be prepared with run + oracle context.`,
++    accept:"Create defect", onAccept:()=>toast(`Defect drafted for ${caseId} (mock)`)
++  })));
++  menu.appendChild(mk("Retry",()=>openConfirmModal({
++    title:`Retry ${caseId}`,
++    body:`Queue <b>${caseId}</b> for re-run on the same platform/build?`,
++    accept:"Retry", onAccept:()=>toast(`${caseId} queued for retry (mock)`)
++  })));
++  menu.style.left=Math.round(rect.right-150)+"px";
++  menu.style.top=Math.round(rect.bottom+4)+"px";
++  document.body.appendChild(menu);
++  const off=(ev)=>{ if(!menu.contains(ev.target)){ menu.remove(); document.removeEventListener("click",off);} };
++  setTimeout(()=>document.addEventListener("click",off),0);
++}
++
++// -------------- Conversational authoring bar --------------
++STATE.draft = null;   // {title, category, steps, data, trace}
++STATE.pendingIntent = null; // {kind, base}
++
++const CBAR_EXAMPLES = [
++  'what failed on mobile this release?',
++  'which cases cover AC-PN2?',
++  'mark TC-A3 as automated',
++  'add a negative case for expired NRIC at submission',
++];
++
++function initCbar(){
++  const ex = $("#cbarExamples");
++  CBAR_EXAMPLES.forEach(t=>{
++    const c=el("span","ex",escapeHtml(t));
++    c.addEventListener("click",()=>{ $("#cbarInput").value=t; $("#cbarInput").focus(); });
++    ex.appendChild(c);
++  });
++  $("#cbarSubmit").addEventListener("click",submitCbar);
++  $("#cbarInput").addEventListener("keydown",e=>{
++    if(e.key==="Enter"){ e.preventDefault(); submitCbar(); }
++    if(e.key==="Escape"){ clearCbar(); }
++  });
++  // "/" focuses the bar when not typing in a field
++  document.addEventListener("keydown",e=>{
++    if(e.key==="/" && document.activeElement.tagName!=="INPUT" && document.activeElement.tagName!=="TEXTAREA"){
++      e.preventDefault(); $("#cbarInput").focus();
++    }
++  });
++}
++
++function cbarChat(html){
++  const box=$("#cbarChat"); box.style.display="block"; box.innerHTML=html;
++}
++function cbarClarify(html){ const box=$("#cbarClarify"); box.style.display="flex"; box.innerHTML=html; }
++function clearCbar(){
++  $("#cbarChat").style.display="none";
++  $("#cbarClarify").style.display="none";
++  $("#cbarInput").value="";
++  STATE.pendingIntent=null;
++  STATE.draft=null;
++  render();
++}
++
++// Small intent table.
++function classifyIntent(q){
++  const s=q.trim().toLowerCase();
++  if(!s) return {kind:"empty"};
++  // read-only queries
++  if(/^what\s+failed/.test(s) || /failed on (mobile|web)/.test(s))
++    return {kind:"query-failed-platform", platform: /mobile/.test(s) ? "mobile" : "web"};
++  if(/^which cases (cover|trace)/.test(s) || /cover[s]?\s+(ac-|fhr-req-)/.test(s)){
++    const m=s.match(/(ac-[a-z0-9]+|fhr-req-\d+)/i);
++    return {kind:"query-cover", tag: m?m[1].toUpperCase():null};
++  }
++  // clear mutating
++  const auto=s.match(/mark\s+(tc-[a-z0-9]+)\s+as\s+automated/i);
++  if(auto) return {kind:"mutate-mark-auto", tcId: auto[1].toUpperCase()};
++  // ambiguous mutating
++  if(/^add (a )?(negative|edge|boundary|positive) case/.test(s))
++    return {kind:"ambiguous-add", text:q};
++  return {kind:"unknown", text:q};
++}
++
++function submitCbar(){
++  const q=$("#cbarInput").value;
++  const intent=classifyIntent(q);
++  $("#cbarChat").style.display="none";
++  $("#cbarClarify").style.display="none";
++
++  if(intent.kind==="empty") return;
++
++  if(intent.kind==="query-failed-platform"){
++    const fails=[];
++    RELEASES.forEach(rel=>rel.runs.forEach(run=>{
++      if(run.platform!==intent.platform) return;
++      run.results.filter(r=>r.s==="fail").forEach(r=>fails.push({c:r.c,d:r.d,run:run.id,rel:rel.id}));
++    }));
++    const list = fails.length
++      ? "<ul style=\"margin:6px 0 0;padding-left:18px;\">"+fails.map(f=>`<li><b>${f.c}</b> — ${escapeHtml(CASES[f.c]?CASES[f.c].title:"")} <span class="mono">(${f.run}${f.d?"; "+f.d:""})</span></li>`).join("")+"</ul>"
++      : "<i>none in the observed data.</i>";
++    cbarChat(`Failed on ${PLAT_ICON[intent.platform]} ${intent.platform} across observed releases: <b>${fails.length}</b>.${list} <div class="muted" style="font-size:11px;margin-top:6px;">provenance: measured (from run data)</div>`);
++    return;
++  }
++  if(intent.kind==="query-cover"){
++    const tag=intent.tag;
++    const matches = Object.values(CASES).filter(tc=>tc.req===tag || (tc.traces||[]).includes(tag));
++    const list = matches.length
++      ? "<ul style=\"margin:6px 0 0;padding-left:18px;\">"+matches.map(tc=>`<li><b>${tc.id}</b> — ${escapeHtml(tc.title)}</li>`).join("")+"</ul>"
++      : "<i>no direct matches — try an AC-* or trace tag.</i>";
++    cbarChat(`Cases covering <b>${escapeHtml(tag||"—")}</b>: <b>${matches.length}</b>.${list}`);
++    return;
++  }
++  if(intent.kind==="mutate-mark-auto"){
++    if(!CASES[intent.tcId]){
++      cbarChat(`<i>${escapeHtml(intent.tcId)} not found.</i>`); return;
++    }
++    STATE.draft = {
++      kind:"mark-auto", title:`Mark ${intent.tcId} as automated`,
++      lifecycle:"draft", ref:intent.tcId,
++      steps:[`Set exec=auto on ${intent.tcId}`, `Recompute Auto/Manual counts`],
++      data:[{k:"Case",v:intent.tcId},{k:"Change",v:"exec: manual → auto"}],
++    };
++    render();
++    return;
++  }
++  if(intent.kind==="ambiguous-add"){
++    STATE.pendingIntent={kind:"add-neg-case", base:intent.text};
++    cbarClarify(`<span class="q">Web, mobile, or both?</span>`+
++      ["Web","Mobile","Both"].map(p=>`<button class="chip-btn" data-plat="${p}">${p}</button>`).join(""));
++    document.querySelectorAll(".cbar-clarify .chip-btn").forEach(b=>{
++      b.addEventListener("click",()=>{
++        const plat=b.dataset.plat;
++        $("#cbarClarify").style.display="none";
++        STATE.draft={
++          kind:"new-case",
++          title:"Decline submission when NRIC has expired",
++          category:"negative",
++          platform:plat,
++          steps:[
++            "Enter expired NRIC (2019-03-01)",
++            "Attempt submission → expect validation error"
++          ],
++          data:[{k:"NRIC expiry",v:"2019-03-01"},{k:"Platform",v:plat}],
++          trace:"FHR-REQ-022",
++          lifecycle:"draft",
++        };
++        STATE.pendingIntent=null;
++        render();
++      });
++    });
++    return;
++  }
++  cbarChat(`<i>I don't recognise that intent yet. Try one of the examples.</i>`);
++}
++
++function draftCardEl(d){
++  const c=el("div","draft-card");
++  const head=el("div","dc-head");
++  head.innerHTML=`<span class="cid">DRAFT · TC-305</span>`+
++    `<span class="dc-title">${escapeHtml(d.title)}</span>`+
++    (d.category?`<span class="ctype cat-${d.category}">${d.category}</span>`:"")+
++    `<span class="lifecycle lc-draft">Draft</span>`;
++  c.appendChild(head);
++  const body=el("div","dc-body");
++  let inner="";
++  if(d.steps && d.steps.length){
++    inner += `<div><b>Steps:</b> `+d.steps.map((s,i)=>`${i+1} ${escapeHtml(s)}`).join(" → ")+`</div>`;
++  }
++  if(d.data && d.data.length){
++    inner += `<div style="margin-top:4px;"><b>Data:</b> `+d.data.map(x=>`${escapeHtml(x.k)} = ${escapeHtml(x.v)}`).join(", ")+`</div>`;
++  }
++  if(d.trace){ inner += `<div style="margin-top:4px;"><b>Trace:</b> <span class="tracetag reg">${escapeHtml(d.trace)}</span></div>`; }
++  if(d.platform){ inner += `<div style="margin-top:4px;color:var(--ink-3);font-size:11px;">Platform scope: ${escapeHtml(d.platform)}</div>`; }
++  body.innerHTML=inner;
++  c.appendChild(body);
++  const acts=el("div","dc-actions");
++  const bAcc=el("button","btn btn-primary","Accept & add");
++  bAcc.addEventListener("click",()=>{ STATE.draft=null; toast("Draft added (mock)"); render(); });
++  const bEdit=el("button","btn","Edit");
++  bEdit.addEventListener("click",()=>{ toast("Edit not wired in mock"); });
++  const bDis=el("button","btn","Discard");
++  bDis.addEventListener("click",()=>{ STATE.draft=null; render(); });
++  acts.appendChild(bAcc); acts.appendChild(bEdit); acts.appendChild(bDis);
++  c.appendChild(acts);
++  return c;
++}
++
++// -------------- Toast --------------
++let _toastTimer=null;
++function toast(msg){
++  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
++  clearTimeout(_toastTimer);
++  _toastTimer=setTimeout(()=>t.classList.remove("show"),1900);
++}
++
++// -------------- Extend Esc to close modal + row menu --------------
++document.addEventListener("keydown",e=>{
++  if(e.key==="Escape"){
++    closeModal();
++    document.querySelectorAll(".rowmenu").forEach(x=>x.remove());
++  }
++});
++
+ // init
+ STATE.modScenario={f:0,s:0};
+ STATE.releaseRun={r:0,k:0};
+ renderTree();
+ render();
++initCbar();
+ </script>
+ </body>
+ </html>
