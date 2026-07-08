@@ -53,20 +53,66 @@
     width:310px;min-width:310px;background:var(--panel);border-right:1px solid var(--line);
     display:flex;flex-direction:column;overflow:hidden;
   }
+  .nav.hidden{display:none;}
   .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 
-  /* ---------- view switch ---------- */
-  .viewswitch{padding:12px 14px 10px;border-bottom:1px solid var(--line-2);}
-  .viewswitch .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
-    color:var(--ink-3);font-weight:650;margin:0 2px 7px;}
-  .seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:2px;}
-  .seg button{
-    flex:1;border:0;background:transparent;padding:6px 8px;border-radius:5px;
-    font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-2);cursor:pointer;
+  /* ---------- Part C: primary nav rail (Home / Test Cases / Releases) ---------- */
+  .primarynav{
+    width:184px;min-width:184px;background:var(--bg);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;overflow-y:auto;padding:14px 10px;flex:none;
   }
-  .seg button.active{background:var(--panel);color:var(--teal-dark);box-shadow:var(--shadow);}
+  .pnav-item{
+    display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:0;background:transparent;
+    padding:8px 9px;border-radius:7px;font:inherit;font-size:13px;font-weight:650;color:var(--ink-2);
+    cursor:pointer;margin-bottom:2px;
+  }
+  .pnav-item:hover{background:var(--line-2);color:var(--ink);}
+  .pnav-item.active{background:var(--teal-tint);color:var(--teal-dark);}
+  .pnav-item .pnav-ic{font-size:14px;width:16px;text-align:center;flex:none;}
+  .pnav-group{margin-bottom:4px;}
+  .pnav-sub{display:flex;flex-direction:column;margin:1px 0 8px 24px;border-left:1px solid var(--line);padding-left:11px;}
+  .pnav-subitem{
+    display:block;width:100%;text-align:left;border:0;background:transparent;padding:6px 9px;
+    border-radius:6px;font:inherit;font-size:12px;font-weight:600;color:var(--ink-3);cursor:pointer;margin-bottom:1px;
+  }
+  .pnav-subitem:hover{background:var(--panel);color:var(--ink-2);}
+  .pnav-subitem.active{color:var(--teal-dark);background:var(--panel);font-weight:650;box-shadow:var(--shadow);}
 
   .navscroll{flex:1;overflow-y:auto;padding:8px 8px 24px;}
+  .navhead{padding:12px 14px 10px;border-bottom:1px solid var(--line-2);}
+  .navhead .nh-title{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:650;}
+
+  /* ---------- Part C: blank / insights landing pages ---------- */
+  .blankpage{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    height:100%;color:var(--ink-3);text-align:center;padding:60px 24px;}
+  .blankpage .bp-icon{font-size:32px;margin-bottom:12px;}
+  .blankpage .bp-title{font-size:15px;font-weight:650;color:var(--ink-2);margin-bottom:6px;}
+  .blankpage .bp-sub{font-size:12.5px;max-width:380px;line-height:1.6;}
+
+  .insights-head{margin-bottom:16px;}
+  .insights-head h2{font-size:16px;margin:0 0 4px;font-weight:650;}
+  .insights-head p{margin:0;color:var(--ink-2);font-size:12.5px;max-width:70ch;}
+  .insight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;}
+  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:13px 15px;}
+  .stat-card .sc-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:650;}
+  .stat-card .sc-value{font-size:23px;font-weight:700;color:var(--ink);margin-top:6px;font-variant-numeric:tabular-nums;}
+  .stat-card .sc-sub{font-size:11.5px;color:var(--ink-3);margin-top:3px;}
+  .rel-table-wrap{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+    box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;}
+  .rel-table-wrap .rt-head{padding:12px 15px 10px;border-bottom:1px solid var(--line-2);font-weight:650;font-size:13px;}
+  .rel-row{display:flex;align-items:center;gap:14px;padding:11px 15px;border-bottom:1px solid var(--line-2);}
+  .rel-row:last-child{border-bottom:0;}
+  .rel-row .rr-name{font-weight:600;font-size:12.5px;flex:1;min-width:150px;}
+  .rel-row .rr-name .rr-sub{color:var(--ink-3);font-weight:500;font-size:11px;display:block;margin-top:1px;}
+  .rel-row .rr-bar{flex:2;min-width:120px;}
+  .rel-row .rr-pct{font-size:12.5px;font-weight:650;width:42px;text-align:right;flex:none;font-variant-numeric:tabular-nums;}
+  .rel-row .rr-counts{display:flex;gap:8px;flex:none;font-size:11px;color:var(--ink-3);}
+  .callout-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .callout{flex:1;min-width:220px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:13px 15px;}
+  .callout .co-title{font-weight:650;font-size:12.5px;margin-bottom:5px;}
+  .callout .co-body{font-size:12px;color:var(--ink-2);line-height:1.55;}
 
   /* ---------- tree ---------- */
   .tree{list-style:none;margin:0;padding:0;}
@@ -442,11 +488,207 @@
   .audit-list li b{color:var(--ink);font-weight:600;}
   .audit-list li .when{color:var(--ink-3);font-size:11px;margin-left:4px;}
 
-  /* ---------- assistant-pane reopen tab (replaces the removed Assistant button) ---------- */
-  .pane-reopen{position:fixed;top:64px;right:0;z-index:35;border:1px solid var(--line);background:var(--panel);
+  /* ---------- Part D: collapse controls (left nav + assistant pane) ---------- */
+  .navhead{display:flex;align-items:center;gap:8px;}
+  .navhead .nh-title{flex:1;}
+  .nav-collapse{border:0;background:transparent;color:var(--ink-3);font-size:15px;line-height:1;
+    cursor:pointer;padding:2px 6px;border-radius:5px;}
+  .nav-collapse:hover{background:var(--line-2);color:var(--ink);}
+  .nav.collapsed{display:none;}
+  .pane-reopen{position:fixed;top:64px;z-index:35;border:1px solid var(--line);background:var(--panel);
     color:var(--teal-dark);cursor:pointer;box-shadow:var(--shadow);font-size:14px;font-weight:700;
-    padding:11px 5px;line-height:1;border-radius:8px 0 0 8px;}
+    padding:11px 5px;line-height:1;}
   .pane-reopen:hover{background:var(--teal-tint);}
+  .pane-reopen.left{left:184px;border-radius:0 8px 8px 0;}
+  .pane-reopen.right{right:0;border-radius:8px 0 0 8px;}
+
+  /* ---------- Part D: Atto AI chat list (second nav) ---------- */
+  .chatlist{display:flex;flex-direction:column;gap:2px;}
+  .cl-new{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+    border:1px solid var(--teal);background:var(--teal-tint);color:var(--teal-dark);
+    border-radius:7px;padding:8px 10px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;margin-bottom:8px;}
+  .cl-new:hover{background:var(--teal);color:#fff;}
+  .cl-group{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+    font-weight:650;padding:8px 8px 4px;}
+  .cl-item{display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;border:0;background:transparent;
+    padding:7px 9px;border-radius:6px;cursor:pointer;color:var(--ink-2);}
+  .cl-item:hover{background:var(--line-2);}
+  .cl-item.active{background:var(--teal-tint);}
+  .cl-item .cl-title{font-size:12.5px;font-weight:600;color:var(--ink);overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .cl-item.active .cl-title{color:var(--teal-dark);}
+  .cl-item .cl-meta{font-size:10.5px;color:var(--ink-3);display:flex;gap:6px;align-items:center;}
+  .cl-item .cl-src{border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:9.5px;
+    text-transform:uppercase;letter-spacing:.03em;}
+
+  /* ---------- Part D: Atto AI chat home + conversation ---------- */
+  .atto-home{max-width:720px;margin:0 auto;padding:36px 8px 24px;}
+  .atto-home .ah-badge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:650;
+    color:var(--teal-dark);background:var(--teal-tint);border:1px solid #bfdcdc;border-radius:20px;padding:3px 11px;}
+  .atto-home h2{font-size:22px;margin:14px 0 6px;font-weight:700;letter-spacing:-.01em;}
+  .atto-home .ah-sub{color:var(--ink-2);font-size:13px;margin:0 0 18px;line-height:1.55;max-width:60ch;}
+  .atto-composer{border:1px solid var(--line);border-radius:12px;background:var(--panel);
+    box-shadow:var(--shadow);padding:12px 14px;}
+  .atto-composer textarea{width:100%;border:0;resize:none;font:inherit;font-size:14px;color:var(--ink);
+    background:transparent;min-height:60px;line-height:1.5;}
+  .atto-composer textarea:focus{outline:0;}
+  .atto-composer .ac-foot{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:10px;
+    border-top:1px solid var(--line-2);}
+  .atto-attach{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--bg);
+    border-radius:7px;padding:5px 10px;font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;}
+  .atto-attach:hover{border-color:var(--ink-3);color:var(--ink);}
+  .atto-composer .ac-gen{margin-left:auto;border:1px solid var(--teal);background:var(--teal);color:#fff;
+    border-radius:8px;padding:7px 16px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;}
+  .atto-composer .ac-gen:hover{background:var(--teal-dark);border-color:var(--teal-dark);}
+  .atto-attached{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+  .atto-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;border:1px solid var(--line);
+    background:var(--bg);border-radius:6px;padding:3px 9px;color:var(--ink-2);}
+  .atto-chip .x{cursor:pointer;color:var(--ink-3);font-weight:700;}
+  .atto-examples{margin-top:22px;}
+  .atto-examples .ae-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+    font-weight:650;margin-bottom:9px;}
+  .atto-ex{display:flex;flex-direction:column;gap:8px;}
+  .atto-ex button{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:9px;
+    padding:11px 13px;font:inherit;font-size:12.5px;color:var(--ink);cursor:pointer;box-shadow:var(--shadow);}
+  .atto-ex button:hover{border-color:var(--teal);background:var(--teal-tint);}
+  .atto-ex button .ae-src{color:var(--ink-3);font-size:11px;margin-top:3px;}
+
+  .atto-convo{max-width:760px;margin:0 auto;padding:20px 8px 24px;}
+  .atto-msg{margin-bottom:14px;display:flex;gap:10px;}
+  .atto-msg .am-av{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;
+    font-size:12px;font-weight:700;}
+  .atto-msg.user .am-av{background:var(--ink);color:#fff;}
+  .atto-msg.bot .am-av{background:var(--teal);color:#fff;}
+  .atto-msg .am-body{font-size:13px;color:var(--ink);line-height:1.55;padding-top:3px;}
+  .atto-msg .am-body b{font-weight:650;}
+  .atto-draftlist{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+
+  /* ---------- Part E: Releases (All Releases list + release detail summary) ---------- */
+  .allrel-head{margin-bottom:16px;}
+  .allrel-head h2{font-size:16px;margin:0 0 4px;font-weight:650;}
+  .allrel-head p{margin:0;color:var(--ink-2);font-size:12.5px;max-width:70ch;}
+
+  .rel-index{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+    box-shadow:var(--shadow);overflow:hidden;}
+  .rel-index table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+  .rel-index thead th{position:sticky;top:0;background:var(--panel);text-align:left;
+    font-weight:650;color:var(--ink-2);font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+    padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .rel-index tbody td{padding:12px 14px;border-bottom:1px solid var(--line-2);vertical-align:middle;}
+  .rel-index tbody tr:last-child td{border-bottom:0;}
+  .rel-index tbody tr{cursor:pointer;}
+  .rel-index tbody tr:hover{background:var(--line-2);}
+  .rel-index .r-name{font-weight:650;color:var(--ink);}
+  .rel-index .r-sub{color:var(--ink-3);font-size:11.5px;font-weight:500;margin-top:2px;display:block;}
+  .rel-index .r-bar{width:180px;}
+  .rel-index .r-pct{font-weight:650;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .rel-index .r-suites{font-size:11.5px;color:var(--ink-2);}
+
+  /* Breadcrumb above the tabs in a drilled release */
+  .rel-breadcrumb{padding:10px 18px 0;display:flex;align-items:center;gap:6px;
+    background:var(--panel);border-bottom:1px solid var(--line-2);font-size:12px;color:var(--ink-3);}
+  .rel-breadcrumb .rb-link{color:var(--teal-dark);border:0;background:transparent;font:inherit;
+    font-size:12px;cursor:pointer;padding:0;border-bottom:1px dotted var(--teal);}
+  .rel-breadcrumb .rb-link:hover{color:var(--teal);}
+  .rel-breadcrumb .rb-sep{color:var(--ink-3);}
+  .rel-breadcrumb .rb-current{color:var(--ink);font-weight:600;}
+
+  /* Summary tab cards */
+  .rel-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:14px 16px;margin-bottom:14px;}
+  .rel-card .rc-title{font-size:12.5px;font-weight:650;color:var(--ink);margin-bottom:12px;
+    display:flex;align-items:center;gap:8px;}
+  .rel-card .rc-title .rc-sub{color:var(--ink-3);font-weight:500;font-size:11.5px;}
+
+  /* Suites strip inside Test run status card */
+  .suites-strip{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+  .suite-row{display:flex;align-items:center;gap:14px;padding:9px 12px;
+    border:1px solid var(--line);border-radius:7px;background:var(--bg);cursor:pointer;transition:background .12s;}
+  .suite-row:hover{background:var(--line-2);border-color:var(--ink-3);}
+  .suite-row .s-name{font-weight:650;font-size:12.5px;flex:none;min-width:140px;}
+  .suite-row .s-meta{font-size:11px;color:var(--ink-3);flex:1;}
+  .suite-row .s-counts{display:flex;gap:8px;font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;flex:none;}
+  .suite-row .s-bar{width:120px;flex:none;}
+  .suite-row .s-pct{width:36px;text-align:right;font-weight:650;font-size:12px;font-variant-numeric:tabular-nums;flex:none;}
+
+  /* Business context — the beige card */
+  .biz-card{background:#f4efe1;border:1px solid #e6dcc4;border-radius:var(--radius);padding:16px 18px;}
+  .biz-card .bc-eyebrow{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;
+    color:#8a7846;margin-bottom:10px;}
+  .biz-card dl{display:grid;grid-template-columns:150px 1fr;row-gap:9px;column-gap:22px;margin:0;font-size:12.5px;}
+  .biz-card dt{color:var(--ink-2);font-weight:600;}
+  .biz-card dd{margin:0;color:var(--ink);}
+  .biz-card dd b{font-weight:650;}
+
+  /* Feature run summary rows */
+  .feat-list{display:flex;flex-direction:column;gap:6px;}
+  .feat-row{display:flex;align-items:center;gap:14px;padding:9px 12px;border:1px solid var(--line);
+    border-radius:7px;cursor:pointer;transition:background .12s;background:var(--panel);}
+  .feat-row:hover{background:var(--line-2);border-color:var(--ink-3);}
+  .feat-row .f-name{font-weight:600;flex:1;font-size:12.5px;color:var(--ink);}
+  .feat-row .f-dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .feat-row .f-count{font-size:11.5px;color:var(--ink-3);flex:none;font-variant-numeric:tabular-nums;}
+  .feat-row .f-bar{width:140px;flex:none;}
+  .feat-row .f-pct{font-weight:650;font-size:12px;font-variant-numeric:tabular-nums;width:40px;text-align:right;flex:none;}
+  .feat-row .f-arrow{color:var(--ink-3);flex:none;font-size:14px;}
+
+  /* Suite filter chips (Test Cases tab) */
+  .suite-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+  .suite-chips .sc-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);
+    font-weight:650;margin-right:4px;}
+  .suite-chip{border:1px solid var(--line);background:var(--panel);border-radius:16px;
+    padding:4px 12px;font:inherit;font-size:12px;font-weight:600;color:var(--ink-2);cursor:pointer;}
+  .suite-chip:hover{border-color:var(--ink-3);color:var(--ink);}
+  .suite-chip.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .feat-filter{margin-left:auto;font-size:11.5px;color:var(--ink-3);display:inline-flex;align-items:center;gap:6px;}
+  .feat-filter .ff-x{border:0;background:transparent;color:var(--ink-3);cursor:pointer;font-size:14px;line-height:1;}
+
+  /* All Releases list: gate + target-ship columns */
+  .gate-chip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;
+    letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
+  .gate-chip.go{background:#eef8f1;color:var(--pass);border:1px solid #bfe6cd;}
+  .gate-chip.conditional{background:#fdf5e6;color:var(--block);border:1px solid #f0d8ab;}
+  .gate-chip.nogo{background:#fdeef1;color:var(--fail);border:1px solid #f2c2cb;}
+
+  /* ---------- Part F: Release Gate (adapted from qi-dashboard.html §2, white bg) ---------- */
+  .gate-block{border-left:3px solid var(--line-2);}
+  .gate-block.go{border-left-color:var(--pass);}
+  .gate-block.conditional{border-left-color:var(--block);}
+  .gate-block.nogo{border-left-color:var(--fail);}
+  .gate-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .gate-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    letter-spacing:.05em;text-transform:uppercase;padding:4px 11px;border-radius:20px;flex:none;}
+  .gate-pill.go{background:#eef8f1;color:var(--pass);border:1px solid #bfe6cd;}
+  .gate-pill.conditional{background:#fdf5e6;color:var(--block);border:1px solid #f0d8ab;}
+  .gate-pill.nogo{background:#fdeef1;color:var(--fail);border:1px solid #f2c2cb;}
+  .gate-headline{font-size:16px;font-weight:700;letter-spacing:-.01em;color:var(--ink);}
+  .gate-block ul{margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--ink);line-height:1.6;}
+  .gate-block li{margin:5px 0;}
+  .gate-why{color:var(--ink-3);font-size:12px;margin-top:12px;font-style:italic;line-height:1.5;}
+
+  .qm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  .qm-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:14px 16px;}
+  .qm-card .qm-k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);
+    font-weight:650;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .qm-card .qm-v{font-size:26px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .qm-card .qm-v .qm-unit{font-size:12px;color:var(--ink-3);font-weight:600;margin-left:4px;}
+  .qm-card .qm-sub{font-size:12px;color:var(--ink-2);margin-top:6px;line-height:1.5;}
+  .qm-pill{font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:12px;}
+  .qm-pill.warn{background:#fdf5e6;color:var(--block);}
+  .qm-pill.crit{background:#fdeef1;color:var(--fail);}
+
+  .wf{margin-top:10px;font-size:13px;}
+  .wf-row{display:grid;grid-template-columns:170px 1fr 46px;gap:12px;align-items:center;padding:6px 0;}
+  .wf-row+.wf-row{border-top:1px dashed var(--line-2);}
+  .wf-row .wf-lbl{color:var(--ink-3);}
+  .wf-row .wf-bar{height:8px;background:var(--bg);border-radius:2px;position:relative;}
+  .wf-row .wf-bar b{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--teal);}
+  .wf-row .wf-bar.neg b{background:var(--fail);}
+  .wf-row .wf-bar.warnbar b{background:var(--block);}
+  .wf-row .wf-val{text-align:right;font-weight:650;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .wf-row .wf-val.neg{color:var(--fail);}
+  .prio-P0{color:var(--fail);}
 
   /* ---------- version picker ---------- */
   .verpick{display:inline-flex;align-items:center;gap:8px;margin-right:14px;}
@@ -475,8 +717,8 @@
       <span class="verpick-lbl">Version</span>
       <select id="verSelect">
         <option value="test-authoring-mockup.html">v1 · Baseline (no AI)</option>
-        <option value="test-authoring-mockup-v2.html" selected>v2 · With AI (Part B)</option>
-        <option value="test-authoring-mockup-v3.html">v3 · Nav rework (Home / Test Cases / Releases)</option>
+        <option value="test-authoring-mockup-v2.html">v2 · With AI (Part B)</option>
+        <option value="test-authoring-mockup-v3.html" selected>v3 · Nav rework (Home / Test Cases / Releases)</option>
       </select>
     </label>
     <div class="crumb" id="crumb"></div>
@@ -495,23 +737,47 @@
   </script>
 
   <div class="layout">
-    <!-- LEFT NAV -->
-    <aside class="nav">
-      <div class="viewswitch">
-        <div class="lbl">Group tests by</div>
-        <div class="seg" id="viewseg">
-          <button data-view="module" class="active">Module</button>
-          <button data-view="release">Release</button>
+    <!-- Part C: PRIMARY NAV RAIL (Home / Test Cases / Releases) -->
+    <aside class="primarynav" id="primaryNav">
+      <button class="pnav-item" data-section="home"><span class="pnav-ic">⌂</span><span>Home</span></button>
+      <button class="pnav-item" data-section="atto"><span class="pnav-ic">⚡</span><span>Atto AI</span></button>
+
+      <div class="pnav-group">
+        <button class="pnav-item" data-section="testcases" data-sub="library"><span class="pnav-ic">☑</span><span>Test Cases</span></button>
+        <div class="pnav-sub">
+          <button class="pnav-subitem" data-section="testcases" data-sub="insights">Insights</button>
+          <button class="pnav-subitem" data-section="testcases" data-sub="library">Library</button>
         </div>
       </div>
-      <div class="navscroll">
-        <ul class="tree" id="tree"></ul>
+
+      <div class="pnav-group">
+        <button class="pnav-item" data-section="releases" data-sub="details"><span class="pnav-ic">🏷</span><span>Releases</span></button>
+        <div class="pnav-sub">
+          <button class="pnav-subitem" data-section="releases" data-sub="insights">Insights</button>
+          <button class="pnav-subitem" data-section="releases" data-sub="details">Details</button>
+        </div>
       </div>
     </aside>
 
+    <!-- CONTEXTUAL SECOND NAV — case tree (Library/Details) or Atto chat list -->
+    <aside class="nav" id="treeNav">
+      <div class="navhead">
+        <span class="nh-title" id="navheadTitle">Module</span>
+        <button class="nav-collapse" id="treeCollapse" title="Collapse navigation">«</button>
+      </div>
+      <div class="navscroll">
+        <ul class="tree" id="tree"></ul>
+        <div id="chatList" class="chatlist" style="display:none;"></div>
+      </div>
+    </aside>
+
+    <!-- reopen tab for the collapsed second nav -->
+    <button class="pane-reopen left" id="treeReopen" title="Show navigation" style="display:none;">»</button>
+
     <!-- MAIN -->
     <main class="main">
-      <div class="maintabs">
+      <div class="rel-breadcrumb" id="relBreadcrumb" style="display:none;"></div>
+      <div class="maintabs" id="maintabs">
         <div class="titleblock">
           <h1 id="mainTitle">Financial Needs Analysis</h1>
         </div>
@@ -543,7 +809,7 @@
       </div>
     </aside>
 
-    <!-- reopen tab for the collapsed assistant pane (replaces the old Assistant button) -->
+    <!-- reopen tab for the collapsed assistant pane -->
     <button class="pane-reopen right" id="chatReopen" title="Show assistant" style="display:none;">⚡</button>
   </div>
 
@@ -1018,9 +1284,20 @@ const MODULE_TREE = {
 // ---- RELEASE view structure (Release > Run > CaseResult) ------------------
 // CaseResult status: pass | fail | block | notrun ; optional d: defect ref
 // Run carries QA execution context: env + build make a result trustworthy.
+// Business context for the release Summary — mirrors the beige card sample:
+// product surface, release version, scope, plans generated, topmost executed, owning team.
+// Kept alongside each RELEASES entry so it's colocated with the data it describes.
 const RELEASES = [
   {
-    id:"REL-FHR-1.0", name:"REL-FHR-1.0 — Baseline audit",
+    id:"REL-FHR-1.0", name:"REL-FHR-1.0 — Baseline audit", targetShip:"2026-06-30",
+    businessContext:{
+      surface:"Financial Health Review · iPOS+ · web + mobile",
+      release:"v3.4.0 — feature freeze 2026-06-24 · target ship 2026-06-30",
+      scope:"4 sub-flows · 2 P1-critical (Add Goal invariants, DIP switching disclosures)",
+      plansGenerated:"Smoke (7) · Regression (55) · topmost = Regression",
+      topmostExecuted:"Regression — 55 of 55 cases attempted",
+      owningTeam:"FHR QA · 5 testers · lead: R. Menon"
+    },
     runs:[
       { id:"RUN-FHR-1001", name:"Smoke Test", suite:"Critical FHR happy paths",
         platform:"web", env:"UAT", build:"iPOS-3.4.0", executedBy:"Priya S.", lastRun:"2026-06-28 09:14",
@@ -1052,7 +1329,15 @@ const RELEASES = [
     ]
   },
   {
-    id:"REL-FHR-1.1", name:"REL-FHR-1.1 — Regulatory pass",
+    id:"REL-FHR-1.1", name:"REL-FHR-1.1 — Regulatory pass", targetShip:"2026-07-10",
+    businessContext:{
+      surface:"Financial Health Review · iPOS+ · mobile",
+      release:"v3.5.0-rc2 — feature freeze 2026-07-01 · target ship 2026-07-10",
+      scope:"16 stories · 4 regulatory-critical (needs-based selling, replacement disclosure, suitability, disclosure)",
+      plansGenerated:"Regression (16) · topmost = Regression",
+      topmostExecuted:"Regression — 16 of 16 attempted; 11 abstains recorded",
+      owningTeam:"FHR QA + Compliance · 3 testers · lead: Priya S."
+    },
     runs:[
       { id:"RUN-FHR-1101", name:"Regression Test", suite:"Regulatory + abstain focus",
         platform:"mobile", env:"Staging", build:"iPOS-3.5.0-rc2", executedBy:"Priya S.", lastRun:"2026-07-05 16:27",
@@ -1070,7 +1355,15 @@ const RELEASES = [
     ]
   },
   {
-    id:"REL-FHR-1.2", name:"REL-FHR-1.2 — Smoke re-verify",
+    id:"REL-FHR-1.2", name:"REL-FHR-1.2 — Smoke re-verify", targetShip:"2026-07-08",
+    businessContext:{
+      surface:"Financial Health Review · iPOS+ · mobile",
+      release:"v3.5.0 — feature freeze 2026-07-04 · target ship 2026-07-08",
+      scope:"9 stories · post-fix smoke covering the 3 P1 sub-flows",
+      plansGenerated:"Smoke (9) · topmost = Smoke",
+      topmostExecuted:"Smoke — 9 of 9 attempted",
+      owningTeam:"FHR QA · 2 testers · lead: Aisha R."
+    },
     runs:[
       { id:"RUN-FHR-1201", name:"Smoke Test", suite:"Post-fix smoke",
         platform:"mobile", env:"UAT", build:"iPOS-3.5.0", executedBy:"Aisha R.", lastRun:"2026-07-06 10:02",
@@ -1086,17 +1379,216 @@ const RELEASES = [
 const CASE_RELEASE = {};
 RELEASES.forEach(rel=>rel.runs.forEach(run=>run.results.forEach(r=>{CASE_RELEASE[r.c]=rel.id;})));
 
+/* ---- Quality gate (Part F) — release-scoped ship-readiness verdict ------
+   verdict/rules/confidence are computed to match the real pass/fail/notrun
+   counts in RELEASES above (not fabricated independently); coverage %,
+   waterfall step sizes, and recommended tests are authored narrative that
+   ties back to real abstain questions (Q-A2 etc.) and RESOLVED_BUGS entries
+   already in this file, so the "why" traces to data that exists elsewhere. */
+const QUALITY_GATES = {
+  "REL-FHR-1.0":{
+    verdict:"nogo", verdictLabel:"NO-GO",
+    headline:"Not yet safe to ship — 2 rules failed.",
+    rules:[
+      "2 regression cases failed (TC-A4 below-minimum wording, TC-B6 retirement-consistency). Threshold: zero open P1/P2 defects at gate.",
+      "11 of 55 regression cases are not run, including 2 regulatory abstains pending compliance answers. Threshold: zero P1 not-run.",
+    ],
+    confidence:76,
+    scoredAgainst:"the Regression plan the team ran (55 tests)",
+    coverageThisRelease:84, coverageSub:"46 of 55 planned cases attempted · 11 pending (abstains + gaps).",
+    coverageChangedCode:61, coverageChangedSub:"Sub-flow B (Add Goal) has the thinnest coverage on invariants — 2 of 4 property cases blocked.",
+    passRateFirst:71, passRateFinal:76, passRateSub:"1 case (TC-A10) blocked on an environment issue, reported separately.",
+    regressionDuration:18, regressionDurationPrev:14, suiteTrend:"slowing",
+    suiteSub:"Up from 14 min three releases ago. Flake rate 3.1% — TC-C6 flagged flaky, not a product bug.",
+    waterfall:[
+      {label:"Starting", val:100, barPct:100, cls:"total"},
+      {label:"P1/P2 tests failed", val:-10, barPct:28, cls:"neg"},
+      {label:"Flaky tests (TC-C6)", val:-8, barPct:22, cls:"warn"},
+      {label:"Regulatory abstains not run", val:-6, barPct:16, cls:"neg"},
+      {label:"Confidence", val:76, barPct:76, cls:"total"},
+    ],
+    topAction:"resolve JIRA-7841 and JIRA-7862 follow-up cases, then re-run Sub-flow A/B. Projected recovery: +10 points.",
+    recommendedTests:[
+      {scenario:"Reject sum with thousands-separator noise", reason:"JIRA-7841 fix landed 2026-07-02; case not yet added", where:"web", priority:"P1"},
+      {scenario:"Horizon exactly equals retirement gap", reason:"JIRA-7862 fix landed 2026-07-03; boundary case not yet added", where:"web", priority:"P1"},
+      {scenario:"Underinsurance threshold boundary (TPD)", reason:"Blocked on Q-A2 — no threshold defined yet", where:"web", priority:"P2"},
+      {scenario:"Zero-goal gating", reason:"Blocked on Q-B5 — proceeding with 0 goals undefined", where:"web", priority:"P2"},
+    ],
+  },
+  "REL-FHR-1.1":{
+    verdict:"nogo", verdictLabel:"NO-GO",
+    headline:"Not yet safe to ship — regulatory sign-off blocked.",
+    rules:[
+      "11 of 16 regression cases are abstains awaiting product/compliance answers — regulatory sign-off cannot proceed with this many open questions.",
+      "2 regression cases failed (TC-B14, TC-C12). Threshold: zero P1 regulatory failures.",
+    ],
+    confidence:19,
+    scoredAgainst:"the regulatory + abstain-focus plan (16 tests)",
+    coverageThisRelease:44, coverageSub:"5 of 16 cases have a real result; the rest are correctly-abstained, not skipped.",
+    coverageChangedCode:30, coverageChangedSub:"Replacement & Switching regulatory guards (D-block) are the least resolved area.",
+    passRateFirst:15, passRateFinal:19, passRateSub:"No reruns closed the gap — both failures are regulatory-rule mismatches, not flakes.",
+    regressionDuration:9, regressionDurationPrev:9, suiteTrend:"stable",
+    suiteSub:"Small plan by design (regulatory focus only). Flake rate 1.0%.",
+    waterfall:[
+      {label:"Starting", val:100, barPct:100, cls:"total"},
+      {label:"Abstains blocking sign-off", val:-55, barPct:69, cls:"neg"},
+      {label:"Regulatory failures (B14, C12)", val:-20, barPct:25, cls:"warn"},
+      {label:"Mobile-only coverage", val:-6, barPct:8, cls:"neg"},
+      {label:"Confidence", val:19, barPct:19, cls:"total"},
+    ],
+    topAction:"get product/compliance answers on Q-D1, Q-D3, Q-D4 first — Replacement & Switching carries the most abstains. Projected recovery: +20 points.",
+    recommendedTests:[
+      {scenario:"Cross-section consistency (Insurance History vs Replacement)", reason:"Blocked on Q-D3", where:"mobile", priority:"P1"},
+      {scenario:"Profile-gated plan eligibility rule", reason:"Blocked on Q-C3", where:"mobile", priority:"P1"},
+      {scenario:"Worse-terms switch suitability check", reason:"Blocked on Q-D4", where:"mobile", priority:"P1"},
+      {scenario:"Reduction-vs-full-switch classification", reason:"Blocked on Q-D1", where:"mobile", priority:"P2"},
+    ],
+  },
+  "REL-FHR-1.2":{
+    verdict:"conditional", verdictLabel:"CONDITIONAL",
+    headline:"Smoke clean, but Regression hasn't re-run post-fix.",
+    rules:[
+      "All 9 smoke cases passed; the 55-case Regression plan has not been re-executed against this build. Threshold: full regression required before GO.",
+      "This run touches only 9 of 55 library cases — too small a sample to confirm the JIRA-7841/7862/7870 fixes broadly.",
+    ],
+    confidence:70,
+    scoredAgainst:"the smoke plan (9 tests) — Regression not yet run on iPOS-3.5.0",
+    coverageThisRelease:16, coverageSub:"9 of 55 library cases attempted this build; smoke-only by design.",
+    coverageChangedCode:20, coverageChangedSub:"The 3 P1 sub-flows touched by the fixes are spot-checked, not fully regressed.",
+    passRateFirst:100, passRateFinal:100, passRateSub:"No reruns needed — small sample, all clean.",
+    regressionDuration:18, regressionDurationPrev:18, suiteTrend:"stable",
+    suiteSub:"Showing REL-FHR-1.0's last full Regression time — this build hasn't run one yet.",
+    waterfall:[
+      {label:"Starting", val:100, barPct:100, cls:"total"},
+      {label:"Regression not yet re-run", val:-22, barPct:22, cls:"neg"},
+      {label:"Smoke-only sample size", val:-8, barPct:8, cls:"warn"},
+      {label:"Confidence", val:70, barPct:70, cls:"total"},
+    ],
+    topAction:"run the full 55-case Regression suite against iPOS-3.5.0 before this ships. Projected recovery: +22 points.",
+    recommendedTests:[
+      {scenario:"Full Regression suite (55 cases) on iPOS-3.5.0", reason:"Not yet executed against this build", where:"web + mobile", priority:"P0"},
+      {scenario:"Underinsurance threshold boundary (TPD)", reason:"Still blocked on Q-A2 since REL-FHR-1.0", where:"web", priority:"P2"},
+    ],
+  },
+};
+
 /* =========================================================================
    STATE
    ========================================================================= */
 const STATE = {
-  view:"module",              // module | release
+  section:"testcases",        // home | testcases | releases
+  subview:"library",          // testcases: insights|library ; releases: insights|details
+  view:"module",              // module | release (derived from section+subview when a tree is showing)
   tab:"detail",               // detail | list
   // module selection
   modScenario:null,           // {feature, scenario} indexes
-  // release selection
-  releaseRun:null,            // {relIdx, runIdx}
+  // release selection — new flow (list → drill in)
+  releaseId:null,             // e.g. "REL-FHR-1.0"; null = All Releases list view
+  suiteFilter:"all",          // Test Cases tab: "all" or a specific run id (RUN-FHR-xxxx)
+  featureFilter:null,         // Test Cases tab: prefilter by feature name (from Summary click)
+  // Atto AI + chrome
+  activeChat:null,            // id of the open chat, or null for the new-chat home
+  treeCollapsed:false,        // user collapsed the second nav
+  chatAutoCollapsed:false,    // remembers whether we auto-collapsed the AI pane on entering Releases
 };
+
+/* ---- Release helpers (Part E) --------------------------------------------
+   With the run tree gone, every release-level view aggregates its runs.
+   These helpers are used by the All Releases list, the Summary tab, and the
+   Test Cases tab so counts stay consistent. */
+function relByIdx(i){ return RELEASES[i]; }
+function relById(id){ return RELEASES.find(r=>r.id===id); }
+// aggregate counts across every run in the release, respecting a suite filter
+function relCounts(rel, suiteId){
+  const c={pass:0,fail:0,block:0,notrun:0};
+  rel.runs.forEach(run=>{
+    if(suiteId && suiteId!=="all" && run.id!==suiteId) return;
+    run.results.forEach(r=>c[r.s]++);
+  });
+  return c;
+}
+function relTotal(rel, suiteId){
+  const c=relCounts(rel, suiteId);
+  return c.pass+c.fail+c.block+c.notrun;
+}
+function relPassRate(rel, suiteId){
+  const c=relCounts(rel, suiteId);
+  const tot=c.pass+c.fail+c.block+c.notrun;
+  return tot?Math.round(c.pass/tot*100):0;
+}
+// flat list of every case-run result in a release, one row per execution
+function relRows(rel, suiteId){
+  const rows=[];
+  rel.runs.forEach(run=>{
+    if(suiteId && suiteId!=="all" && run.id!==suiteId) return;
+    run.results.forEach(r=>rows.push({...r, run}));
+  });
+  return rows;
+}
+// feature rollup: for each MODULE_TREE feature, aggregate results in this release
+// (case-level latest-run wins, so a case that ran in Smoke + Regression only counts once)
+function relFeatureRollup(rel){
+  return MODULE_TREE.features.map(feat=>{
+    const caseIds=feat.scenarios.flatMap(s=>s.cases);
+    const latest={};   // caseId → newest status seen in this release
+    rel.runs.forEach(run=>run.results.forEach(r=>{
+      if(!caseIds.includes(r.c)) return;
+      if(!latest[r.c] || latest[r.c].date < run.lastRun){
+        latest[r.c]={status:r.s, date:run.lastRun};
+      }
+    }));
+    const c={pass:0,fail:0,block:0,notrun:0};
+    Object.values(latest).forEach(v=>c[v.status]++);
+    const touched=Object.keys(latest).length;
+    const executed=c.pass+c.fail+c.block;
+    return {
+      name:feat.name,
+      touched,                                    // cases the release actually ran (any status)
+      totalCases:caseIds.length,
+      counts:c,
+      passRate: executed? Math.round(c.pass/executed*100):0,
+      status: c.fail?"fail":(c.block?"block":(c.pass?"pass":"notrun")),
+    };
+  });
+}
+
+/* ---- Atto AI (Part D) — mock chat sessions; nothing hits a real model ----
+   A chat starts from a natural-language prompt (optionally with an attached
+   URL / Jira ticket / Figma frame) and yields draft cases the user can add. */
+let ATTO_SEQ = 100;
+const ATTO_EXAMPLES = [
+  {p:"Generate boundary + negative cases for the coverage-amount field on Priorities & Needs", s:"plain language"},
+  {p:"Read this spec and draft suitability cases for the profile → eligible-plan gating", s:"🔗 attach a URL"},
+  {p:"Turn the repro steps in JIRA-7862 into a regression case", s:"🧩 attach a Jira ticket"},
+  {p:"From this Figma submission flow, cover the NRIC-expiry edge cases", s:"🎨 attach a Figma frame"},
+];
+const ATTO_MOCK_DRAFTS = [
+  {id:"TC-306", title:"Decline submission when NRIC has expired", cat:"negative"},
+  {id:"TC-307", title:"Coverage amount at exact upper boundary (S$5,000,000)", cat:"boundary"},
+  {id:"TC-308", title:"Whitespace-only coverage amount is rejected", cat:"negative"},
+];
+let ATTO_CHATS = [
+  {id:"ch1", title:"Edge cases for NRIC expiry at submission", when:"Today", source:"Figma",
+   messages:[
+     {role:"user", text:"From this Figma flow, generate negative + boundary cases for NRIC expiry at submission.", src:"🎨 Figma · FHR-submit-flow"},
+     {role:"bot", text:"I drafted <b>3 cases</b> from the submission flow — two negative, one boundary. Review and add the ones you want.",
+      drafts:[
+        {id:"TC-306", title:"Decline submission when NRIC has expired", cat:"negative"},
+        {id:"TC-307", title:"NRIC expires exactly today (boundary)", cat:"boundary"},
+        {id:"TC-308", title:"Warn when NRIC expires within 30 days", cat:"negative"}]},
+   ]},
+  {id:"ch2", title:"Convert JIRA-7841 repro into a regression case", when:"Today", source:"Jira",
+   messages:[
+     {role:"user", text:"Turn the repro steps in JIRA-7841 into a regression test.", src:"🧩 Jira · JIRA-7841"},
+     {role:"bot", text:"Done — <b>1 regression case</b> pinned to the below-minimum sanitization fix.",
+      drafts:[{id:"TC-309", title:"Reject sum with thousands-separator noise (JIRA-7841)", cat:"negative"}]},
+   ]},
+  {id:"ch3", title:"Coverage gaps in Investment Risk profile", when:"Yesterday", source:"URL",
+   messages:[
+     {role:"user", text:"Read this spec URL and tell me which risk-profile bands lack a boundary case.", src:"🔗 URL · confluence/ipos-risk"},
+     {role:"bot", text:"Two bands (<b>Moderate-Aggressive</b> and <b>Aggressive</b>) have no case at the lower cutoff. Want me to draft them?"},
+   ]},
+];
 
 const $ = s=>document.querySelector(s);
 const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
@@ -1139,9 +1631,10 @@ function groupStatus(caseIds){
    TREE RENDERING
    ========================================================================= */
 function renderTree(){
+  // Only the Module tree is rendered now; release nav is a page (All Releases),
+  // not a tree, so there's nothing to draw here for release view.
   const tree = $("#tree"); tree.innerHTML="";
-  if(STATE.view==="module") renderModuleTree(tree);
-  else renderReleaseTree(tree);
+  renderModuleTree(tree);
 }
 
 function branch(parentUl, {level, icon, text, count, dot, open, selected, onClick, hasChildren}){
@@ -1190,21 +1683,6 @@ function runCounts(run){
   return c;
 }
 
-function renderReleaseTree(tree){
-  RELEASES.forEach((rel,ri)=>{
-    const relCount = rel.runs.length;
-    const relKids = branch(tree,{level:"mod",icon:"🏷",text:rel.name,count:relCount+" runs",open:true,hasChildren:true});
-    rel.runs.forEach((run,ki)=>{
-      const c=runCounts(run);
-      const dot = c.fail?"fail":(c.block?"block":"pass");
-      const sel = STATE.releaseRun && STATE.releaseRun.r===ri && STATE.releaseRun.k===ki;
-      branch(relKids,{level:"run",icon:"▶",text:run.name,dot:dot,
-        selected:sel,hasChildren:false,
-        onClick:()=>{ STATE.releaseRun={r:ri,k:ki}; selectRun(); }});
-    });
-  });
-}
-
 /* =========================================================================
    SELECTION HANDLERS
    ========================================================================= */
@@ -1212,60 +1690,39 @@ function selectModuleScenario(){
   if(!STATE.modScenario) STATE.modScenario={f:0,s:0};
   renderTree(); render();
 }
-function selectRun(){
-  if(!STATE.releaseRun) STATE.releaseRun={r:0,k:0};
-  renderTree(); render();
-}
 
 /* =========================================================================
    MAIN RENDER
    ========================================================================= */
 function currentCases(){
-  if(STATE.view==="module"){
-    const {f,s}=STATE.modScenario;
-    return MODULE_TREE.features[f].scenarios[s].cases.map(id=>CASES[id]);
-  } else {
-    const {r,k}=STATE.releaseRun;
-    return RELEASES[r].runs[k].results.map(res=>({...CASES[res.c], _status:res.s}));
-  }
+  // Module (Library) view only — release views build their own row lists.
+  const {f,s}=STATE.modScenario;
+  return MODULE_TREE.features[f].scenarios[s].cases.map(id=>CASES[id]);
 }
 
 function render(){
-  // header
-  if(STATE.view==="module"){
-    const {f,s}=STATE.modScenario;
-    const feat=MODULE_TREE.features[f], scen=feat.scenarios[s];
-    $("#mainTitle").textContent = scen.name;
-    $("#crumb").innerHTML = `Module view · <b>${feat.name}</b>`;
-  } else {
-    const {r,k}=STATE.releaseRun;
-    const rel=RELEASES[r], run=rel.runs[k];
-    $("#mainTitle").textContent = `${run.name} — ${rel.name.split("—")[0].trim()}`;
-    $("#crumb").innerHTML = `Release view · <b>${rel.name.split("—")[0].trim()} / ${run.name}</b>`;
-  }
-  // content
+  // Module (Test Cases › Library) header + content. Release drilldown has its
+  // own render path (renderReleaseDetails) and doesn't come through here.
+  const {f,s}=STATE.modScenario;
+  const feat=MODULE_TREE.features[f], scen=feat.scenarios[s];
+  $("#mainTitle").textContent = scen.name;
+  $("#crumb").innerHTML = `Test Cases › Library · <b>${feat.name}</b>`;
   if(STATE.tab==="detail") renderDetail();
   else renderList();
 }
 
-/* ---- DETAIL ---- */
+/* ---- DETAIL (Library only) ---- */
 function renderDetail(){
   const content=$("#content"); content.className="content"; content.innerHTML="";
 
-  // when a run is selected, show a run summary above the cards
-  if(STATE.view==="release"){
-    const {r,k}=STATE.releaseRun;
-    content.appendChild(runSummaryEl(RELEASES[r], RELEASES[r].runs[k]));
-  } else {
-    // Module view: scenario header with Suggest-missing-edge-cases CTA
-    const {f,s}=STATE.modScenario;
-    const scen=MODULE_TREE.features[f].scenarios[s];
-    const sh=el("div","scenario-head");
-    sh.innerHTML=`<h2>${scen.name} <button class="btn" style="margin-left:8px;font-size:11.5px;padding:3px 9px;" id="suggestEdgeBtn">Suggest missing edge cases</button></h2>`+
-      `<p>Scenario covers ${scen.cases.length} cases in ${MODULE_TREE.features[f].name}.</p>`;
-    content.appendChild(sh);
-    sh.querySelector("#suggestEdgeBtn").addEventListener("click",e=>{e.stopPropagation();openSuggestEdgeCasesModal(scen);});
-  }
+  // Module view: scenario header with Suggest-missing-edge-cases CTA
+  const {f,s}=STATE.modScenario;
+  const scen=MODULE_TREE.features[f].scenarios[s];
+  const sh=el("div","scenario-head");
+  sh.innerHTML=`<h2>${scen.name} <button class="btn" style="margin-left:8px;font-size:11.5px;padding:3px 9px;" id="suggestEdgeBtn">Suggest missing edge cases</button></h2>`+
+    `<p>Scenario covers ${scen.cases.length} cases in ${MODULE_TREE.features[f].name}.</p>`;
+  content.appendChild(sh);
+  sh.querySelector("#suggestEdgeBtn").addEventListener("click",e=>{e.stopPropagation();openSuggestEdgeCasesModal(scen);});
 
   // Draft card, if any
   if(STATE.draft){ content.appendChild(draftCardEl(STATE.draft)); }
@@ -1380,10 +1837,13 @@ function runSummaryEl(rel, run){
 }
 
 /* ---- LIST (management / execution-tracking) ---- */
+// Library (module) list is an authoring view — Platform / Release / Assignee
+// columns are execution-tracking noise there, so they only show in the
+// Releases › Details list where a run's platform actually matters.
 function renderList(){
   const content=$("#content"); content.className="content listmode"; content.innerHTML="";
-
   const showExecCols = STATE.view==="release";
+
   const tools=el("div","tabletools");
   tools.appendChild(el("div","spacer"));
   tools.appendChild(el("button","btn","Export"));
@@ -1434,53 +1894,705 @@ function renderList(){
 }
 
 function listRows(){
-  if(STATE.view==="release"){
-    const {r,k}=STATE.releaseRun;
-    const rel=RELEASES[r], run=rel.runs[k];
-    return run.results.map(res=>{
-      const tc=CASES[res.c];
-      return {key:res.c,runId:run.id,id:tc.id,category:tc.category,title:tc.title,exec:tc.exec,platform:run.platform,
-        release:rel.id,assignee:tc.assignee,
-        lastRun:(res.s==="notrun"||tc.abstain)?"—":run.lastRun,
-        status:res.s, abstain:tc.abstain||null};
-    });
+  // Module (Library) list only — release views build their own row lists.
+  const {f,s}=STATE.modScenario;
+  const scen=MODULE_TREE.features[f].scenarios[s];
+  return scen.cases.map(id=>{
+    const tc=CASES[id];
+    // find latest run touching this case for status/platform/lastrun
+    let latest=null, relId=CASE_RELEASE[id]||"—";
+    RELEASES.forEach(rel=>rel.runs.forEach(run=>{
+      const hit=run.results.find(x=>x.c===id && x.s!=="notrun");
+      if(hit && (!latest || run.lastRun>latest.lastRun)) latest={...hit,platform:run.platform,lastRun:run.lastRun,runId:run.id};
+    }));
+    return {key:id,runId:latest?latest.runId:null,id:tc.id,category:tc.category,title:tc.title,exec:tc.exec,
+      platform:latest?latest.platform:"web",release:relId,assignee:tc.assignee,
+      lastRun:tc.abstain?"—":(latest?latest.lastRun:"—"),
+      status:tc.abstain?"notrun":(latest?latest.s:"notrun"),
+      abstain:tc.abstain||null};
+  });
+}
+
+/* =========================================================================
+   PART C — PRIMARY NAV (Home / Test Cases / Releases) + APP-LEVEL RENDER
+   -------------------------------------------------------------------------
+   The old Module/Release toggle is gone — grouping is now implied by which
+   primary-nav section you're in. Test Cases > Library groups by module;
+   Releases > Details groups by release. Test Cases > Insights, Releases >
+   Insights, and Home don't need the case tree, so it's hidden for those.
+   ========================================================================= */
+function updatePrimaryNavActive(){
+  document.querySelectorAll(".pnav-item").forEach(b=>{
+    b.classList.toggle("active", b.dataset.section===STATE.section);
+  });
+  document.querySelectorAll(".pnav-subitem").forEach(b=>{
+    b.classList.toggle("active", b.dataset.section===STATE.section && b.dataset.sub===STATE.subview);
+  });
+}
+
+function renderApp(){
+  updatePrimaryNavActive();
+
+  // Left tree only shows for Test Cases › Library (module view). The release
+  // list/drill-in lives entirely in the main pane now — no second nav.
+  const showTree = (STATE.section==="testcases" && STATE.subview==="library");
+  const isAtto = STATE.section==="atto";
+  const isReleasesDetails = STATE.section==="releases" && STATE.subview==="details";
+  const secondNavPresent = showTree || isAtto;
+
+  // AI chat pane: auto-collapse when entering Releases; restore when leaving.
+  // "chatAutoCollapsed" remembers we did it so we don't fight a user's explicit choice.
+  if(STATE.section==="releases" && !$("#chatPane").classList.contains("collapsed")){
+    $("#chatPane").classList.add("collapsed");
+    $("#chatReopen").style.display = "";
+    STATE.chatAutoCollapsed = true;
+  } else if(STATE.section!=="releases" && STATE.chatAutoCollapsed){
+    $("#chatPane").classList.remove("collapsed");
+    $("#chatReopen").style.display = "none";
+    STATE.chatAutoCollapsed = false;
+  }
+
+  $("#treeNav").classList.toggle("hidden", !secondNavPresent || STATE.treeCollapsed);
+  $("#treeReopen").style.display = (secondNavPresent && STATE.treeCollapsed) ? "" : "none";
+  // Main tabs (Detail/List, now Summary/Test Cases inside Releases) only shown
+  // for Library, or for the drilled-in release view.
+  $("#maintabs").style.display = (showTree || (isReleasesDetails && STATE.releaseId)) ? "" : "none";
+  $("#tree").style.display = showTree ? "" : "none";
+  $("#chatList").style.display = isAtto ? "" : "none";
+
+  if(showTree){
+    STATE.view = "module";
+    $("#navheadTitle").textContent = "Module";
+    if(!STATE.modScenario) STATE.modScenario={f:0,s:0};
+    renderTree();
+    render();
+  } else if(isAtto){
+    $("#navheadTitle").textContent = "Atto AI";
+    renderChatList();
+    renderAtto();
+  } else if(isReleasesDetails){
+    STATE.view = "release";
+    updateReleasesTabs();
+    if(STATE.releaseId){
+      renderReleaseDetails();
+    } else {
+      renderAllReleases();
+    }
   } else {
-    const {f,s}=STATE.modScenario;
-    const scen=MODULE_TREE.features[f].scenarios[s];
-    return scen.cases.map(id=>{
-      const tc=CASES[id];
-      // find latest run touching this case for status/platform/lastrun
-      let latest=null, relId=CASE_RELEASE[id]||"—";
-      RELEASES.forEach(rel=>rel.runs.forEach(run=>{
-        const hit=run.results.find(x=>x.c===id && x.s!=="notrun");
-        if(hit && (!latest || run.lastRun>latest.lastRun)) latest={...hit,platform:run.platform,lastRun:run.lastRun,runId:run.id};
-      }));
-      return {key:id,runId:latest?latest.runId:null,id:tc.id,category:tc.category,title:tc.title,exec:tc.exec,
-        platform:latest?latest.platform:"web",release:relId,assignee:tc.assignee,
-        lastRun:tc.abstain?"—":(latest?latest.lastRun:"—"),
-        status:tc.abstain?"notrun":(latest?latest.s:"notrun"),
-        abstain:tc.abstain||null};
+    renderBlankSection();
+  }
+}
+
+// Swap the tab labels between Module (Detail/List) and Release (Summary/Test Cases),
+// and also sync the active-underline to STATE.tab so it doesn't drift when we set the
+// tab programmatically (e.g. after clicking a release row or a feature-coverage row).
+function updateReleasesTabs(){
+  const labels = STATE.section==="releases"
+    ? {detail:"Summary", list:"Test Cases"}
+    : {detail:"Detail",  list:"List"};
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.textContent = labels[t.dataset.tab] || t.textContent;
+    t.classList.toggle("active", t.dataset.tab===STATE.tab);
+  });
+}
+
+/* =========================================================================
+   PART E — Releases: All Releases list + drilled-in release (Summary + Test Cases)
+   -------------------------------------------------------------------------
+   Flow: All Releases table  →  click a row  →  drilled release view.
+   The drilled release has two tabs: Summary (three cards) and Test Cases
+   (aggregated across suites, filterable by suite/feature).
+   ========================================================================= */
+
+function setReleaseBreadcrumb(){
+  const bc = $("#relBreadcrumb");
+  if(STATE.section!=="releases" || STATE.subview!=="details" || !STATE.releaseId){
+    bc.style.display="none"; bc.innerHTML=""; return;
+  }
+  const rel = relById(STATE.releaseId);
+  bc.style.display="";
+  bc.innerHTML=`<button class="rb-link" id="rbBack">All Releases</button>`+
+    `<span class="rb-sep">›</span>`+
+    `<span class="rb-current">${escapeHtml(rel?rel.id:"")}</span>`;
+  bc.querySelector("#rbBack").addEventListener("click",()=>{
+    STATE.releaseId=null; STATE.suiteFilter="all"; STATE.featureFilter=null; renderApp();
+  });
+}
+
+function renderAllReleases(){
+  setReleaseBreadcrumb();
+  $("#crumb").innerHTML = `Releases › Details`;
+  const content=$("#content"); content.className="content"; content.innerHTML="";
+
+  const head=el("div","allrel-head");
+  head.innerHTML=`<h2>All releases</h2>`+
+    `<p>Every release with tests in this workspace. Open one to see its summary, business context, and test cases.</p>`;
+  content.appendChild(head);
+
+  const wrap=el("div","rel-index");
+  const table=el("table");
+  table.innerHTML=`<thead><tr>
+    <th>Release</th><th>Suites</th><th>Pass rate</th><th>Status</th><th>Gate</th><th>Target ship</th>
+  </tr></thead>`;
+  const tb=el("tbody");
+  RELEASES.forEach(rel=>{
+    const c=relCounts(rel), total=relTotal(rel), pct=relPassRate(rel);
+    const suiteNames = rel.runs.map(r=>r.name).join(" · ");
+    const g = QUALITY_GATES[rel.id];
+    const tr=el("tr");
+    tr.innerHTML=
+      `<td><div class="r-name">${escapeHtml(rel.name.split("—")[0].trim())}</div>`+
+        `<span class="r-sub">${escapeHtml(rel.name.split("—")[1]?rel.name.split("—")[1].trim():"")}</span></td>`+
+      `<td class="r-suites">${rel.runs.length} · <span class="muted">${escapeHtml(suiteNames)}</span></td>`+
+      `<td>`+
+        `<div style="display:flex;align-items:center;gap:10px;">`+
+          `<div class="r-bar rate-bar" style="margin-top:0;">`+
+            `<span class="s-pass" style="width:${total?c.pass/total*100:0}%"></span>`+
+            `<span class="s-fail" style="width:${total?c.fail/total*100:0}%"></span>`+
+            `<span class="s-block" style="width:${total?c.block/total*100:0}%"></span>`+
+            `<span class="s-notrun" style="width:${total?c.notrun/total*100:0}%"></span>`+
+          `</div>`+
+          `<span class="r-pct">${pct}%</span>`+
+        `</div>`+
+      `</td>`+
+      `<td><span class="pill ${c.fail?"fail":(c.block?"block":"pass")}"><span class="dot ${c.fail?"fail":(c.block?"block":"pass")}"></span>${c.pass}✓ ${c.fail}✕ ${c.block}▮</span></td>`+
+      `<td>${g?`<span class="gate-chip ${g.verdict}">${g.verdictLabel}</span>`:'<span class="muted">—</span>'}</td>`+
+      `<td class="mono">${escapeHtml(rel.targetShip||"—")}</td>`;
+    tr.addEventListener("click",()=>{
+      STATE.releaseId=rel.id; STATE.suiteFilter="all"; STATE.featureFilter=null; STATE.tab="detail";
+      renderApp();
+    });
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb);
+  wrap.appendChild(table);
+  content.appendChild(wrap);
+}
+
+function renderReleaseDetails(){
+  setReleaseBreadcrumb();
+  const rel = relById(STATE.releaseId);
+  if(!rel){ STATE.releaseId=null; renderAllReleases(); return; }
+  $("#mainTitle").textContent = rel.name.split("—")[0].trim() + " — " + (rel.name.split("—")[1]||"").trim();
+  $("#crumb").innerHTML = `Releases › Details · <b>${escapeHtml(rel.id)}</b>`;
+  if(STATE.tab==="detail") renderReleaseSummary(rel);
+  else renderReleaseTestCases(rel);
+}
+
+/* ---- Summary tab: three cards ---- */
+function renderReleaseSummary(rel){
+  const content=$("#content"); content.className="content"; content.innerHTML="";
+  content.appendChild(releaseGateCard(rel));
+  content.appendChild(releaseTestRunCard(rel));
+  content.appendChild(releaseQualityMetricsCard(rel));
+  content.appendChild(releaseConfidenceWaterfallCard(rel));
+  content.appendChild(releaseRecommendedTestsCard(rel));
+  content.appendChild(releaseBusinessContextCard(rel));
+  content.appendChild(releaseFeatureCoverageCard(rel));
+}
+
+/* ---- Release Gate + Quality metrics + Confidence + Recommended tests ----
+   Adapted from the "quality insights layer" session's qi-dashboard.html §2
+   (Release tab): verdict block, 4-card quality grid, confidence waterfall,
+   recommended-tests table. Re-themed to white cards on this design system's
+   palette instead of the source's cream/olive theme. */
+function releaseGateCard(rel){
+  const g = QUALITY_GATES[rel.id]; if(!g) return el("div");
+  const box=el("div","rel-card gate-block "+g.verdict);
+  const top=el("div","gate-top");
+  top.innerHTML=`<span class="gate-pill ${g.verdict}">Release Gate · ${g.verdictLabel}</span>`+
+    `<div class="gate-headline">${escapeHtml(g.headline)}</div>`;
+  box.appendChild(top);
+  const ul=el("ul");
+  g.rules.forEach(r=>ul.appendChild(el("li",null,r)));
+  box.appendChild(ul);
+  box.appendChild(el("div","gate-why",
+    `Overall confidence score: <b>${g.confidence} / 100</b> — shown for context. The rules above are the source of truth for the ship decision.`));
+  return box;
+}
+
+function releaseQualityMetricsCard(rel){
+  const g = QUALITY_GATES[rel.id]; if(!g) return el("div");
+  const box=el("div","rel-card");
+  box.innerHTML=`<div class="rc-title">Quality metrics</div>`;
+  const grid=el("div","qm-grid");
+  const mk=(k,pillHtml,v,unit,sub)=>{
+    const c=el("div","qm-card");
+    c.innerHTML=`<div class="qm-k">${k}${pillHtml||""}</div><div class="qm-v">${v}<span class="qm-unit">${unit}</span></div><div class="qm-sub">${sub}</div>`;
+    return c;
+  };
+  grid.appendChild(mk("Coverage · this release", g.coverageThisRelease<70?` <span class="qm-pill warn">Below bar</span>`:"",
+    g.coverageThisRelease, "%", g.coverageSub));
+  grid.appendChild(mk("Coverage on changed scope", g.coverageChangedCode<60?` <span class="qm-pill crit">Gap</span>`:"",
+    g.coverageChangedCode, "%", g.coverageChangedSub));
+  grid.appendChild(mk("Pass rate — first vs final", "",
+    g.passRateFirst, `% first · ${g.passRateFinal}% final`, g.passRateSub));
+  grid.appendChild(mk("Regression suite health", g.suiteTrend==="slowing"?` <span class="qm-pill warn">Slowing</span>`:"",
+    g.regressionDuration, "min · full run", g.suiteSub));
+  box.appendChild(grid);
+  return box;
+}
+
+function releaseConfidenceWaterfallCard(rel){
+  const g = QUALITY_GATES[rel.id]; if(!g) return el("div");
+  const box=el("div","rel-card");
+  box.innerHTML=`<div class="rc-title">Confidence — why is it ${g.confidence}? <span class="rc-sub">· scored against ${escapeHtml(g.scoredAgainst)}</span></div>`;
+  const wf=el("div","wf");
+  g.waterfall.forEach(step=>{
+    const barCls = step.cls==="total" ? "wf-bar" : (step.cls==="warn" ? "wf-bar warnbar" : "wf-bar neg");
+    const valTxt = step.cls==="total" ? step.val : (step.val>0?"+":"")+step.val;
+    const valCls = step.cls==="total" ? "" : "neg";
+    const row=el("div","wf-row");
+    row.innerHTML=`<div class="wf-lbl">${escapeHtml(step.label)}</div>`+
+      `<div class="${barCls}"><b style="width:${step.barPct}%"></b></div>`+
+      `<div class="wf-val ${valCls}">${valTxt}</div>`;
+    wf.appendChild(row);
+  });
+  box.appendChild(wf);
+  box.appendChild(el("div","foot",`Top action: ${g.topAction}`));
+  return box;
+}
+
+function releaseRecommendedTestsCard(rel){
+  const g = QUALITY_GATES[rel.id]; if(!g || !g.recommendedTests.length) return el("div");
+  const box=el("div","rel-card");
+  box.innerHTML=`<div class="rc-title">Recommended tests to add <span class="rc-sub">· scoped to this release · library-wide gaps live in Test Cases › Library</span></div>`;
+  const wrap=el("div","tablewrap");
+  const table=el("table");
+  table.innerHTML=`<thead><tr><th>Scenario</th><th>Reason</th><th>Where</th><th>Priority</th></tr></thead>`;
+  const tb=el("tbody");
+  g.recommendedTests.forEach(r=>{
+    const tr=el("tr");
+    tr.innerHTML=`<td class="name">${escapeHtml(r.scenario)}</td><td>${escapeHtml(r.reason)}</td>`+
+      `<td>${escapeHtml(r.where)}</td><td><span class="prio prio-${r.priority}">${r.priority}</span></td>`;
+    tb.appendChild(tr);
+  });
+  table.appendChild(tb); wrap.appendChild(table); box.appendChild(wrap);
+  return box;
+}
+
+function releaseTestRunCard(rel){
+  const box=el("div","rel-card");
+  const c=relCounts(rel), total=relTotal(rel), pct=relPassRate(rel);
+  box.innerHTML=`<div class="rc-title">Test run status <span class="rc-sub">· ${total} results across ${rel.runs.length} suite${rel.runs.length===1?"":"s"} · ${pct}% pass</span></div>`;
+  // headline counts (no combined bar — per-suite counts + bars below are sufficient)
+  const counts=el("div","counts");
+  counts.innerHTML=
+    `<span class="pill pass"><span class="dot pass"></span>${c.pass} passed</span>`+
+    `<span class="pill fail"><span class="dot fail"></span>${c.fail} failed</span>`+
+    `<span class="pill block"><span class="dot block"></span>${c.block} blocked</span>`+
+    (c.notrun?`<span class="pill notrun"><span class="dot notrun"></span>${c.notrun} not run</span>`:"");
+  counts.style.gap="8px"; counts.style.marginLeft="0";
+  box.appendChild(counts);
+  // per-suite strip
+  const strip=el("div","suites-strip");
+  rel.runs.forEach(run=>{
+    const rc=runCounts(run);
+    const rTotal=run.results.length;
+    const rPct=rTotal?Math.round(rc.pass/rTotal*100):0;
+    const row=el("div","suite-row");
+    row.title="Open this suite in Test Cases";
+    row.innerHTML=
+      `<div class="s-name">${escapeHtml(run.name)}</div>`+
+      `<div class="s-meta">${PLAT_ICON[run.platform]} ${run.platform} · ${escapeHtml(run.executedBy)} · ${escapeHtml(run.lastRun)}</div>`+
+      `<div class="s-counts"><span>${rc.pass}✓</span><span style="color:var(--fail);">${rc.fail}✕</span><span style="color:var(--block);">${rc.block}▮</span><span style="color:var(--ink-3);">${rc.notrun} nr</span></div>`+
+      `<div class="s-bar rate-bar" style="margin-top:0;">`+
+        `<span class="s-pass" style="width:${rTotal?rc.pass/rTotal*100:0}%"></span>`+
+        `<span class="s-fail" style="width:${rTotal?rc.fail/rTotal*100:0}%"></span>`+
+        `<span class="s-block" style="width:${rTotal?rc.block/rTotal*100:0}%"></span>`+
+        `<span class="s-notrun" style="width:${rTotal?rc.notrun/rTotal*100:0}%"></span>`+
+      `</div>`+
+      `<div class="s-pct">${rPct}%</div>`;
+    row.addEventListener("click",()=>{
+      STATE.tab="list"; STATE.suiteFilter=run.id; STATE.featureFilter=null;
+      // sync tab active state
+      document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab==="list"));
+      renderApp();
+    });
+    strip.appendChild(row);
+  });
+  box.appendChild(strip);
+  return box;
+}
+
+function releaseBusinessContextCard(rel){
+  const box=el("div","rel-card");
+  box.innerHTML=`<div class="rc-title">Business context</div>`;
+  const bc = rel.businessContext || {};
+  const bizCard=el("div","biz-card");
+  bizCard.innerHTML=
+    `<div class="bc-eyebrow">The release under review</div>`+
+    `<dl>`+
+      `<dt>Product surface</dt><dd>${escapeHtml(bc.surface||"—")}</dd>`+
+      `<dt>Release</dt><dd>${escapeHtml(bc.release||"—")}</dd>`+
+      `<dt>Scope</dt><dd>${escapeHtml(bc.scope||"—")}</dd>`+
+      `<dt>Plans generated</dt><dd>${escapeHtml(bc.plansGenerated||"—")}</dd>`+
+      `<dt>Topmost executed</dt><dd><b>${escapeHtml(bc.topmostExecuted||"—")}</b></dd>`+
+      `<dt>Owning team</dt><dd>${escapeHtml(bc.owningTeam||"—")}</dd>`+
+    `</dl>`;
+  box.appendChild(bizCard);
+  return box;
+}
+
+function releaseFeatureCoverageCard(rel){
+  const box=el("div","rel-card");
+  const rollup=relFeatureRollup(rel);
+  box.innerHTML=`<div class="rc-title">Feature run summary <span class="rc-sub">· rolled up across all suites · click a feature to filter test cases</span></div>`;
+  const list=el("div","feat-list");
+  rollup.forEach(f=>{
+    const row=el("div","feat-row");
+    const executed=f.counts.pass+f.counts.fail+f.counts.block;
+    row.innerHTML=
+      `<span class="f-dot dot ${f.status}"></span>`+
+      `<span class="f-name">${escapeHtml(f.name)}</span>`+
+      `<span class="f-count">${f.touched}/${f.totalCases} cases · ${f.counts.pass}✓ ${f.counts.fail}✕ ${f.counts.block}▮</span>`+
+      `<div class="f-bar rate-bar" style="margin-top:0;">`+
+        `<span class="s-pass" style="width:${executed?f.counts.pass/executed*100:0}%"></span>`+
+        `<span class="s-fail" style="width:${executed?f.counts.fail/executed*100:0}%"></span>`+
+        `<span class="s-block" style="width:${executed?f.counts.block/executed*100:0}%"></span>`+
+      `</div>`+
+      `<span class="f-pct">${f.passRate}%</span>`+
+      `<span class="f-arrow">›</span>`;
+    row.addEventListener("click",()=>{
+      STATE.tab="list"; STATE.suiteFilter="all"; STATE.featureFilter=f.name;
+      document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab==="list"));
+      renderApp();
+    });
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+  return box;
+}
+
+/* ---- Test Cases tab: suite chip filter + aggregated rows ---- */
+function renderReleaseTestCases(rel){
+  const content=$("#content"); content.className="content listmode"; content.innerHTML="";
+
+  // Suite chip filter + optional feature filter tag
+  const chips=el("div","suite-chips");
+  chips.appendChild(el("span","sc-lbl","Suite"));
+  const mk=(id,label)=>{
+    const b=el("button","suite-chip"+(STATE.suiteFilter===id?" active":""),escapeHtml(label));
+    b.addEventListener("click",()=>{ STATE.suiteFilter=id; renderReleaseTestCases(rel); });
+    return b;
+  };
+  chips.appendChild(mk("all","All ("+relTotal(rel)+")"));
+  rel.runs.forEach(run=>chips.appendChild(mk(run.id, run.name+" ("+run.results.length+")")));
+  if(STATE.featureFilter){
+    const ff=el("span","feat-filter");
+    ff.innerHTML=`Feature: <b>${escapeHtml(STATE.featureFilter)}</b> <button class="ff-x" title="Clear feature filter">✕</button>`;
+    ff.querySelector(".ff-x").addEventListener("click",()=>{ STATE.featureFilter=null; renderReleaseTestCases(rel); });
+    chips.appendChild(ff);
+  }
+  content.appendChild(chips);
+
+  // Filter rows by suite + optional feature
+  let rows = relRows(rel, STATE.suiteFilter);
+  if(STATE.featureFilter){
+    const feat=MODULE_TREE.features.find(f=>f.name===STATE.featureFilter);
+    const caseIds = feat ? feat.scenarios.flatMap(s=>s.cases) : [];
+    rows = rows.filter(r=>caseIds.includes(r.c));
+  }
+
+  const showSuiteCol = STATE.suiteFilter==="all";
+  const wrap=el("div","tablewrap");
+  const table=el("table");
+  table.innerHTML=`<thead><tr>
+    <th>ID</th><th>Type</th><th>Test case</th>`+
+    (showSuiteCol?`<th>Suite</th>`:``)+
+    `<th>Manual / Auto</th><th>Platform</th><th>Last run</th><th>Status</th>
+  </tr></thead>`;
+  const tb=el("tbody");
+  rows.forEach(r=>{
+    const tc=CASES[r.c]; if(!tc) return;
+    const tr=el("tr"); tr.style.cursor="pointer";
+    tr.addEventListener("click",(ev)=>{
+      const trig=ev.target.closest(".rowmenu-trigger");
+      if(trig){ ev.stopPropagation(); openRowMenu(trig, r.c, r.run.id); return; }
+      openDrawer(r.c, r.run.id);
+    });
+    const rowMenu = (r.s==="fail")
+      ? `<button class="rowmenu-trigger" data-menu-case="${r.c}" title="Actions">⋯</button>` : "";
+    const lastRun = (r.s==="notrun"||tc.abstain) ? "—" : r.run.lastRun;
+    const statusCell = tc.abstain
+      ? `<span class="abstain-pill">Abstain · <span class="qid">${tc.abstain.q}</span></span>`
+      : `<span class="statuscell ${r.s}"><span class="dot ${r.s}"></span>${STATUS_LABEL[r.s]}${rowMenu}</span>`;
+    tr.innerHTML=
+      `<td class="id">${tc.id}</td>`+
+      `<td><span class="ctype cat-${tc.category}">${tc.category}</span></td>`+
+      `<td class="name">${tc.title}</td>`+
+      (showSuiteCol?`<td>${escapeHtml(r.run.name)}</td>`:``)+
+      `<td><span class="mini ${tc.exec}">${tc.exec==="auto"?"Auto":"Manual"}</span></td>`+
+      `<td><span class="platcell"><span class="pic">${PLAT_ICON[r.run.platform]}</span>${r.run.platform}</span></td>`+
+      `<td class="${lastRun==="—"?"muted":""}">${lastRun}</td>`+
+      `<td>${statusCell}</td>`;
+    tb.appendChild(tr);
+  });
+  if(!rows.length){
+    const tr=el("tr");
+    tr.innerHTML=`<td colspan="${showSuiteCol?8:7}" class="muted" style="text-align:center;padding:24px;">No cases match this filter.</td>`;
+    tb.appendChild(tr);
+  }
+  table.appendChild(tb);
+  wrap.appendChild(table);
+  content.appendChild(wrap);
+}
+
+/* =========================================================================
+   PART D — ATTO AI (chat home + conversation + chat list in second nav)
+   ========================================================================= */
+function renderChatList(){
+  const box=$("#chatList"); box.innerHTML="";
+  const newBtn=el("button","cl-new",`<span>✎</span><span>New chat</span>`);
+  newBtn.addEventListener("click",()=>{ STATE.activeChat=null; renderApp(); });
+  box.appendChild(newBtn);
+  // group chats by their 'when' bucket, preserving insertion order
+  const order=[]; const groups={};
+  ATTO_CHATS.forEach(c=>{ if(!groups[c.when]){groups[c.when]=[];order.push(c.when);} groups[c.when].push(c); });
+  order.forEach(g=>{
+    box.appendChild(el("div","cl-group",g));
+    groups[g].forEach(c=>{
+      const it=el("button","cl-item"+(STATE.activeChat===c.id?" active":""));
+      it.innerHTML=`<span class="cl-title">${escapeHtml(c.title)}</span>`+
+        `<span class="cl-meta">${c.source?`<span class="cl-src">${escapeHtml(c.source)}</span>`:""}${c.messages.length} msg</span>`;
+      it.addEventListener("click",()=>{ STATE.activeChat=c.id; renderApp(); });
+      box.appendChild(it);
+    });
+  });
+}
+
+function renderAtto(){
+  const content=$("#content"); content.className="content"; content.innerHTML="";
+  if(STATE.activeChat){
+    const chat=ATTO_CHATS.find(c=>c.id===STATE.activeChat);
+    $("#crumb").innerHTML=`Atto AI · <b>${escapeHtml(chat?chat.title:"Chat")}</b>`;
+    content.appendChild(attoConversationEl(chat));
+  } else {
+    $("#crumb").innerHTML=`Atto AI › New chat`;
+    content.appendChild(attoHomeEl());
+  }
+}
+
+function attoHomeEl(){
+  const w=el("div","atto-home");
+  w.innerHTML=
+    `<span class="ah-badge">⚡ Atto AI</span>`+
+    `<h2>What should Atto build tests for?</h2>`+
+    `<p class="ah-sub">Describe a flow in plain language, or attach a source — a spec URL, a Jira ticket, or a Figma frame — and Atto drafts test cases you can review and add to the Library.</p>`;
+  const attached=[];
+  const comp=el("div","atto-composer");
+  comp.innerHTML=
+    `<textarea id="attoInput" placeholder="e.g. Generate boundary + negative cases for the coverage-amount field on Priorities & Needs"></textarea>`+
+    `<div class="atto-attached" id="attoAttached"></div>`+
+    `<div class="ac-foot">`+
+      `<button class="atto-attach" data-src="🔗 URL">🔗 URL</button>`+
+      `<button class="atto-attach" data-src="🧩 Jira">🧩 Jira</button>`+
+      `<button class="atto-attach" data-src="🎨 Figma">🎨 Figma</button>`+
+      `<button class="ac-gen" id="attoGen">Generate tests</button>`+
+    `</div>`;
+  w.appendChild(comp);
+
+  const ex=el("div","atto-examples");
+  ex.appendChild(el("div","ae-lbl","Try"));
+  const list=el("div","atto-ex");
+  ATTO_EXAMPLES.forEach(e=>{
+    const b=el("button",null,`${escapeHtml(e.p)}<div class="ae-src">${escapeHtml(e.s)}</div>`);
+    b.addEventListener("click",()=>{ const t=comp.querySelector("#attoInput"); t.value=e.p; t.focus(); });
+    list.appendChild(b);
+  });
+  ex.appendChild(list); w.appendChild(ex);
+
+  function renderAttached(){
+    const box=comp.querySelector("#attoAttached"); box.innerHTML="";
+    attached.forEach((s,i)=>{
+      const c=el("span","atto-chip",`${escapeHtml(s)} <span class="x" data-i="${i}">✕</span>`);
+      c.querySelector(".x").addEventListener("click",()=>{ attached.splice(i,1); renderAttached(); });
+      box.appendChild(c);
     });
   }
+  comp.querySelectorAll(".atto-attach").forEach(b=>b.addEventListener("click",()=>{
+    attached.push(b.dataset.src); renderAttached();
+  }));
+  comp.querySelector("#attoGen").addEventListener("click",()=>{
+    const val=comp.querySelector("#attoInput").value.trim();
+    if(!val && !attached.length){ toast("Type a prompt or attach a source"); return; }
+    createAttoChat(val||"Generate tests from the attached source", attached.slice());
+  });
+  return w;
+}
+
+function createAttoChat(prompt, sources){
+  const drafts = ATTO_MOCK_DRAFTS.map(d=>({...d}));
+  const srcLabel = sources.length ? sources[0].split(" ")[1] : null; // e.g. "Figma"
+  const chat = {
+    id:"ch"+(++ATTO_SEQ),
+    title: prompt.length>52 ? prompt.slice(0,51)+"…" : prompt,
+    when:"Today", source:srcLabel,
+    messages:[
+      {role:"user", text:escapeHtml(prompt), src:sources.length?sources.join(" · "):null},
+      {role:"bot", text:`I drafted <b>${drafts.length} test cases</b>. Review and add the ones you want to the Library.`, drafts},
+    ]
+  };
+  ATTO_CHATS.unshift(chat);
+  STATE.activeChat=chat.id;
+  renderApp();
+  toast(`Atto drafted ${drafts.length} cases (mock)`);
+}
+
+function attoConversationEl(chat){
+  const w=el("div","atto-convo");
+  if(!chat){ w.appendChild(el("div","muted","Chat not found.")); return w; }
+  chat.messages.forEach(m=>{
+    const row=el("div","atto-msg "+(m.role==="user"?"user":"bot"));
+    row.appendChild(el("div","am-av",m.role==="user"?"U":"⚡"));
+    const body=el("div","am-body");
+    let html="";
+    if(m.src) html+=`<div class="muted" style="font-size:11px;margin-bottom:4px;">attached: ${escapeHtml(m.src)}</div>`;
+    html+=m.text;
+    body.innerHTML=html;
+    if(m.drafts && m.drafts.length){
+      const dl=el("div","atto-draftlist");
+      m.drafts.forEach(d=>dl.appendChild(attoDraftEl(d)));
+      body.appendChild(dl);
+    }
+    row.appendChild(body);
+    w.appendChild(row);
+  });
+  // follow-up composer (mock)
+  const comp=el("div","atto-composer"); comp.style.marginTop="18px";
+  comp.innerHTML=
+    `<textarea placeholder="Ask a follow-up or refine the drafts…"></textarea>`+
+    `<div class="ac-foot"><span class="muted" style="font-size:11.5px;">Atto keeps sources from this chat</span>`+
+    `<button class="ac-gen" id="attoFollow">Send</button></div>`;
+  comp.querySelector("#attoFollow").addEventListener("click",()=>toast("Follow-up sent (mock)"));
+  w.appendChild(comp);
+  return w;
+}
+
+// Lightweight draft card for Atto (doesn't call the module render() like Part B's draftCardEl)
+function attoDraftEl(d){
+  const c=el("div","draft-card");
+  c.innerHTML=`<div class="dc-head"><span class="cid">DRAFT · ${escapeHtml(d.id||"TC-?")}</span>`+
+    `<span class="dc-title">${escapeHtml(d.title)}</span>`+
+    `<span class="ctype cat-${d.cat}">${d.cat}</span>`+
+    `<span class="lifecycle lc-draft">Draft</span></div>`;
+  const acts=el("div","dc-actions");
+  const a=el("button","btn btn-primary","Accept & add");
+  a.addEventListener("click",()=>{ a.disabled=true; a.textContent="Added ✓"; c.style.opacity=".6"; toast(`Added ${d.id||"draft"} to Library (mock)`); });
+  const dis=el("button","btn","Discard");
+  dis.addEventListener("click",()=>c.remove());
+  acts.appendChild(a); acts.appendChild(dis); c.appendChild(acts);
+  return c;
+}
+
+function renderBlankSection(){
+  const content=$("#content"); content.className="content"; content.innerHTML="";
+  if(STATE.section==="releases" && STATE.subview==="insights"){
+    $("#crumb").innerHTML = `Releases › Insights`;
+    content.appendChild(releaseInsightsEl());
+    return;
+  }
+  let icon="⌂", title="Home", sub="Home is coming soon — this will surface what needs your attention across modules and releases.";
+  let crumb="Home";
+  if(STATE.section==="testcases"){
+    icon="📊"; title="Test Cases · Insights";
+    sub="Test-case-level insights — coverage gaps, flaky signals, authoring velocity — will land here.";
+    crumb="Test Cases › Insights";
+  }
+  $("#crumb").innerHTML = crumb;
+  const bp=el("div","blankpage");
+  bp.innerHTML=`<div class="bp-icon">${icon}</div><div class="bp-title">${title}</div><div class="bp-sub">${sub}</div>`;
+  content.appendChild(bp);
+}
+
+/* ---- Releases > Insights landing page (computed from RELEASES/CASES mock data) ---- */
+function releaseInsightsEl(){
+  const wrap = el("div");
+  wrap.appendChild(el("div","insights-head",
+    `<h2>Release testing insights</h2><p>Rolled up from the releases and runs tracked in this workspace — recomputed from run data, not a live feed.</p>`));
+
+  let totalResults=0; const agg={pass:0,fail:0,block:0,notrun:0};
+  const defects=new Set();
+  let totalRuns=0;
+  RELEASES.forEach(rel=>rel.runs.forEach(run=>{
+    totalRuns++;
+    run.results.forEach(r=>{ totalResults++; agg[r.s]++; if(r.d) defects.add(r.d); });
+  }));
+  const abstainCount = Object.values(CASES).filter(c=>c.abstain).length;
+  const overallPassRate = totalResults? Math.round(agg.pass/totalResults*100) : 0;
+
+  const grid=el("div","insight-grid");
+  const stat=(label,value,sub)=>{const c=el("div","stat-card");
+    c.innerHTML=`<div class="sc-label">${label}</div><div class="sc-value">${value}</div>${sub?`<div class="sc-sub">${sub}</div>`:""}`;
+    return c;};
+  grid.appendChild(stat("Releases tracked", RELEASES.length, `${totalRuns} runs`));
+  grid.appendChild(stat("Overall pass rate", overallPassRate+"%", `${agg.pass} of ${totalResults} results`));
+  grid.appendChild(stat("Open defects", defects.size, defects.size?[...defects].slice(0,3).join(", ")+(defects.size>3?"…":""):"none logged"));
+  grid.appendChild(stat("Abstained cases", abstainCount, "not runnable — pending product/compliance"));
+  wrap.appendChild(grid);
+
+  const tableWrap=el("div","rel-table-wrap");
+  tableWrap.appendChild(el("div","rt-head","By release"));
+  RELEASES.forEach(rel=>{
+    const c={pass:0,fail:0,block:0,notrun:0}; let total=0;
+    rel.runs.forEach(run=>run.results.forEach(r=>{c[r.s]++; total++;}));
+    const pct = total? Math.round(c.pass/total*100) : 0;
+    const row=el("div","rel-row");
+    row.innerHTML=
+      `<div class="rr-name">${rel.name.split("—")[0].trim()}<span class="rr-sub">${rel.name.split("—")[1]?rel.name.split("—")[1].trim():""} · ${rel.runs.length} run${rel.runs.length===1?"":"s"}</span></div>`+
+      `<div class="rr-bar"><div class="rate-bar" style="margin-top:0;">`+
+        `<span class="s-pass" style="width:${total?c.pass/total*100:0}%"></span>`+
+        `<span class="s-fail" style="width:${total?c.fail/total*100:0}%"></span>`+
+        `<span class="s-block" style="width:${total?c.block/total*100:0}%"></span>`+
+        `<span class="s-notrun" style="width:${total?c.notrun/total*100:0}%"></span>`+
+      `</div></div>`+
+      `<div class="rr-pct">${pct}%</div>`+
+      `<div class="rr-counts"><span>${c.pass}✓</span><span>${c.fail}✕</span><span>${c.block}▮</span><span>${c.notrun} nr</span></div>`;
+    tableWrap.appendChild(row);
+  });
+  wrap.appendChild(tableWrap);
+
+  const callouts=el("div","callout-row");
+  const flakyIds=Object.keys(FLAKY_CASES);
+  const co1=el("div","callout");
+  co1.innerHTML=`<div class="co-title">⚡ Flaky signal</div><div class="co-body">`+
+    (flakyIds.length
+      ? flakyIds.map(id=>{const f=FLAKY_CASES[id];return `<b>${id}</b> — passed ${f.passes}/${f.passes+f.fails} across ${f.runs} runs, fails only on ${PLAT_ICON[f.platform]} ${f.platform}.`;}).join("<br>")
+      : "No flaky signals detected in the observed runs.")+`</div>`;
+  const co2=el("div","callout");
+  co2.innerHTML=`<div class="co-title">ⓘ Abstain-blocked cases</div><div class="co-body">`+
+    `${abstainCount} case${abstainCount===1?"":"s"} can't be executed against an honest oracle yet — each is tagged with the product/compliance question blocking it. See Test Cases › Library for detail.</div>`;
+  callouts.appendChild(co1); callouts.appendChild(co2);
+  wrap.appendChild(callouts);
+
+  return wrap;
 }
 
 /* =========================================================================
    WIRING
    ========================================================================= */
-$("#viewseg").addEventListener("click",e=>{
-  const b=e.target.closest("button"); if(!b) return;
-  STATE.view=b.dataset.view;
-  [...$("#viewseg").children].forEach(x=>x.classList.toggle("active",x===b));
-  if(STATE.view==="module" && !STATE.modScenario) STATE.modScenario={f:0,s:0};
-  if(STATE.view==="release" && !STATE.releaseRun) STATE.releaseRun={r:0,k:0};
-  renderTree(); render();
+$("#primaryNav").addEventListener("click",e=>{
+  const b=e.target.closest("[data-section]"); if(!b) return;
+  STATE.section=b.dataset.section;
+  STATE.subview=b.dataset.sub||null;
+  renderApp();
 });
+
+// second-nav collapse (chevron collapses; edge tab reopens)
+$("#treeCollapse").addEventListener("click",()=>{ STATE.treeCollapsed=true; renderApp(); });
+$("#treeReopen").addEventListener("click",()=>{ STATE.treeCollapsed=false; renderApp(); });
 
 document.querySelector(".tabrow").addEventListener("click",e=>{
   const b=e.target.closest(".tab"); if(!b) return;
   STATE.tab=b.dataset.tab;
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===b));
-  render();
+  // Release drilldown routes through renderApp so its own render path runs;
+  // Library stays on the simpler render() path.
+  if(STATE.section==="releases" && STATE.subview==="details" && STATE.releaseId){
+    renderApp();
+  } else {
+    render();
+  }
 });
 
 /* =========================================================================
@@ -2190,9 +3302,7 @@ document.addEventListener("keydown",e=>{
 
 // init
 STATE.modScenario={f:0,s:0};
-STATE.releaseRun={r:0,k:0};
-renderTree();
-render();
+renderApp();
 initCbar();
 </script>
 </body>

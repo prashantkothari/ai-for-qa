@@ -324,6 +324,7 @@
       <select id="verSelect">
         <option value="test-authoring-mockup.html" selected>v1 · Baseline (no AI)</option>
         <option value="test-authoring-mockup-v2.html">v2 · With AI (Part B)</option>
+        <option value="test-authoring-mockup-v3.html">v3 · Nav rework (Home / Test Cases / Releases)</option>
       </select>
     </label>
     <div class="crumb" id="crumb"></div>
@@ -361,7 +362,6 @@
       <div class="maintabs">
         <div class="titleblock">
           <h1 id="mainTitle">Financial Needs Analysis</h1>
-          <div class="meta" id="mainMeta"></div>
         </div>
         <div class="tabrow">
           <button class="tab active" data-tab="detail">Detail</button>
@@ -1017,13 +1017,9 @@ function renderReleaseTree(tree){
       const c=runCounts(run);
       const dot = c.fail?"fail":(c.block?"block":"pass");
       const sel = STATE.releaseRun && STATE.releaseRun.r===ri && STATE.releaseRun.k===ki;
-      const kids = branch(relKids,{level:"run",icon:"▶",text:run.name,dot:dot,
+      branch(relKids,{level:"run",icon:"▶",text:run.name,dot:dot,
         selected:sel,hasChildren:false,
         onClick:()=>{ STATE.releaseRun={r:ri,k:ki}; selectRun(); }});
-      // run meta line
-      const meta = el("div","runmeta");
-      meta.innerHTML = `<span class="plat">${PLAT_ICON[run.platform]} ${run.platform}</span> · ${run.lastRun.split(" ")[0]} · ${c.pass}✓ ${c.fail}✕ ${c.block}▮`;
-      kids.parentElement.appendChild(meta);
     });
   });
 }
@@ -1059,13 +1055,11 @@ function render(){
     const {f,s}=STATE.modScenario;
     const feat=MODULE_TREE.features[f], scen=feat.scenarios[s];
     $("#mainTitle").textContent = scen.name;
-    $("#mainMeta").textContent = `${MODULE_TREE.name} › ${feat.name} · ${scen.cases.length} test cases`;
     $("#crumb").innerHTML = `Module view · <b>${feat.name}</b>`;
   } else {
     const {r,k}=STATE.releaseRun;
     const rel=RELEASES[r], run=rel.runs[k];
     $("#mainTitle").textContent = `${run.name} — ${rel.name.split("—")[0].trim()}`;
-    $("#mainMeta").textContent = `${run.suite} · ${PLAT_ICON[run.platform]} ${run.platform} · run ${run.id}`;
     $("#crumb").innerHTML = `Release view · <b>${rel.name.split("—")[0].trim()} / ${run.name}</b>`;
   }
   // content
@@ -1183,11 +1177,8 @@ function runSummaryEl(rel, run){
 function renderList(){
   const content=$("#content"); content.className="content listmode"; content.innerHTML="";
 
+  const showExecCols = STATE.view==="release";
   const tools=el("div","tabletools");
-  const hint = STATE.view==="release"
-    ? "Execution tracking for the selected run — status reflects this run."
-    : "Management view for the selected scenario — status is latest known.";
-  tools.appendChild(el("span","hint",hint));
   tools.appendChild(el("div","spacer"));
   tools.appendChild(el("button","btn","Export"));
   content.appendChild(tools);
@@ -1195,8 +1186,9 @@ function renderList(){
   const wrap=el("div","tablewrap");
   const table=el("table");
   table.innerHTML=`<thead><tr>
-    <th>ID</th><th>Type</th><th>Test case</th><th>Manual / Auto</th>
-    <th>Platform</th><th>Release / Sprint</th><th>Assignee</th><th>Last run</th><th>Status</th>
+    <th>ID</th><th>Type</th><th>Test case</th><th>Manual / Auto</th>`+
+    (showExecCols?`<th>Platform</th><th>Release / Sprint</th><th>Assignee</th>`:``)+
+    `<th>Last run</th><th>Status</th>
   </tr></thead>`;
   const tb=el("tbody");
 
@@ -1214,9 +1206,11 @@ function renderList(){
       `<td><span class="ctype cat-${r.category}">${r.category}</span></td>`+
       `<td class="name">${r.title}</td>`+
       `<td><span class="mini ${r.exec}">${r.exec==="auto"?"Auto":"Manual"}</span></td>`+
-      `<td><span class="platcell"><span class="pic">${PLAT_ICON[r.platform]}</span>${r.platform}</span></td>`+
-      `<td>${r.release}</td>`+
-      `<td><span class="assignee"><span class="avatar">${initials(r.assignee)}</span>${r.assignee}</span></td>`+
+      (showExecCols
+        ? `<td><span class="platcell"><span class="pic">${PLAT_ICON[r.platform]}</span>${r.platform}</span></td>`+
+          `<td>${r.release}</td>`+
+          `<td><span class="assignee"><span class="avatar">${initials(r.assignee)}</span>${r.assignee}</span></td>`
+        : ``)+
       `<td class="${r.lastRun==="—"?"muted":""}">${r.lastRun}</td>`+
       `<td>${statusCell}</td>`;
     tb.appendChild(tr);
