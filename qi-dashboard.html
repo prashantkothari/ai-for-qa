@@ -1,0 +1,757 @@
+<meta charset="utf-8">
+<title>Quality Intelligence — Checkout v4.2</title>
+<style>
+  :root{
+    --ground:#F4EFE4;
+    --callout:#E8E1CE;
+    --hairline:#D6CEB8;
+    --hairline-strong:#BEB49A;
+    --ink:#1B1A16;
+    --muted:#5A5850;
+    --dim:#8A8577;
+    --accent:#38513B;
+    --accent-soft:#5E7A61;
+    --accent-pale:#B8C7BA;
+    --good:#38513B;
+    --warn:#B27E28;
+    --warn-soft:#D4A75B;
+    --warn-bg:#FBF1D9;
+    --crit:#9A3B2B;
+    --crit-soft:#C48273;
+  }
+  html,body{background:var(--ground);color:var(--ink);}
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size:16px; line-height:1.55;
+    margin:0;
+  }
+  .page{max-width:1000px; margin:0 auto; padding:56px 32px 96px;}
+  .eyebrow{
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); font-weight:600;
+  }
+  .eyebrow .dot{color:var(--dim); margin:0 8px;}
+  h1{
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight:800; font-size:48px; line-height:1.05; letter-spacing:-.015em;
+    text-wrap:balance; margin:18px 0 20px;
+  }
+  h1 em{
+    font-family: Georgia, "Times New Roman", serif;
+    font-style:italic; font-weight:500; color:var(--accent);
+  }
+  .lede{
+    font-family: Georgia, "Times New Roman", serif;
+    font-size:19px; line-height:1.5; color:var(--ink);
+    max-width:640px; margin:0 0 36px;
+  }
+  .lede em{font-style:italic; color:var(--muted);}
+  .rule{border:0; border-top:1px solid var(--hairline); margin:40px 0;}
+  .rule.strong{border-top-color:var(--hairline-strong);}
+
+  /* Case box */
+  .case{background:var(--callout); padding:22px 28px; margin:8px 0 40px; border-radius:2px;}
+  .case-label{font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); font-weight:600; margin-bottom:14px;}
+  .case-grid{display:grid; grid-template-columns:180px 1fr; row-gap:8px; column-gap:24px; font-size:15px;}
+  .case-grid dt{color:var(--muted);}
+  .case-grid dd{margin:0; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .case-grid dd b{font-weight:700;}
+
+  /* Tabs */
+  .tabs{
+    display:flex; gap:24px; align-items:baseline;
+    border-bottom:1px solid var(--hairline);
+    margin:24px 0 32px;
+    overflow-x:auto;
+  }
+  .tab{
+    background:none; border:0; padding:10px 0 12px;
+    font: inherit; font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:700;
+    color:var(--muted); cursor:pointer; white-space:nowrap;
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .tab .n{color:var(--dim); margin-right:6px; font-weight:600;}
+  .tab:hover{color:var(--ink);}
+  .tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent);}
+  .tab:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  /* Section anchor */
+  .sec{display:grid; grid-template-columns:56px 1fr; gap:8px; margin:24px 0 14px;}
+  .sec .marker{color:var(--muted); font-size:12px; font-family:Georgia, serif; padding-top:6px;}
+  .sec h2{font-size:22px; letter-spacing:-.01em; margin:0; font-weight:700;}
+  .sec p.sub{grid-column:2; margin:6px 0 0; color:var(--muted); font-size:14.5px; font-family:Georgia, serif;}
+
+  .panel{display:none;}
+  .panel[aria-hidden="false"]{display:block;}
+
+  /* Metric card grid */
+  .cards{
+    display:grid; grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:1px; background:var(--hairline);
+    border-top:1px solid var(--hairline); border-bottom:1px solid var(--hairline);
+  }
+  .cards.two{grid-template-columns:repeat(2, minmax(0,1fr));}
+  .card{background:var(--ground); padding:20px 22px 18px;}
+  .card .k{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .card .v{font-size:34px; font-weight:700; letter-spacing:-.02em; margin-top:6px; font-variant-numeric:tabular-nums; line-height:1.05;}
+  .card .v .unit{font-size:14px; color:var(--muted); font-weight:600; margin-left:4px;}
+  .card .sub{font-size:13.5px; color:var(--muted); margin-top:6px;}
+  .card .sub b{color:var(--ink); font-weight:600;}
+  .card.wide{grid-column:1 / -1;}
+  .card.span2{grid-column:span 2;}
+
+  .pill{
+    display:inline-block; padding:2px 9px; border-radius:999px;
+    font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:700;
+    background:var(--callout); color:var(--muted);
+  }
+  .pill.good{background:#DDE5DE; color:var(--good);}
+  .pill.warn{background:#EFE1C6; color:var(--warn);}
+  .pill.crit{background:#EED9D2; color:var(--crit);}
+
+  .info{
+    display:inline-block; width:14px; height:14px; border-radius:50%;
+    border:1px solid var(--hairline-strong); color:var(--muted);
+    font-size:9.5px; line-height:12px; text-align:center; font-style:italic; font-family:Georgia,serif;
+    cursor:help; font-weight:600;
+  }
+  .info[title]:hover{color:var(--ink); border-color:var(--muted);}
+
+  /* Sparkline strip */
+  .strip{display:flex; gap:2px; align-items:flex-end; height:34px; margin-top:10px;}
+  .strip span{flex:1; background:var(--accent-soft); opacity:.65; border-radius:1px;}
+  .strip span.now{background:var(--accent); opacity:1;}
+  .strip.warn span{background:var(--warn-soft);} .strip.warn span.now{background:var(--warn);}
+  .strip.crit span{background:var(--crit-soft);} .strip.crit span.now{background:var(--crit);}
+  .strip.drop span{background:var(--crit-soft); opacity:.9;} .strip.drop span.now{background:var(--good);}
+
+  /* Stacked phase bar */
+  .stack{display:flex; height:26px; border-radius:2px; overflow:hidden; margin-top:12px; background:var(--callout);}
+  .stack span{display:block; height:100%;}
+  .stack .s-unit{background:#B8C7BA;}
+  .stack .s-int{background:#8FAA93;}
+  .stack .s-qa{background:var(--accent);}
+  .stack .s-stg{background:var(--warn-soft);}
+  .stack .s-prod{background:var(--crit);}
+  .legend{display:flex; flex-wrap:wrap; gap:14px 18px; margin-top:10px; font-size:12px; color:var(--muted);}
+  .legend .sw{display:inline-block; width:9px; height:9px; border-radius:1px; margin-right:6px; vertical-align:middle;}
+
+  /* Age buckets */
+  .ages{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;}
+  .age{background:var(--callout); padding:10px 12px; border-radius:2px;}
+  .age .n{font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.02em;}
+  .age .l{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600;}
+  .age.crit{background:#EED9D2;}
+  .age.warn{background:#EFE1C6;}
+
+  /* Attention strip */
+  .attn{
+    background:var(--warn-bg);
+    border-left:3px solid var(--warn);
+    padding:16px 22px; margin:32px 0;
+    border-radius:2px;
+  }
+  .attn-label{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:#8A5F1D; font-weight:700;}
+  .attn ul{list-style:none; padding:0; margin:10px 0 0;}
+  .attn li{padding:5px 0; font-size:14.5px; color:var(--ink);}
+  .attn li::before{content:"→ "; color:var(--warn); font-weight:700; margin-right:4px;}
+  .attn li b{font-variant-numeric:tabular-nums;}
+  .attn li a{color:var(--ink); text-decoration:underline; text-decoration-color:var(--hairline-strong); text-underline-offset:3px;}
+
+  /* Track record grid */
+  .trk{display:grid; grid-template-columns:0.9fr 0.9fr 1.1fr 0.9fr 0.9fr; gap:0; margin-top:8px; font-size:14px;}
+  .trk > *{padding:12px 12px; border-bottom:1px solid var(--hairline); font-variant-numeric:tabular-nums;}
+  .trk .h{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom-color:var(--hairline-strong);}
+  .trk .rel{font-weight:600; font-variant-numeric:normal;}
+  .trk .now{background:var(--callout);}
+  .trk .go{color:var(--good); font-weight:700;}
+  .trk .cond{color:var(--warn); font-weight:700;}
+  .trk .nogo{color:var(--crit); font-weight:700;}
+
+  /* Integration footer chip */
+  .integ{
+    margin-top:36px; padding:12px 0; border-top:1px dashed var(--hairline);
+    font-size:12.5px; color:var(--muted); letter-spacing:.02em;
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .integ .dot{width:7px; height:7px; border-radius:50%; background:var(--good); display:inline-block;}
+  .integ .dot.warn{background:var(--warn);}
+  .integ .dot.crit{background:var(--crit);}
+  .integ b{color:var(--ink); font-weight:600;}
+
+  /* Verdict block */
+  .verdict{
+    border:1px solid var(--hairline-strong); padding:22px 26px; margin:8px 0 28px;
+    background:var(--ground);
+  }
+  .verdict-top{display:flex; align-items:center; gap:14px; margin-bottom:10px; flex-wrap:wrap;}
+  .verdict-top .headline{font-size:24px; font-weight:700; letter-spacing:-.01em;}
+  .verdict-top .headline em{font-family:Georgia, serif; font-style:italic; font-weight:500; color:var(--crit);}
+  .verdict ul{margin:8px 0 0; padding-left:18px; font-size:15px; color:var(--ink);}
+  .verdict li{margin:6px 0;}
+  .verdict li b{font-variant-numeric:tabular-nums;}
+  .verdict .why{color:var(--muted); font-size:13px; margin-top:14px; font-family:Georgia, serif;}
+
+  /* Waterfall */
+  .wf{margin-top:6px; font-size:14px;}
+  .wf-row{display:grid; grid-template-columns:130px 1fr 60px; gap:14px; align-items:center; padding:6px 0;}
+  .wf-row + .wf-row{border-top:1px dashed var(--hairline);}
+  .wf-row .lbl{color:var(--muted);}
+  .wf-row .bar{height:8px; background:var(--callout); position:relative; border-radius:1px;}
+  .wf-row .bar b{position:absolute; left:0; top:0; bottom:0; background:var(--accent); border-radius:1px;}
+  .wf-row .bar.neg b{background:var(--crit);}
+  .wf-row .bar.warn b{background:var(--warn);}
+  .wf-row .val{text-align:right; font-variant-numeric:tabular-nums; font-weight:600;}
+  .wf-row .val.neg{color:var(--crit);}
+
+  /* Density bars (Bugs tab) */
+  .dens{margin-top:12px; font-size:13.5px;}
+  .dens-row{display:grid; grid-template-columns:110px 1fr 40px; gap:12px; align-items:center; padding:5px 0;}
+  .dens-row .lbl{color:var(--muted);}
+  .dens-row .bar{height:8px; background:var(--callout); border-radius:1px; position:relative;}
+  .dens-row .bar b{position:absolute; left:0; top:0; bottom:0; background:var(--accent-soft); border-radius:1px;}
+  .dens-row .bar.hot b{background:var(--crit);}
+  .dens-row .bar.warm b{background:var(--warn);}
+  .dens-row .val{text-align:right; font-variant-numeric:tabular-nums; font-weight:600;}
+
+  /* Table */
+  table{width:100%; border-collapse:collapse; font-size:14px; margin-top:8px;}
+  th,td{text-align:left; padding:10px 8px; border-bottom:1px solid var(--hairline);}
+  th{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom-color:var(--hairline-strong);}
+  td{font-variant-numeric:tabular-nums;}
+  td.name{font-variant-numeric:normal;}
+  tr:last-child td{border-bottom:0;}
+
+  /* Machine matrix */
+  .matrix{display:grid; grid-template-columns:1.6fr repeat(4, 1fr); gap:0; font-size:13.5px;}
+  .matrix > *{padding:9px 10px; border-bottom:1px solid var(--hairline);}
+  .matrix .h{font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom-color:var(--hairline-strong);}
+  .cell{display:inline-flex; align-items:center; gap:6px;}
+  .dot-s{width:9px; height:9px; border-radius:50%; display:inline-block;}
+  .dot-s.p{background:var(--good);}
+  .dot-s.f{background:var(--crit);}
+  .dot-s.b{background:var(--warn);}
+  .dot-s.n{background:var(--dim); opacity:.55;}
+
+  /* Footnote */
+  .foot{color:var(--muted); font-family:Georgia, serif; font-size:13.5px; margin-top:14px;}
+  .foot em{color:var(--ink);}
+
+  /* Two-up (Next regression + upcoming sprints) */
+  .twoup{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--hairline);
+    border:1px solid var(--hairline);}
+  .twoup > div{background:var(--ground); padding:22px 24px;}
+  .twoup .k{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600;}
+  .twoup .headline{font-size:18px; font-weight:700; margin-top:8px; letter-spacing:-.01em;}
+  .twoup .headline em{font-family:Georgia,serif; font-style:italic; font-weight:500; color:var(--accent);}
+  .twoup .why{font-size:13.5px; color:var(--muted); margin-top:8px; font-family:Georgia,serif;}
+  .twoup ul{margin:8px 0 0; padding-left:18px; font-size:14px;}
+  .twoup li{padding:3px 0;}
+
+  @media (max-width:720px){
+    .page{padding:36px 20px 72px;}
+    h1{font-size:36px;}
+    .cards{grid-template-columns:1fr;}
+    .cards.two{grid-template-columns:1fr;}
+    .sec{grid-template-columns:1fr;}
+    .sec .marker{display:none;}
+    .case-grid{grid-template-columns:1fr;}
+    .verdict-top{flex-direction:column; align-items:flex-start;}
+    .matrix{grid-template-columns:1fr; gap:0;}
+    .matrix > *{border-bottom:1px dashed var(--hairline);}
+    .trk{grid-template-columns:1fr 1fr; font-size:13px;}
+    .twoup{grid-template-columns:1fr;}
+  }
+</style>
+
+<div class="page">
+  <div class="eyebrow">Testsigma <span class="dot">·</span> Quality Intelligence <span class="dot">·</span> 2026-07-08</div>
+  <h1>Payments squad — <em>is quality where it needs to be?</em></h1>
+  <p class="lede">A weekly view for the QA manager. <em>Six tabs, plain-language cards</em> — read what's trending against you first, then drill where it points.</p>
+
+  <div class="case">
+    <div class="case-label">The team &amp; the release under review</div>
+    <dl class="case-grid">
+      <dt>Team</dt><dd><b>Payments QA</b> · 6 testers · lead: R. Menon</dd>
+      <dt>Product surface</dt><dd><b>Checkout &amp; Payments</b> · web + iOS + Android</dd>
+      <dt>Current release</dt><dd><b>v4.2</b> — feature freeze 2026-07-05 · target ship 2026-07-09</dd>
+      <dt>Scope</dt><dd>18 stories · <b>3 P0-critical</b> (Apple Pay retry, 3DS challenge, refund flow)</dd>
+    </dl>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Quality Intelligence tiers">
+    <button class="tab" role="tab" aria-selected="true"  aria-controls="p-t1"  id="t-t1"><span class="n">§1</span>Manager</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p-t1b" id="t-t1b"><span class="n">§1b</span>Bugs</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p-t2"  id="t-t2"><span class="n">§2</span>Release</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p-t3a" id="t-t3a"><span class="n">§3a</span>Team</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p-t3b" id="t-t3b"><span class="n">§3b</span>Test health</button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="p-ai"  id="t-ai"><span class="n">§4</span>AI Quality</button>
+  </nav>
+
+  <!-- ======================= §1 MANAGER ======================= -->
+  <section class="panel" id="p-t1" role="tabpanel" aria-labelledby="t-t1" aria-hidden="false">
+    <div class="sec"><div class="marker">§1</div>
+      <h2>How healthy is our testing this week — and what needs your attention?</h2>
+      <p class="sub">Weekly view. Point-in-time answers for the current release live on §2. Bug detail lives on §1b.</p>
+    </div>
+
+    <!-- KPI ROW -->
+    <div class="cards">
+      <div class="card">
+        <div class="k">Defect Removal Efficiency <span class="pill good">Healthy</span></div>
+        <div class="v">94<span class="unit">%</span></div>
+        <div class="sub">Of bugs found, <b>94% were caught before ship</b>. 3 escaped to customers last release.</div>
+        <div class="foot" style="margin-top:8px;">Target &gt;95%. <span class="info" title="DRE = bugs found before release ÷ (bugs found before + bugs found by customers after)">i</span></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Where bugs were caught <span class="pill">v4.1</span></div>
+        <div class="v">75<span class="unit">bugs · last release</span></div>
+        <div class="stack" title="Bugs caught by SDLC phase">
+          <span class="s-unit" style="width:16%"></span>
+          <span class="s-int"  style="width:24%"></span>
+          <span class="s-qa"   style="width:45%"></span>
+          <span class="s-stg"  style="width:11%"></span>
+          <span class="s-prod" style="width:4%"></span>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:#B8C7BA"></span>Unit 12</span>
+          <span><span class="sw" style="background:#8FAA93"></span>Integration 18</span>
+          <span><span class="sw" style="background:var(--accent)"></span>QA 34</span>
+          <span><span class="sw" style="background:var(--warn-soft)"></span>Staging 8</span>
+          <span><span class="sw" style="background:var(--crit)"></span>Prod 3</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Open bugs · how old are they? <span class="pill warn">Ageing</span></div>
+        <div class="v">15<span class="unit">open</span></div>
+        <div class="ages">
+          <div class="age"><div class="n">8</div><div class="l">0–7 days</div></div>
+          <div class="age warn"><div class="n">5</div><div class="l">7–30 days</div></div>
+          <div class="age crit"><div class="n">2</div><div class="l">30+ days</div></div>
+        </div>
+        <div class="sub" style="margin-top:10px;">Both 30+day bugs are <b>P0/P1</b> in Refund flow.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Automation coverage <span class="pill good">Up</span></div>
+        <div class="v">74<span class="unit">% of approved tests</span></div>
+        <div class="sub"><b>417 of 563</b> tests automated · <b>+18</b> since v4.1</div>
+        <div class="sub" style="margin-top:4px;">Automated tests pass consistently <b>91%</b> of the time · est. <b>340 manual hours saved</b> this month <span class="info" title="Estimated from average manual execution time × automated runs. Directional, not exact.">i</span></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Self-healing <span class="pill good">Improving</span></div>
+        <div class="v">96<span class="unit">% heal success</span></div>
+        <div class="sub"><b>340 heals</b> absorbed automatically this release · only <b>12</b> needed a human fix</div>
+        <div class="strip"><span style="height:60%"></span><span style="height:70%"></span><span style="height:82%"></span><span class="now" style="height:96%"></span></div>
+        <div class="foot" style="margin-top:6px;">v3.9 <em>88%</em> → v4.0 <em>92%</em> → v4.1 <em>94%</em> → v4.2 <em>96%</em></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Flakiness · dropping <span class="pill good">Down</span></div>
+        <div class="v">2.5<span class="unit">% flake rate</span></div>
+        <div class="sub"><b>Down from 4.2%</b> four releases ago. Industry bar: below 5%.</div>
+        <div class="strip drop">
+          <span style="height:84%"></span>
+          <span style="height:74%"></span>
+          <span style="height:62%"></span>
+          <span class="now" style="height:50%"></span>
+        </div>
+        <div class="foot" style="margin-top:6px;">v3.9 <em>4.2%</em> → v4.0 <em>3.7%</em> → v4.1 <em>3.1%</em> → v4.2 <em>2.5%</em></div>
+      </div>
+    </div>
+
+    <!-- ATTENTION STRIP -->
+    <div class="attn" role="region" aria-label="Things trending the wrong way this week">
+      <div class="attn-label">Trending against you this week · 3 items</div>
+      <ul>
+        <li>Regression duration up <b>22%</b> over last 3 sprints — <b>47 min → 57 min</b>. <a href="#">See suite health →</a></li>
+        <li>First-attempt pass rate falling: <b>82% → 76% → 71%</b>. Reruns are laundering the headline pass rate. <a href="#">See §2 →</a></li>
+        <li><b>2 P0 bugs</b> are now over 30 days open — both in Refund flow. <a href="#">See §1b →</a></li>
+      </ul>
+    </div>
+
+    <!-- LOWER: PREDICTIVE + TRACK RECORD -->
+    <div class="twoup">
+      <div>
+        <div class="k">Next regression due</div>
+        <div class="headline">Run by <em>Jul 12</em> — Payments + Refunds</div>
+        <div class="why">Based on: <b>12 merges to Payments</b> since last regression · <b>3 modules unregressed &gt; 21 days</b> · Refund flow has open P0.</div>
+      </div>
+      <div>
+        <div class="k">Upcoming sprints to kick off</div>
+        <div class="headline">Sprint 24 · <em>starts Monday</em></div>
+        <ul>
+          <li><b>12 stories drafted</b> · 0 test plans generated. Kick off test planning.</li>
+          <li><b>3 pending gaps</b> from Sprint 22 still open — close first.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec" style="margin-top:36px;"><div class="marker">§1·2</div>
+      <h2>Last 5 releases — gate trust &amp; track record</h2>
+      <p class="sub">If the gate said <em>GO</em> and bugs leaked anyway, the gate needs re-calibration. This is the view where that shows up.</p>
+    </div>
+
+    <div class="trk" role="table" aria-label="Last 5 releases">
+      <div class="h" role="columnheader">Release</div>
+      <div class="h" role="columnheader">Confidence</div>
+      <div class="h" role="columnheader">Gate verdict</div>
+      <div class="h" role="columnheader">Escaped bugs</div>
+      <div class="h" role="columnheader">Shipped</div>
+
+      <div class="rel">v3.8</div>
+      <div>78</div>
+      <div><span class="go">GO</span></div>
+      <div>4 <span style="color:var(--muted); font-size:12px;">(1 P1)</span></div>
+      <div>May 20</div>
+
+      <div class="rel">v3.9</div>
+      <div>71</div>
+      <div><span class="cond">CONDITIONAL</span></div>
+      <div>2</div>
+      <div>Jun 3</div>
+
+      <div class="rel">v4.0</div>
+      <div>82</div>
+      <div><span class="go">GO</span></div>
+      <div>2 <span style="color:var(--muted); font-size:12px;">(1 P1)</span></div>
+      <div>Jun 17</div>
+
+      <div class="rel">v4.1</div>
+      <div>74</div>
+      <div><span class="cond">CONDITIONAL</span></div>
+      <div>3</div>
+      <div>Jul 1</div>
+
+      <div class="rel now">v4.2</div>
+      <div class="now">67</div>
+      <div class="now"><span class="nogo">NO-GO</span></div>
+      <div class="now">—</div>
+      <div class="now">target Jul 9</div>
+    </div>
+    <p class="foot">Of 3 releases that shipped <em>GO</em>, 2 leaked a P1. Gate calibration flagged for the next quarterly review.</p>
+
+    <!-- INTEGRATION FOOTER -->
+    <div class="integ">
+      <span class="dot"></span> <b>Integrations healthy</b> · Jira sync 2m ago · GitHub webhook 1m ago · Slack notifications live · Amplitude ingest OK
+    </div>
+  </section>
+
+  <!-- ======================= §1b BUGS ======================= -->
+  <section class="panel" id="p-t1b" role="tabpanel" aria-labelledby="t-t1b" aria-hidden="true">
+    <div class="sec"><div class="marker">§1b</div>
+      <h2>Bugs — beyond how many, into <em>where</em> and <em>how well we handle them</em>.</h2>
+      <p class="sub">Bugs are the outcome metric. This tab answers the questions §1 could only headline.</p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="k">Severity mix · v4.2 <span class="pill warn">3 P0 open</span></div>
+        <div class="v">75<span class="unit">bugs · this release</span></div>
+        <div class="stack" title="Bug severity mix">
+          <span style="background:var(--crit); width:4%"></span>
+          <span style="background:#C48273; width:11%"></span>
+          <span style="background:var(--warn-soft); width:29%"></span>
+          <span style="background:var(--accent-pale); width:56%"></span>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--crit)"></span>P0 · 3</span>
+          <span><span class="sw" style="background:#C48273"></span>P1 · 8</span>
+          <span><span class="sw" style="background:var(--warn-soft)"></span>P2 · 22</span>
+          <span><span class="sw" style="background:var(--accent-pale)"></span>P3 · 42</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Reopen rate <span class="pill good">Healthy</span></div>
+        <div class="v">8.4<span class="unit">%</span></div>
+        <div class="sub"><b>Fixed bugs that came back.</b> Target &lt;10%. Above that flags shallow fixes.</div>
+        <div class="strip drop">
+          <span style="height:36%"></span>
+          <span style="height:34%"></span>
+          <span style="height:56%"></span>
+          <span class="now" style="height:48%"></span>
+        </div>
+        <div class="foot" style="margin-top:6px;">v3.9 <em>6.1%</em> → v4.0 <em>5.8%</em> → v4.1 <em>9.2%</em> → v4.2 <em>8.4%</em></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Fix cycle time <span class="pill warn">Watch</span></div>
+        <div class="v">2.3<span class="unit">days · median</span></div>
+        <div class="sub">P95 <b>5.1d</b> · slightly up from v4.1 (<b>1.9d / 4.2d</b>). Climbing 3 sprints in a row = release-slip risk.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Filed-but-not-really-a-bug ratio</div>
+        <div class="v">6.2<span class="unit">%</span></div>
+        <div class="sub"><b>11 of 178</b> filed bugs rejected as invalid or duplicate. Signal-to-noise of what testers file. <span class="info" title="A rising rejection ratio is a testers-need-support signal, not a product-quality signal.">i</span></div>
+      </div>
+
+      <div class="card">
+        <div class="k">MTTR for production defects</div>
+        <div class="v">4.2<span class="unit">hours · median</span></div>
+        <div class="sub">Once something escapes, how fast we recover. P90 <b>12h</b>.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Test-found vs customer-found</div>
+        <div class="v">96<span class="unit">% : 4%</span></div>
+        <div class="sub"><b>72 caught by our tests</b> · 3 caught by customers · 1 caught in exploratory. The suite is earning its keep.</div>
+      </div>
+    </div>
+
+    <div class="sec" style="margin-top:36px;"><div class="marker">§1b·2</div>
+      <h2>Which parts of the product are structurally shaky?</h2>
+      <p class="sub">Bugs per story, sliced by feature area. The global density hides that 80% of pain usually lives in 20% of modules.</p>
+    </div>
+
+    <div class="dens">
+      <div class="dens-row"><div class="lbl">Refunds</div><div class="bar hot"><b style="width:100%"></b></div><div class="val">12</div></div>
+      <div class="dens-row"><div class="lbl">Checkout</div><div class="bar warm"><b style="width:67%"></b></div><div class="val">8</div></div>
+      <div class="dens-row"><div class="lbl">Payments</div><div class="bar"><b style="width:50%"></b></div><div class="val">6</div></div>
+      <div class="dens-row"><div class="lbl">Cart</div><div class="bar"><b style="width:25%"></b></div><div class="val">3</div></div>
+      <div class="dens-row"><div class="lbl">Search</div><div class="bar"><b style="width:17%"></b></div><div class="val">2</div></div>
+      <div class="dens-row"><div class="lbl">Profile</div><div class="bar"><b style="width:8%"></b></div><div class="val">1</div></div>
+    </div>
+    <p class="foot"><em>Refunds</em> has carried the highest bug density for 3 releases running. Candidate for a focused hardening sprint.</p>
+  </section>
+
+  <!-- ======================= §2 RELEASE ======================= -->
+  <section class="panel" id="p-t2" role="tabpanel" aria-labelledby="t-t2" aria-hidden="true">
+    <div class="sec"><div class="marker">§2</div>
+      <h2>The verdict, and the rules that produced it.</h2>
+      <p class="sub">Lead with the rule trace. The composite score sits beside it, not above it.</p>
+    </div>
+
+    <div class="verdict">
+      <div class="verdict-top">
+        <span class="pill crit">Release Gate · NO-GO</span>
+        <div class="headline">Not yet safe to ship — <em>3 rules failed.</em></div>
+      </div>
+      <ul>
+        <li><b>14</b> P0/P1 tests are still marked <em>not run</em> in the full regression plan. Threshold: zero.</li>
+        <li>Coverage on <b>Refund flow</b> is <b>41%</b>. Threshold: at least 80% on P0 modules.</li>
+        <li>Pass rate on Android × Apple-Pay-retry: <b>62%</b>. Threshold: at least 90% on P0 flows.</li>
+      </ul>
+      <div class="why">Overall confidence score: <b>67 / 100</b> — shown for context. The rules above are the source of truth for the ship decision.</div>
+    </div>
+
+    <div class="cards two">
+      <div class="card">
+        <div class="k">Coverage · this release <span class="pill warn">Below bar</span></div>
+        <div class="v">72<span class="unit">%</span></div>
+        <div class="sub"><b>442 tests approved</b> · 170 scenarios still pending · 84 rejected (with reason). Rejection rate <b>16%</b> — above the usual 8–10%.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Coverage on <em>changed code</em> <span class="pill crit">Gap</span></div>
+        <div class="v">58<span class="unit">%</span></div>
+        <div class="sub"><b>4 of 18</b> stories have zero linked tests. Refund flow is one of them.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Pass rate — first attempt vs after reruns</div>
+        <div class="v">79<span class="unit">% first · 88% final</span></div>
+        <div class="sub">Reruns closed 9 points of the gap. <b>5 tests blocked</b> (env issue, reported separately).</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Regression suite health <span class="pill warn">Slowing</span></div>
+        <div class="v">57<span class="unit">min · full run</span></div>
+        <div class="sub">Up from 47 min three sprints ago. Flake rate <b>2.5%</b>. Trustworthy, just slower.</div>
+      </div>
+
+      <div class="card wide">
+        <div class="k">Confidence — why is it 67? <span class="pill warn">67 / 100</span></div>
+        <div class="sub" style="margin-top:2px;">Scored against a plan the team chose: <b>Regression v3 (203 tests)</b>.</div>
+        <div class="wf">
+          <div class="wf-row"><div class="lbl">Starting</div><div class="bar"><b style="width:100%"></b></div><div class="val">100</div></div>
+          <div class="wf-row"><div class="lbl">P1 tests not run</div><div class="bar neg"><b style="width:40%"></b></div><div class="val neg">−18</div></div>
+          <div class="wf-row"><div class="lbl">Flaky tests</div><div class="bar warn"><b style="width:16%"></b></div><div class="val neg">−9</div></div>
+          <div class="wf-row"><div class="lbl">P2 tests not run</div><div class="bar neg"><b style="width:12%"></b></div><div class="val neg">−6</div></div>
+          <div class="wf-row"><div class="lbl">Confidence</div><div class="bar"><b style="width:67%"></b></div><div class="val">67</div></div>
+        </div>
+        <div class="foot">Top action: run the <b>40 P1 tests</b> still not started in Regression. Projected recovery: <b>+18 points</b>.</div>
+      </div>
+    </div>
+
+    <div class="sec" style="margin-top:36px;"><div class="marker">§2·2</div>
+      <h2>Recommended tests to add — for what's shipping in v4.2</h2>
+      <p class="sub">Release-scoped suggestions from the AI planner. Evergreen library gaps live on Test Case Library.</p>
+    </div>
+    <table>
+      <thead><tr>
+        <th class="name">Scenario</th><th>Reason</th><th>Where</th><th>Priority</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="name">Apple Pay retry after network timeout</td><td>Changed code, no test linked</td><td>iOS + Android</td><td><span class="pill crit">P0</span></td></tr>
+        <tr><td class="name">Refund idempotency on double-tap</td><td>Untested on Android</td><td>Android only</td><td><span class="pill crit">P0</span></td></tr>
+        <tr><td class="name">3DS challenge cancel &amp; retry</td><td>Story added late in sprint</td><td>Web + iOS</td><td><span class="pill warn">P1</span></td></tr>
+        <tr><td class="name">Guest checkout with saved address</td><td>Data set gap</td><td>Web</td><td><span class="pill">P2</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ======================= §3a TEAM ======================= -->
+  <section class="panel" id="p-t3a" role="tabpanel" aria-labelledby="t-t3a" aria-hidden="true">
+    <div class="sec"><div class="marker">§3a</div>
+      <h2>What has the Payments QA squad covered — how broad, how deep?</h2>
+      <p class="sub">Team-aggregate view. Per-tester views are opt-in per workspace and off by default.</p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="k">Scenarios accepted this sprint</div>
+        <div class="v">63<span class="unit">across 6 testers</span></div>
+        <div class="sub">Accepted directly <b>28</b> · accepted with edits <b>35</b></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Breadth — modules touched</div>
+        <div class="v">8<span class="unit">of 9 checkout modules</span></div>
+        <div class="sub">Untouched: <b>Refund flow</b> — same module flagged on §2.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Review turnaround <span class="pill good">Healthy</span></div>
+        <div class="v">1.4<span class="unit">days · median</span></div>
+        <div class="sub">P95 <b>3.1d</b> · SLA <b>3d</b></div>
+      </div>
+
+      <div class="card wide">
+        <div class="k">Depth — scenarios by plan tier</div>
+        <div class="sub" style="margin-top:4px;">A team stuck in Smoke is testing shallowly. Healthy teams push into Regression and edge cases.</div>
+        <div class="wf" style="margin-top:10px;">
+          <div class="wf-row"><div class="lbl">Smoke</div><div class="bar"><b style="width:22%"></b></div><div class="val">22%</div></div>
+          <div class="wf-row"><div class="lbl">Feature</div><div class="bar"><b style="width:41%"></b></div><div class="val">41%</div></div>
+          <div class="wf-row"><div class="lbl">Regression</div><div class="bar"><b style="width:29%"></b></div><div class="val">29%</div></div>
+          <div class="wf-row"><div class="lbl">Deep-regression</div><div class="bar warn"><b style="width:8%"></b></div><div class="val">8%</div></div>
+        </div>
+        <div class="foot">Deep-regression share below team's own 12% rolling average — edge-case authoring dipped this sprint.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Gap-closure contribution</div>
+        <div class="v">78<span class="unit">%</span></div>
+        <div class="sub">218 of 279 sprint gaps closed by accepted tests.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= §3b TEST-ASSET HEALTH ======================= -->
+  <section class="panel" id="p-t3b" role="tabpanel" aria-labelledby="t-t3b" aria-hidden="true">
+    <div class="sec"><div class="marker">§3b</div>
+      <h2>Which tests are hurting us — and how are they behaving across machines?</h2>
+      <p class="sub">Flaky = a test that flips pass/fail on the <em>same</em> environment across runs. Consistent cross-machine differences are a platform-bug signal, not flakiness.</p>
+    </div>
+
+    <table>
+      <thead><tr>
+        <th class="name">Test</th><th>Flake score</th><th>Last-10 flips</th><th>Signal</th><th>Suggested action</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="name">TC-812 · Apple Pay retry after 3DS</td><td>0.71</td><td>4</td><td><span class="pill warn">Flaky</span></td><td>Quarantine + assign owner</td></tr>
+        <tr><td class="name">TC-903 · Guest checkout · SGD</td><td>0.58</td><td>3</td><td><span class="pill warn">Flaky</span></td><td>Quarantine</td></tr>
+        <tr><td class="name">TC-770 · Refund idempotency</td><td>0.12</td><td>0</td><td><span class="pill crit">Platform bug — Android</span></td><td>Route to bug tracker, not flaky list</td></tr>
+        <tr><td class="name">TC-641 · Card decline UX</td><td>0.05</td><td>0</td><td><span class="pill">Stable</span></td><td>—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="sec" style="margin-top:36px;"><div class="marker">§3b·2</div>
+      <h2>Machine matrix — TC-770 last run</h2>
+      <p class="sub">Consistent divergence across machines. Not a flakiness event.</p>
+    </div>
+    <div class="matrix">
+      <div class="h">Test × latest run</div><div class="h">Chrome</div><div class="h">Safari</div><div class="h">iOS</div><div class="h">Android</div>
+      <div>TC-770 · Refund idempotency</div>
+      <div><span class="cell"><span class="dot-s p"></span>Pass</span></div>
+      <div><span class="cell"><span class="dot-s p"></span>Pass</span></div>
+      <div><span class="cell"><span class="dot-s p"></span>Pass</span></div>
+      <div><span class="cell"><span class="dot-s f"></span>Fail ×3</span></div>
+      <div>TC-812 · Apple Pay retry</div>
+      <div><span class="cell"><span class="dot-s n"></span>n/a</span></div>
+      <div><span class="cell"><span class="dot-s p"></span>Pass</span></div>
+      <div><span class="cell"><span class="dot-s b"></span>Blocked</span></div>
+      <div><span class="cell"><span class="dot-s p"></span>Pass</span></div>
+    </div>
+
+    <p class="foot">Also on this tab (not shown here to keep it tight): staleness — <em>7 tests carry an unresolved update-required flag &gt; 14 days</em>; redundancy — <em>12 candidates that never fail and duplicate broader tests</em>. Element- and step-level heal rates live one click deeper on each test-case detail page.</p>
+  </section>
+
+  <!-- ======================= §4 AI QUALITY ======================= -->
+  <section class="panel" id="p-ai" role="tabpanel" aria-labelledby="t-ai" aria-hidden="true">
+    <div class="sec"><div class="marker">§4</div>
+      <h2>The Checkout Assistant — a GenAI feature inside our own product.</h2>
+      <p class="sub">Pass/fail can't score a stochastic feature. These metrics ingest from our eval runs (Promptfoo + DeepEval).</p>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="k">Judge score · rubric mean <span class="pill good">Stable</span></div>
+        <div class="v">4.32<span class="unit">/ 5 · G-Eval</span></div>
+        <div class="sub">Last 4 releases <b>4.18 · 4.24 · 4.29 · 4.32</b> · judge–human agreement <b>0.86</b></div>
+        <div class="strip"><span style="height:60%"></span><span style="height:66%"></span><span style="height:72%"></span><span class="now" style="height:78%"></span></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Consistency — pass<sup>3</sup> <span class="pill warn">Watch</span></div>
+        <div class="v">54<span class="unit">% pass<sup>3</sup></span></div>
+        <div class="sub"><b>pass@3 was 96%</b> — the same eval run 3 times, all must pass. Overstated by pass@k.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Safety panel</div>
+        <div class="v">0.4<span class="unit">% hallucination</span></div>
+        <div class="sub">Toxicity <b>0.0%</b> · jailbreak red-team pass <b>94%</b> · bias probes <b>2 escalated</b></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Drift vs. pinned baseline <span class="pill crit">Regression</span></div>
+        <div class="v">−7<span class="unit">pts vs. sonnet-4-5</span></div>
+        <div class="sub">Refund-explanation rubric dropped on the <b>sonnet-5</b> upgrade — 12 evals affected.</div>
+      </div>
+
+      <div class="card">
+        <div class="k">Cost per interaction</div>
+        <div class="v">$0.011<span class="unit">avg</span></div>
+        <div class="sub">P95 latency <b>1.7s</b> · eval spend this release <b>$92</b></div>
+      </div>
+
+      <div class="card">
+        <div class="k">Trajectory — tool-call accuracy</div>
+        <div class="v">91<span class="unit">%</span></div>
+        <div class="sub">Correct-tool selection · step efficiency <b>1.3× ideal</b></div>
+      </div>
+    </div>
+
+    <p class="foot">AI Quality is not folded into the ship-decision composite yet — weights unproven. It sits beside the gate as a first-class signal.</p>
+  </section>
+
+  <hr class="rule strong">
+  <p class="foot" style="text-align:center;">Every number on this dashboard is clickable to its evidence, and carries a <em>since-last-snapshot</em> explanation. Sample data · Payments squad · Checkout v4.2.</p>
+</div>
+
+<script>
+  (function(){
+    const tabs = document.querySelectorAll('[role="tab"]');
+    const panels = document.querySelectorAll('[role="tabpanel"]');
+    function activate(tab){
+      tabs.forEach(t => t.setAttribute('aria-selected', t === tab ? 'true' : 'false'));
+      const target = tab.getAttribute('aria-controls');
+      panels.forEach(p => p.setAttribute('aria-hidden', p.id === target ? 'false' : 'true'));
+    }
+    tabs.forEach(t => {
+      t.addEventListener('click', () => activate(t));
+      t.addEventListener('keydown', e => {
+        const list = Array.from(tabs);
+        const i = list.indexOf(t);
+        if (e.key === 'ArrowRight'){ e.preventDefault(); list[(i+1)%list.length].focus(); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); list[(i-1+list.length)%list.length].focus(); }
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); activate(t); }
+      });
+    });
+  })();
+</script>
