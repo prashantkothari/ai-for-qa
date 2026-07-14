@@ -152,9 +152,24 @@ just a human reviewer. Each rule = a condition → a required case (or a flag).
     the flow down *different* rule branches.
 11. **Every abstain is actionable.** Each open question carries its candidate oracles per resolution, so it
     unblocks instantly (not just a question).
+12. **Cross-layer consistency.** If a change touches more than one layer (UI + API + DB) → require:
+    (a) a **shown = sent = stored = shown-back** case, (b) an **audit/decision-log completeness** case
+    if the action is rule-bearing, (c) a **version/traceability-stamp** case if it depends on a versioned
+    rule/rate table. (Source: [`test-authoring-layers-logging-metrics.md`](test-authoring-layers-logging-metrics.md)
+    §2 L1/L4/L5 — the one gap category not covered by any named testing paradigm; it only exists because
+    a system has separate UI/API/DB representations of the same fact.)
 
 A generated set that can't tick these gets flagged *before* it reaches the QA — this is most of the
 "raw LLM under-covers" gap, closed mechanically.
+
+**This rulebook is the single shared source of truth for two separate passes — do not fork it:**
+- **In-loop self-check (authoring):** cheap, runs every generation, catches the mechanical misses.
+- **Independent coverage/eval agent:** stricter, adversarial, applies the *same* 12 rules but from the
+  outside — enumerates what *should* exist given the change classification, diffs it against what was
+  actually authored, and additionally runs the golden-set/escaped-defect scoring (§3). Self-grading by
+  the authoring pass alone has correlated blind spots (if it missed a rule once, re-checking with the
+  same pass tends to miss it again) — the eval agent's job is to catch what authoring structurally
+  couldn't see, not to confirm authoring's own checklist.
 
 ---
 

@@ -141,6 +141,32 @@ function — so you can feel the difference.
 
 ---
 
+## 2c. Same cheat-sheet, one domain only — payment/checkout
+§2b mixes examples across login/cart/checkout to keep each row self-contained. Here's the same table
+with **one running example — card payment at checkout** — so the *difference between techniques* is
+easier to feel than the difference in subject matter. Plain language, no formulas.
+
+| Paradigm | What it does — with a payment example |
+|---|---|
+| **Spec-based (boundaries)** | Card charge min $1, max $10,000 → test at **$0.99, $1, $10,000, $10,001**. Just-inside and just-outside the limit. |
+| **Spec-based (equivalence)** | Group cards into **valid / expired / wrong CVV / blocked**. Test one card per group — not 100 valid cards. |
+| **Spec-based (pairwise)** | Combine **card type × currency × 3DS on/off**. Instead of every combination, cover all *pairs* — catches most bugs in a fraction of the tests. |
+| **Decision table** | Rules like *"if amount > $500 AND new device → require OTP."* Write every true/false row of conditions and the expected outcome. |
+| **State-transition** | Payment goes `pending → authorized → captured → refunded`. Test each valid step **plus one illegal one** (e.g. refund before capture). |
+| **Property-based (Hypothesis)** | Feed 500 random carts and check a rule that must always hold: **charged amount = sum of items + tax − discount, never negative**. If broken, the tool shrinks to the smallest failing cart. |
+| **Metamorphic** | When you don't know the "right" price, use a relation: **splitting a $100 payment into $60 + $40 must total exactly $100**. Or, adding a free item shouldn't change the total. |
+| **Fuzzing** | Send 10,000 random/garbage payloads to the payment API → assert **it never crashes or leaks card data**, no matter what junk comes in. |
+| **Fault injection (chaos)** | Mid-payment, **kill the payment gateway or drop the network** → assert no double charge, no half-completed order, cart stays consistent. |
+| **Formal (TLA+ / symbolic)** | Prove mathematically that **"a customer is never charged twice for the same order"** — for *every* possible timing, not just tested ones. |
+| **Model-based (MBT)** | Draw the checkout state machine (cart → address → pay → confirm) → the tool **auto-generates every path** through it as test cases. |
+| **Contract (Pact)** | Frontend expects `{ status: "paid", txnId: string }` from the payment API → **build fails if the API renames or drops that field**. Prevents "it worked in staging" bugs. |
+| **Differential** | Run the same order through the **old and new pricing engine** side by side → **flag any total that differs**. |
+| **Mutation testing** | Change `if amount >= limit` to `if amount > limit` in the code → a *good* test suite has a test that now fails, proving it would catch that bug. |
+| **Snapshot / golden** | Save today's receipt PDF → **alert if a future run produces a different one**. Catches unintended changes (but only detects change, not correctness). |
+| **LLM / agentic** | Paste the user story "customer pays with saved card" → model emits happy/negative/edge scenarios *by applying the techniques above*, not by guessing. |
+
+---
+
 ## 3. How to pick a strategy (and the "would UI use mutation?" question)
 
 **First, separate two things people conflate:**
