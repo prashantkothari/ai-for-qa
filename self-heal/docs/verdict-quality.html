@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verdict quality — the layered testing model</title>
+<style>
+  :root {
+    --paper: #F1EFEA;
+    --paper-2: #E8E5DE;
+    --ink: #151519;
+    --ink-2: #4A4C55;
+    --ink-3: #7A7C85;
+    --rule: #CFCBC0;
+    --rule-2: #DED9CC;
+    --accent: #2E5A4A;    /* deep forest */
+    --accent-2: #4E8B73;
+    --warn: #B26327;      /* burnt ochre */
+    --bad: #8E2B23;
+    --good: #2E5A4A;
+    --chip: #DDD8CB;
+  }
+  html { background: var(--paper); color: var(--ink); color-scheme: light; }
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 56px 40px 96px;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  .eyebrow {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  h1 .accent { color: var(--accent); font-style: italic; font-weight: 700; }
+  .lede {
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin: 0 0 40px;
+    text-wrap: pretty;
+  }
+  h2 {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.005em;
+    margin: 56px 0 8px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    display: flex; align-items: baseline; gap: 14px;
+    text-wrap: balance;
+  }
+  h2 .num {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: 0.05em;
+    padding-top: 4px;
+    flex: 0 0 auto;
+  }
+  h3 {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    margin: 24px 0 10px;
+  }
+  p { margin: 0 0 14px; }
+  .sub { color: var(--ink-2); font-size: 14px; margin-top: -2px; margin-bottom: 20px; }
+
+  /* Case card — the traced example */
+  .case {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 20px 24px;
+    margin: 20px 0 28px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+  }
+  .case .label {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; margin-bottom: 8px;
+  }
+  .case dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 20px; margin: 0; }
+  .case dt { color: var(--ink-3); font-size: 13px; }
+  .case dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .case dd b { color: var(--ink); font-weight: 700; }
+
+  /* Domain switcher */
+  .domain-switcher {
+    display: flex; align-items: center; gap: 12px;
+    margin: -6px 0 36px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  .domain-switcher label {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600;
+  }
+  .domain-switcher select {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px; font-weight: 600; color: var(--ink);
+    background-color: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 9px 36px 9px 14px;
+    border-radius: 3px;
+    -webkit-appearance: none; appearance: none;
+    cursor: pointer;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0 L5 6 L10 0 Z" fill="%234A4C55"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+  .domain-switcher select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .domain-panel { display: none; }
+  .domain-panel.active { display: block; }
+  .domain-intro {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px; color: var(--ink-2); margin: -4px 0 18px;
+  }
+
+  /* Layer blocks */
+  .layer { margin: 26px 0 36px; }
+  .layer-head {
+    display: flex; align-items: baseline; gap: 12px;
+    padding-bottom: 8px; margin-bottom: 14px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .layer-head .tag {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 600;
+  }
+  .layer-head h3 { margin: 0; font-size: 17px; }
+  .layer-head .cost {
+    margin-left: auto;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+  }
+  .layer-desc { color: var(--ink-2); font-size: 15px; margin-bottom: 14px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 13.5px;
+    font-variant-numeric: tabular-nums;
+    margin: 6px 0 12px;
+  }
+  .scroll { overflow-x: auto; }
+  th, td {
+    text-align: left;
+    padding: 9px 12px 9px 0;
+    border-bottom: 1px solid var(--rule-2);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 6px;
+  }
+  td code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    background: var(--chip);
+    padding: 1px 6px;
+    border-radius: 2px;
+    color: var(--ink);
+  }
+  .verdict { font-weight: 700; letter-spacing: 0.02em; font-size: 12px; }
+  .v-pass { color: var(--good); }
+  .v-fail { color: var(--bad); }
+  .v-abst { color: var(--warn); }
+
+  /* Coverage matrix */
+  .matrix { margin: 8px 0 12px; }
+  .matrix td:first-child { color: var(--ink-2); }
+  .matrix .cell { text-align: center; font-family: ui-monospace, monospace; font-size: 13px; }
+  .cell.yes { color: var(--good); }
+  .cell.no { color: var(--bad); }
+  .cell.part { color: var(--warn); }
+
+  /* ER diagram */
+  .er-wrap {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    padding: 20px;
+    margin: 16px 0 8px;
+    overflow-x: auto;
+  }
+  .er-wrap svg { display: block; max-width: 100%; height: auto; }
+  .er-legend {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 12px;
+    color: var(--ink-2);
+    display: flex; gap: 22px; flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .er-legend span::before {
+    content: ""; display: inline-block; width: 10px; height: 10px;
+    margin-right: 6px; vertical-align: 1px;
+  }
+  .lg-core::before { background: var(--accent); }
+  .lg-derived::before { background: var(--warn); }
+  .lg-rules::before { background: var(--ink); }
+
+  ul.clean { padding-left: 20px; margin: 6px 0 16px; }
+  ul.clean li { margin: 4px 0; }
+
+  .footer {
+    margin-top: 56px; padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 12px; color: var(--ink-3);
+  }
+</style>
+
+<div class="page">
+
+  <p class="eyebrow">Testsigma · verdict-quality thinking doc · 2026-07-07</p>
+  <h1>Beyond flow-passes: what it takes to say <span class="accent">"safe to release."</span></h1>
+  <p class="lede">
+    The same three-layer question — <em>did it happen, does it stay coherent, is the underlying
+    number or state actually correct</em> — traced through four different domains. The layering
+    doesn't change; the entities it has to name do. Switch domains below to see what's constant
+    and what isn't.
+  </p>
+
+  <div class="domain-switcher">
+    <label for="domainSelect">Domain</label>
+    <select id="domainSelect">
+      <option value="finance" selected>Financial planning — goal advisory</option>
+      <option value="payment">Payment &amp; checkout</option>
+      <option value="uber">Ride-hailing — Uber-style booking</option>
+      <option value="aws">Cloud infra — AWS EC2</option>
+    </select>
+  </div>
+
+  <!-- ============ DOMAIN: FINANCIAL PLANNING ============ -->
+  <div class="domain-panel active" data-domain="finance">
+
+  <p class="domain-intro">Traced scenario: a S$200,000 education goal, 12-year horizon, for a Family
+    Breadwinner persona.</p>
+
+  <div class="case">
+    <div class="label">The traced example</div>
+    <dl>
+      <dt>Persona</dt><dd><b>Family Breadwinner</b> · single-income, 2 dependents, moderate risk</dd>
+      <dt>Client</dt><dd>Age 38 · household income S$120,000 · existing savings S$45,000</dd>
+      <dt>Goal</dt><dd><b>Education</b> · target <b>S$200,000</b> · horizon <b>12 years</b></dd>
+      <dt>Assumptions</dt><dd>Education inflation 4.5%/yr · Portfolio return 5.5%/yr</dd>
+      <dt>Total need (shown)</dt><dd><b>S$338,900</b> — inflation-adjusted future value</dd>
+      <dt>Monthly gap</dt><dd><b>S$1,462</b> — required contribution to close the gap</dd>
+    </dl>
+  </div>
+
+  <h2><span class="num">§1</span> The three layers of assertion</h2>
+  <p>Every row below is a real test you could write today against the case above. The <em>verdict</em>
+    column shows what the test would return for a plausible bug. Read the layers as a stack: each
+    catches what the one above cannot.</p>
+
+  <!-- LAYER 1 -->
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L1</span>
+      <h3>Screen &amp; flow — "did it happen?"</h3>
+      <span class="cost">cheap · high volume · generatable</span>
+    </div>
+    <p class="layer-desc">Asserts UI state changed and the flow completed. No knowledge of the business.
+      This is where the self-heal work already lives.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Assertion</th><th>Input</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>"Add Goal" button opens the goal drawer</td>
+          <td><code>click(#add-goal)</code></td>
+          <td>Drawer visible, focus on amount field</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Amount field accepts <code>200000</code></td>
+          <td><code>type("200000")</code></td>
+          <td>Field shows <code>S$200,000</code></td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>"Total need" tile updates after Save</td>
+          <td>full form → Save</td>
+          <td>Tile value ≠ previous value</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Reload persists the goal</td>
+          <td>reload page</td>
+          <td>Goal row present in list</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">App shows <code>S$150,000</code> instead of <code>S$338,900</code></td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-fail">MISSES · tile updated, flow passed</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- LAYER 2 -->
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L2</span>
+      <h3>Invariants — "does it stay coherent?"</h3>
+      <span class="cost">medium · glossary + rules of thumb · fuzzable</span>
+    </div>
+    <p class="layer-desc">Cross-field, monotonic, and metamorphic relations. Needs a domain <em>glossary</em>
+      but not the full formula. Property/fuzz testing becomes semantically meaningful here.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Invariant</th><th>Perturbation</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Sum of goals' totals = "Total need" tile</td>
+          <td>add second goal (Retirement, S$500k)</td>
+          <td>Tile = goal₁.total + goal₂.total</td>
+          <td class="verdict v-fail">CATCHES · double-count bug</td>
+        </tr>
+        <tr>
+          <td>Monotonic in target amount</td>
+          <td>200k → 250k, horizon fixed</td>
+          <td>Total need strictly increases</td>
+          <td class="verdict v-fail">CATCHES · wrong sign on formula</td>
+        </tr>
+        <tr>
+          <td>Longer horizon ⇒ higher inflation-adjusted total</td>
+          <td>12yr → 18yr, amount fixed</td>
+          <td>Total need increases</td>
+          <td class="verdict v-fail">CATCHES · inflation not applied</td>
+        </tr>
+        <tr>
+          <td>Adding goal never mutates other goals</td>
+          <td>add second goal</td>
+          <td>goal₁ fields byte-identical</td>
+          <td class="verdict v-fail">CATCHES · shared-state bug</td>
+        </tr>
+        <tr>
+          <td>Persist → reload → identical view</td>
+          <td>save, reload</td>
+          <td>All derived fields match</td>
+          <td class="verdict v-fail">CATCHES · read/write model drift</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">Formula uses 3.5% inflation instead of 4.5%</td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-abst">ABSTAIN · invariants hold, value still wrong</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- LAYER 3 -->
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L3</span>
+      <h3>Oracles — "is the number correct?"</h3>
+      <span class="cost">expensive · needs formula + source of truth · few tests</span>
+    </div>
+    <p class="layer-desc">Exact expected value, traced User → App → DB. Reserved for money-path
+      calculations where being wrong is unacceptable.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Oracle</th><th>Formula (source of truth)</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Total need — inflation-adjusted FV</td>
+          <td><code>200000 × (1.045)¹²</code></td>
+          <td><code>S$338,896</code> ± S$5</td>
+          <td class="verdict v-fail">CATCHES · wrong rate, wrong compounding</td>
+        </tr>
+        <tr>
+          <td>Monthly gap — annuity contribution</td>
+          <td><code>PMT(5.5%/12, 144, PV=45000, FV=−338896)</code></td>
+          <td><code>S$1,462</code> ± S$5</td>
+          <td class="verdict v-fail">CATCHES · off-by-one on periods</td>
+        </tr>
+        <tr>
+          <td>Persona affects recommendation, not calculation</td>
+          <td>switch persona; recompute</td>
+          <td>Total need unchanged</td>
+          <td class="verdict v-fail">CATCHES · leakage into calc engine</td>
+        </tr>
+        <tr>
+          <td>DB row matches on-screen value</td>
+          <td>SELECT from <code>goal_computation</code></td>
+          <td>Stored = displayed to the cent</td>
+          <td class="verdict v-fail">CATCHES · display-layer rounding</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <h2><span class="num">§2</span> Coverage matrix — what each layer catches</h2>
+  <p class="sub">Same bug classes, different verdicts across layers. This is the argument for the layered stack.</p>
+  <div class="scroll"><table class="matrix">
+    <thead><tr>
+      <th style="width:44%">Bug class (real examples in advisor tools)</th>
+      <th class="cell">L1 flow</th>
+      <th class="cell">L2 invariants</th>
+      <th class="cell">L3 oracle</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Save button doesn't fire, drawer stays open</td>
+        <td class="cell yes">✓</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Total need tile shows stale value after edit</td>
+        <td class="cell yes">✓</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Adding goal B silently changes goal A's total</td>
+        <td class="cell no">✗</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Horizon change doesn't move inflation-adjusted total</td>
+        <td class="cell no">✗</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Persona leaks into calc engine (wrong number per persona)</td>
+        <td class="cell no">✗</td><td class="cell part">partial</td><td class="cell yes">✓</td></tr>
+      <tr><td>Inflation rate hard-coded to 3.5% instead of 4.5%</td>
+        <td class="cell no">✗</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+      <tr><td>Off-by-one on annuity periods (144 vs 143)</td>
+        <td class="cell no">✗</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+      <tr><td>DB stores rounded value; UI shows unrounded</td>
+        <td class="cell no">✗</td><td class="cell part">partial</td><td class="cell yes">✓</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="num">§3</span> The minimum ER model to author L2 and L3</h2>
+  <p class="sub">You cannot write invariants or oracles without naming the entities they relate. This is the
+    smallest domain schema that lets the case above be asserted end-to-end.</p>
+
+  <div class="er-wrap">
+    <svg viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ER diagram">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/>
+        </marker>
+        <style>
+          .box { fill: var(--paper); stroke: var(--ink); stroke-width: 1.2; }
+          .box.derived { stroke: var(--warn); stroke-dasharray: 4 3; }
+          .box.rules { fill: var(--paper); stroke: var(--accent); stroke-width: 1.4; }
+          .title { font: 600 12px ui-sans-serif, system-ui, sans-serif; fill: var(--ink); letter-spacing: 0.04em; text-transform: uppercase; }
+          .attr  { font: 11.5px ui-monospace, monospace; fill: var(--ink-2); }
+          .attr.pk { fill: var(--ink); font-weight: 700; }
+          .rel   { font: 10px ui-sans-serif, system-ui, sans-serif; fill: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase; }
+          .edge  { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+          .edge.dashed { stroke-dasharray: 3 3; stroke: var(--warn); }
+        </style>
+      </defs>
+
+      <!-- Client -->
+      <g transform="translate(20,30)">
+        <rect class="box" width="170" height="106" rx="2"/>
+        <text class="title" x="12" y="22">Client</text>
+        <line x1="0" y1="30" x2="170" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">client_id</text>
+        <text class="attr"    x="12" y="64">age, income</text>
+        <text class="attr"    x="12" y="80">savings, risk_pref</text>
+        <text class="attr"    x="12" y="96">persona_id →</text>
+      </g>
+
+      <!-- Persona -->
+      <g transform="translate(20,170)">
+        <rect class="box" width="170" height="90" rx="2"/>
+        <text class="title" x="12" y="22">Persona</text>
+        <line x1="0" y1="30" x2="170" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">persona_id</text>
+        <text class="attr"    x="12" y="64">name, segment</text>
+        <text class="attr"    x="12" y="80">default_horizon</text>
+      </g>
+
+      <!-- Goal -->
+      <g transform="translate(240,30)">
+        <rect class="box" width="180" height="140" rx="2"/>
+        <text class="title" x="12" y="22">Goal</text>
+        <line x1="0" y1="30" x2="180" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">goal_id</text>
+        <text class="attr"    x="12" y="64">client_id →</text>
+        <text class="attr"    x="12" y="80">goal_type_id →</text>
+        <text class="attr"    x="12" y="96">target_amount</text>
+        <text class="attr"    x="12" y="112">horizon_years</text>
+        <text class="attr"    x="12" y="128">priority</text>
+      </g>
+
+      <!-- GoalType -->
+      <g transform="translate(240,200)">
+        <rect class="box" width="180" height="100" rx="2"/>
+        <text class="title" x="12" y="22">GoalType</text>
+        <line x1="0" y1="30" x2="180" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">goal_type_id</text>
+        <text class="attr"    x="12" y="64">code (education…)</text>
+        <text class="attr"    x="12" y="80">inflation_assump →</text>
+        <text class="attr"    x="12" y="96">compute_rule_id →</text>
+      </g>
+
+      <!-- ComputationRule -->
+      <g transform="translate(470,200)">
+        <rect class="box rules" width="200" height="140" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--accent)">ComputationRule</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">rule_id</text>
+        <text class="attr"    x="12" y="64">version, effective_from</text>
+        <text class="attr"    x="12" y="80">formula_expr</text>
+        <text class="attr"    x="12" y="96">rounding_mode</text>
+        <text class="attr"    x="12" y="112">source_doc_ref</text>
+        <text class="attr"    x="12" y="128">approver</text>
+      </g>
+
+      <!-- Assumption -->
+      <g transform="translate(470,30)">
+        <rect class="box" width="200" height="140" rx="2"/>
+        <text class="title" x="12" y="22">Assumption</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">assumption_id</text>
+        <text class="attr"    x="12" y="64">kind (inflation | return)</text>
+        <text class="attr"    x="12" y="80">rate, scope</text>
+        <text class="attr"    x="12" y="96">effective_from, to</text>
+        <text class="attr"    x="12" y="112">source_of_truth</text>
+      </g>
+
+      <!-- ComputedGoal (derived) -->
+      <g transform="translate(700,30)">
+        <rect class="box derived" width="150" height="140" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--warn)">ComputedGoal</text>
+        <line x1="0" y1="30" x2="150" y2="30" stroke="var(--rule)"/>
+        <text class="attr"    x="12" y="48">goal_id →</text>
+        <text class="attr"    x="12" y="64">total_need</text>
+        <text class="attr"    x="12" y="80">monthly_gap</text>
+        <text class="attr"    x="12" y="96">computed_at</text>
+        <text class="attr"    x="12" y="112">rule_version</text>
+        <text class="attr"    x="12" y="128" fill="var(--warn)">(derived)</text>
+      </g>
+
+      <!-- Invariant -->
+      <g transform="translate(20,300)">
+        <rect class="box" width="170" height="120" rx="2"/>
+        <text class="title" x="12" y="22">Invariant</text>
+        <line x1="0" y1="30" x2="170" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">invariant_id</text>
+        <text class="attr"    x="12" y="64">name</text>
+        <text class="attr"    x="12" y="80">entities [Goal…]</text>
+        <text class="attr"    x="12" y="96">predicate</text>
+        <text class="attr"    x="12" y="112">severity</text>
+      </g>
+
+      <!-- Oracle -->
+      <g transform="translate(700,200)">
+        <rect class="box" width="150" height="140" rx="2"/>
+        <text class="title" x="12" y="22">TestOracle</text>
+        <line x1="0" y1="30" x2="150" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">oracle_id</text>
+        <text class="attr"    x="12" y="64">rule_id →</text>
+        <text class="attr"    x="12" y="80">inputs (fixture)</text>
+        <text class="attr"    x="12" y="96">expected_value</text>
+        <text class="attr"    x="12" y="112">tolerance</text>
+        <text class="attr"    x="12" y="128">last_verified</text>
+      </g>
+
+      <!-- BugClass -->
+      <g transform="translate(240,340)">
+        <rect class="box" width="180" height="120" rx="2"/>
+        <text class="title" x="12" y="22">BugClass (history)</text>
+        <line x1="0" y1="30" x2="180" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">bug_id</text>
+        <text class="attr"    x="12" y="64">layer_needed (L1|L2|L3)</text>
+        <text class="attr"    x="12" y="80">entities_involved</text>
+        <text class="attr"    x="12" y="96">shipped_to_prod?</text>
+        <text class="attr"    x="12" y="112">root_cause_tag</text>
+      </g>
+
+      <!-- FieldDataDist -->
+      <g transform="translate(470,380)">
+        <rect class="box" width="200" height="90" rx="2"/>
+        <text class="title" x="12" y="22">FieldDataDistribution</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr"    x="12" y="48">field_ref (Goal.amount…)</text>
+        <text class="attr"    x="12" y="64">p5, p50, p95, min, max</text>
+        <text class="attr"    x="12" y="80">edge_cases[]</text>
+      </g>
+
+      <!-- Edges -->
+      <!-- Client → Persona -->
+      <path class="edge" d="M105,136 L105,170" marker-end="url(#arrow)"/>
+      <text class="rel" x="112" y="156">has</text>
+      <!-- Client → Goal -->
+      <path class="edge" d="M190,80 L240,80" marker-end="url(#arrow)"/>
+      <text class="rel" x="196" y="74">1 : n</text>
+      <!-- Goal → GoalType -->
+      <path class="edge" d="M330,170 L330,200" marker-end="url(#arrow)"/>
+      <text class="rel" x="336" y="188">typed as</text>
+      <!-- GoalType → ComputationRule -->
+      <path class="edge" d="M420,250 L470,250" marker-end="url(#arrow)"/>
+      <text class="rel" x="422" y="244">uses</text>
+      <!-- GoalType → Assumption -->
+      <path class="edge" d="M420,215 C 445,215 445,110 470,110" marker-end="url(#arrow)"/>
+      <text class="rel" x="432" y="150">refs</text>
+      <!-- ComputationRule → Assumption -->
+      <path class="edge" d="M570,200 L570,170" marker-end="url(#arrow)"/>
+      <text class="rel" x="576" y="188">consumes</text>
+      <!-- Goal → ComputedGoal -->
+      <path class="edge dashed" d="M420,80 L700,80" marker-end="url(#arrow)"/>
+      <text class="rel" x="530" y="72" fill="var(--warn)">derives (via rule + assumption)</text>
+      <!-- ComputationRule → ComputedGoal -->
+      <path class="edge dashed" d="M670,210 C 720,210 720,160 720,170" marker-end="url(#arrow)"/>
+      <!-- Invariant → Goal -->
+      <path class="edge" d="M190,340 C 230,340 230,150 240,150" marker-end="url(#arrow)"/>
+      <text class="rel" x="196" y="240">asserts on</text>
+      <!-- Oracle → ComputationRule -->
+      <path class="edge" d="M700,260 L670,260" marker-end="url(#arrow)"/>
+      <text class="rel" x="672" y="254">binds</text>
+      <!-- BugClass → Invariant / Oracle -->
+      <path class="edge" d="M240,400 L190,400" marker-end="url(#arrow)"/>
+      <text class="rel" x="196" y="394">motivates</text>
+      <!-- FieldDataDistribution → Goal -->
+      <path class="edge" d="M570,380 C 500,380 380,220 380,170" marker-end="url(#arrow)"/>
+      <text class="rel" x="486" y="332">shapes fuzz inputs for</text>
+    </svg>
+    <div class="er-legend">
+      <span class="lg-core">Core entities</span>
+      <span class="lg-derived">Derived (never authored, always computed)</span>
+      <span class="lg-rules">Rules &amp; assumptions (versioned, sourced)</span>
+    </div>
+  </div>
+
+  <h3>How each entity earns its keep</h3>
+  <ul class="clean">
+    <li><b>ComputationRule</b> is the linchpin. Versioned + source-linked, so an oracle's "expected"
+      is defensible instead of asserted. Without it you cannot distinguish a broken app from a stale test.</li>
+    <li><b>Assumption</b> separated from Rule — inflation and return change more often than the formula
+      does; you want to swap the number without editing the oracle.</li>
+    <li><b>ComputedGoal</b> is <em>derived</em>, not stored input. Marked dashed to make the boundary
+      explicit — everything on the right of the derivation edge is testable output, not test fixture.</li>
+    <li><b>Invariant</b> is a first-class row, not code buried in a test file. Enables "which invariants
+      failed on this release" reporting — the actual release-risk indicator.</li>
+    <li><b>BugClass</b> closes the loop: every escaped bug is tagged with the layer that <em>should</em>
+      have caught it. Over time this tells you where to invest more oracle vs invariant work — the same
+      empirical validation loop you already run for false-heal=0.</li>
+    <li><b>FieldDataDistribution</b> — turns fuzzing from random to realistic. p5/p50/p95 plus
+      explicit edge cases (S$0, S$99M, 1-year horizon) so property tests explore the space users
+      actually inhabit.</li>
+  </ul>
+
+  <h2><span class="num">§4</span> What to gather to make this real</h2>
+  <p class="sub">Rank-ordered by leverage; each row directly populates one or more tables above.</p>
+  <div class="scroll"><table>
+    <thead><tr>
+      <th style="width:26%">Input</th><th>Populates</th><th>Where to source</th><th style="width:16%">Effort</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Last 20–30 escaped bugs, classified L1/L2/L3</td>
+        <td>BugClass</td><td>Jira / support tickets / RCAs</td><td>0.5 day</td></tr>
+      <tr><td>Domain glossary + entity relations</td>
+        <td>Client, Persona, Goal, GoalType</td><td>PM + 1 SME session</td><td>1 day</td></tr>
+      <tr><td>Formula spec with version + approver</td>
+        <td>ComputationRule</td><td>Actuarial / product-spec doc</td><td>1–2 days per rule</td></tr>
+      <tr><td>Current assumption values + change log</td>
+        <td>Assumption</td><td>Config / finance team</td><td>0.5 day</td></tr>
+      <tr><td>Anonymized field distributions</td>
+        <td>FieldDataDistribution</td><td>Prod analytics (aggregate only)</td><td>1 day</td></tr>
+      <tr><td>Per-persona user expectation statements</td>
+        <td>Invariant (generation seed)</td><td>UX research / advisor interviews</td><td>0.5 day</td></tr>
+      <tr><td>Regulatory / compliance constraints</td>
+        <td>Invariant (free ones)</td><td>Compliance team, existing docs</td><td>0.5 day</td></tr>
+    </tbody>
+  </table></div>
+
+  </div><!-- /domain-panel: finance -->
+
+  <!-- ============ DOMAIN: PAYMENT & CHECKOUT ============ -->
+  <div class="domain-panel" data-domain="payment">
+
+  <p class="domain-intro">Traced scenario: a $100.00 cart with a 20% promo code and 8% tax, paid by
+    card ending 4242.</p>
+
+  <div class="case">
+    <div class="label">The traced example</div>
+    <dl>
+      <dt>Cart</dt><dd>3 items · subtotal <b>$100.00</b></dd>
+      <dt>Promo code</dt><dd><code>SAVE20</code> → −<b>$20.00</b> (20%)</dd>
+      <dt>Tax (8%)</dt><dd>on $80.00 taxable → <b>$6.40</b></dd>
+      <dt>Total charged</dt><dd><b>$86.40</b></dd>
+      <dt>Card</dt><dd>•••• 4242 · USD · 3DS off (trusted device)</dd>
+      <dt>Payment state</dt><dd>pending → authorized → <b>captured</b></dd>
+    </dl>
+  </div>
+
+  <h2><span class="num">§1</span> The three layers of assertion</h2>
+  <p>Every row below is a real test you could write today against the case above. The <em>verdict</em>
+    column shows what the test would return for a plausible bug. Read the layers as a stack: each
+    catches what the one above cannot.</p>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L1</span>
+      <h3>Screen &amp; flow — "did it happen?"</h3>
+      <span class="cost">cheap · high volume · generatable</span>
+    </div>
+    <p class="layer-desc">Asserts UI state changed and the flow completed. No knowledge of pricing
+      or the payment lifecycle.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Assertion</th><th>Input</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>"Pay $86.40" button submits the form</td>
+          <td><code>click(#pay-btn)</code></td>
+          <td>Spinner, then "Payment successful" screen</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Card field validates length + Luhn</td>
+          <td><code>type("4242 4242 4242 4242")</code></td>
+          <td>Brand icon shows "Visa"</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Confirmation screen shows an order number</td>
+          <td>complete payment</td>
+          <td>Order # is a non-empty string</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Order appears in history after reload</td>
+          <td>reload page</td>
+          <td>Order row present with same total</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">App charges $100.00 instead of $86.40 (discount not applied)</td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-fail">MISSES · spinner→success shown, flow completed</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L2</span>
+      <h3>Invariants — "does it stay coherent?"</h3>
+      <span class="cost">medium · glossary + rules of thumb · fuzzable</span>
+    </div>
+    <p class="layer-desc">Cross-field, boundary, and metamorphic relations on price. Needs a pricing
+      glossary but not the fraud rules themselves.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Invariant</th><th>Perturbation</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>charged = subtotal − discount + tax, never negative</td>
+          <td>apply SAVE20 + 8% tax</td>
+          <td>$86.40 exactly</td>
+          <td class="verdict v-fail">CATCHES · discount/tax miscalc</td>
+        </tr>
+        <tr>
+          <td>Splitting $100 into $60 + $40 totals exactly $100 (metamorphic)</td>
+          <td>pay in two parts</td>
+          <td>sum of parts = original total</td>
+          <td class="verdict v-fail">CATCHES · rounding/split bug</td>
+        </tr>
+        <tr>
+          <td>Adding a $0 free item doesn't change total</td>
+          <td>add free sample item</td>
+          <td>total unchanged</td>
+          <td class="verdict v-fail">CATCHES · free-item leakage</td>
+        </tr>
+        <tr>
+          <td>Boundary: just-inside / just-outside limits</td>
+          <td>$0.99, $1, $10,000, $10,001</td>
+          <td>accepted/rejected exactly per limit</td>
+          <td class="verdict v-fail">CATCHES · off-by-one on limits</td>
+        </tr>
+        <tr>
+          <td>Pairwise: card type × currency × 3DS on/off</td>
+          <td>Visa+USD+3DS-off, Amex+EUR+3DS-on, …</td>
+          <td>every pair succeeds per rule</td>
+          <td class="verdict v-fail">CATCHES · combo-specific failures</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">OTP not requested for a &gt;$500 new-device charge</td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-abst">ABSTAIN · invariants hold, rule value still wrong</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L3</span>
+      <h3>Oracles — "is the number correct?"</h3>
+      <span class="cost">expensive · needs the rule + source of truth · few tests</span>
+    </div>
+    <p class="layer-desc">Exact expected outcome for pricing, fraud rules, and the payment lifecycle.
+      Reserved for the paths where a wrong charge is unacceptable.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Oracle</th><th>Rule (source of truth)</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Decision table — OTP requirement</td>
+          <td><code>amount &gt; $500 AND new_device → true</code></td>
+          <td>OTP required, exact rule row</td>
+          <td class="verdict v-fail">CATCHES · wrong OTP threshold</td>
+        </tr>
+        <tr>
+          <td>State-transition — payment lifecycle</td>
+          <td><code>pending → authorized → captured → refunded</code></td>
+          <td>each valid step succeeds; refund-before-capture rejected</td>
+          <td class="verdict v-fail">CATCHES · illegal transition allowed</td>
+        </tr>
+        <tr>
+          <td>Contract — gateway response shape</td>
+          <td><code>POST /charge</code></td>
+          <td><code>{status:"paid", txnId:string}</code> exact fields</td>
+          <td class="verdict v-fail">CATCHES · API field renamed/dropped</td>
+        </tr>
+        <tr>
+          <td>Formal — never charged twice for one order</td>
+          <td>every retry/timing interleaving</td>
+          <td>charge count per order_id ≤ 1</td>
+          <td class="verdict v-fail">CATCHES · double-charge on network retry</td>
+        </tr>
+        <tr>
+          <td>Differential — pricing engine v1 vs v2</td>
+          <td>same cart through both</td>
+          <td>totals identical to the cent</td>
+          <td class="verdict v-fail">CATCHES · silent pricing-engine drift</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <h2><span class="num">§2</span> Coverage matrix — what each layer catches</h2>
+  <p class="sub">Same bug classes, different verdicts across layers.</p>
+  <div class="scroll"><table class="matrix">
+    <thead><tr>
+      <th style="width:44%">Bug class</th>
+      <th class="cell">L1 flow</th>
+      <th class="cell">L2 invariants</th>
+      <th class="cell">L3 oracle</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Pay button double-fires on slow network → double charge</td>
+        <td class="cell no">✗</td><td class="cell part">partial</td><td class="cell yes">✓</td></tr>
+      <tr><td>Discount not applied, customer overcharged</td>
+        <td class="cell no">✗</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>OTP not triggered for amount &gt; $500 + new device</td>
+        <td class="cell no">✗</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+      <tr><td>Refund allowed before capture (invalid state)</td>
+        <td class="cell no">✗</td><td class="cell part">partial</td><td class="cell yes">✓</td></tr>
+      <tr><td>Gateway renames txnId, confirmation # shows blank</td>
+        <td class="cell part">partial</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+      <tr><td>Pricing engine v2 disagrees by $0.01 rounding on some carts</td>
+        <td class="cell no">✗</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="num">§3</span> The minimum ER model to author L2 and L3</h2>
+  <p class="sub">Same shape as the finance model — a rules entity feeds a derived charge, bound by
+    a contract and a lifecycle.</p>
+
+  <div class="er-wrap">
+    <svg viewBox="0 0 860 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Payment domain ER diagram">
+      <defs>
+        <marker id="arrow-pay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/>
+        </marker>
+        <style>
+          .box { fill: var(--paper); stroke: var(--ink); stroke-width: 1.2; }
+          .box.derived { stroke: var(--warn); stroke-dasharray: 4 3; }
+          .box.rules { fill: var(--paper); stroke: var(--accent); stroke-width: 1.4; }
+          .title { font: 600 12px ui-sans-serif, system-ui, sans-serif; fill: var(--ink); letter-spacing: 0.04em; text-transform: uppercase; }
+          .attr  { font: 11.5px ui-monospace, monospace; fill: var(--ink-2); }
+          .attr.pk { fill: var(--ink); font-weight: 700; }
+          .rel   { font: 10px ui-sans-serif, system-ui, sans-serif; fill: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase; }
+          .edge  { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+          .edge.dashed { stroke-dasharray: 3 3; stroke: var(--warn); }
+        </style>
+      </defs>
+
+      <g transform="translate(20,20)">
+        <rect class="box" width="200" height="100" rx="2"/>
+        <text class="title" x="12" y="22">Customer</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">customer_id</text>
+        <text class="attr"    x="12" y="64">email</text>
+        <text class="attr"    x="12" y="80">saved_cards[]</text>
+      </g>
+
+      <g transform="translate(260,20)">
+        <rect class="box" width="200" height="110" rx="2"/>
+        <text class="title" x="12" y="22">Cart</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">cart_id</text>
+        <text class="attr"    x="12" y="64">customer_id →</text>
+        <text class="attr"    x="12" y="80">items[], discount_code</text>
+        <text class="attr"    x="12" y="96">subtotal</text>
+      </g>
+
+      <g transform="translate(500,20)">
+        <rect class="box rules" width="220" height="130" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--accent)">PricingRule</text>
+        <line x1="0" y1="30" x2="220" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">rule_id</text>
+        <text class="attr"    x="12" y="64">tax_rate, discount_logic</text>
+        <text class="attr"    x="12" y="80">version, effective_from</text>
+        <text class="attr"    x="12" y="96">source_doc_ref</text>
+        <text class="attr"    x="12" y="112">approver</text>
+      </g>
+
+      <g transform="translate(20,220)">
+        <rect class="box derived" width="200" height="130" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--warn)">Payment</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr"    x="12" y="48">payment_id</text>
+        <text class="attr"    x="12" y="64">cart_id →</text>
+        <text class="attr"    x="12" y="80">charged_amount</text>
+        <text class="attr"    x="12" y="96">state, rule_version</text>
+        <text class="attr"    x="12" y="112" fill="var(--warn)">(derived)</text>
+      </g>
+
+      <g transform="translate(260,220)">
+        <rect class="box" width="220" height="130" rx="2"/>
+        <text class="title" x="12" y="22">GatewayContract</text>
+        <line x1="0" y1="30" x2="220" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">contract_id</text>
+        <text class="attr"    x="12" y="64">fields: status, txnId</text>
+        <text class="attr"    x="12" y="80">version</text>
+        <text class="attr"    x="12" y="96">gateway_ref</text>
+      </g>
+
+      <g transform="translate(520,220)">
+        <rect class="box" width="200" height="130" rx="2"/>
+        <text class="title" x="12" y="22">FraudRule (OTP)</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">rule_id</text>
+        <text class="attr"    x="12" y="64">condition</text>
+        <text class="attr"    x="12" y="80">action: require_otp</text>
+        <text class="attr"    x="12" y="96">source_doc_ref</text>
+      </g>
+
+      <path class="edge" d="M220,70 L260,70" marker-end="url(#arrow-pay)"/>
+      <text class="rel" x="222" y="64">1 : n</text>
+      <path class="edge dashed" d="M460,80 C 480,80 480,280 220,280" marker-end="url(#arrow-pay)"/>
+      <text class="rel" x="330" y="120" fill="var(--warn)">derives charged_amount</text>
+      <path class="edge" d="M600,150 L600,220" marker-end="url(#arrow-pay)"/>
+      <text class="rel" x="606" y="188">consumes</text>
+      <path class="edge" d="M220,270 L260,270" marker-end="url(#arrow-pay)"/>
+      <text class="rel" x="222" y="264">binds</text>
+      <path class="edge" d="M480,270 L520,270" marker-end="url(#arrow-pay)"/>
+      <text class="rel" x="484" y="264">governs</text>
+    </svg>
+    <div class="er-legend">
+      <span class="lg-core">Core entities</span>
+      <span class="lg-derived">Derived (never authored, always computed)</span>
+      <span class="lg-rules">Rules (versioned, sourced)</span>
+    </div>
+  </div>
+
+  <h2><span class="num">§4</span> What to gather to make this real</h2>
+  <div class="scroll"><table>
+    <thead><tr>
+      <th style="width:26%">Input</th><th>Populates</th><th>Where to source</th><th style="width:16%">Effort</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Pricing / tax / discount rule spec + version</td>
+        <td>PricingRule</td><td>Finance / product spec doc</td><td>1 day</td></tr>
+      <tr><td>Card-network test matrix (type × currency × 3DS)</td>
+        <td>pairwise test design</td><td>Payments team</td><td>0.5 day</td></tr>
+      <tr><td>Payment gateway API contract / schema</td>
+        <td>GatewayContract</td><td>Gateway API docs / Pact broker</td><td>0.5 day</td></tr>
+      <tr><td>Fraud / OTP decision table</td>
+        <td>FraudRule</td><td>Risk / fraud team</td><td>1 day</td></tr>
+      <tr><td>Payment state-machine spec</td>
+        <td>Payment.state</td><td>Payments engineering</td><td>0.5 day</td></tr>
+      <tr><td>Escaped payment bugs, classified L1/L2/L3</td>
+        <td>BugClass</td><td>Incident / support tickets</td><td>0.5 day</td></tr>
+    </tbody>
+  </table></div>
+
+  </div><!-- /domain-panel: payment -->
+
+  <!-- ============ DOMAIN: RIDE-HAILING ============ -->
+  <div class="domain-panel" data-domain="uber">
+
+  <p class="domain-intro">Traced scenario: a 6.2 km ride at 1.4× surge, fare estimate $16.58.</p>
+
+  <div class="case">
+    <div class="label">The traced example</div>
+    <dl>
+      <dt>Pickup → Dropoff</dt><dd>Point A → Point B · <b>6.2 km</b> · ETA <b>14 min</b></dd>
+      <dt>Fare formula</dt><dd>base $2.50 + $1.10/km + $0.18/min</dd>
+      <dt>Surge</dt><dd><b>1.4×</b> (high-demand zone)</dd>
+      <dt>Fare shown</dt><dd><b>$16.58</b></dd>
+      <dt>Ride state</dt><dd>requested → matched → arrived → <b>in_progress</b></dd>
+    </dl>
+  </div>
+
+  <h2><span class="num">§1</span> The three layers of assertion</h2>
+  <p>Every row below is a real test you could write today against the case above.</p>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L1</span>
+      <h3>Screen &amp; flow — "did it happen?"</h3>
+      <span class="cost">cheap · high volume · generatable</span>
+    </div>
+    <p class="layer-desc">Asserts the ride flow completed. No knowledge of the fare formula or surge logic.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Assertion</th><th>Input</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>"Request Ride" opens driver-matching screen</td>
+          <td><code>tap(#request-ride)</code></td>
+          <td>"Finding your driver" spinner shown</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Map renders route after match</td>
+          <td>driver matched</td>
+          <td>Route polyline + ETA shown</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Trip-completed screen shows a fare</td>
+          <td>complete trip</td>
+          <td>Fare tile non-empty</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Receipt appears in ride history after reload</td>
+          <td>reload app</td>
+          <td>Ride row present with same fare</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">Fare shown $11.84 instead of $16.58 (surge not applied)</td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-fail">MISSES · trip completed, fare tile populated</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L2</span>
+      <h3>Invariants — "does it stay coherent?"</h3>
+      <span class="cost">medium · glossary + rules of thumb · fuzzable</span>
+    </div>
+    <p class="layer-desc">Cross-field and monotonic relations on fare, ETA, and trip state.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Invariant</th><th>Perturbation</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>fare = (base + distance×rate + time×rate) × surge, never negative</td>
+          <td>recompute for 6.2 km / 14 min / 1.4×</td>
+          <td>$16.58 exactly</td>
+          <td class="verdict v-fail">CATCHES · surge/formula miscalc</td>
+        </tr>
+        <tr>
+          <td>Cancelling before match incurs no charge</td>
+          <td>cancel pre-match</td>
+          <td>fare = $0.00</td>
+          <td class="verdict v-fail">CATCHES · pre-match cancellation charge</td>
+        </tr>
+        <tr>
+          <td>Adding a stop never decreases fare</td>
+          <td>insert mid-trip stop</td>
+          <td>new fare ≥ original fare</td>
+          <td class="verdict v-fail">CATCHES · stop miscredit</td>
+        </tr>
+        <tr>
+          <td>ETA is monotonic in pickup distance</td>
+          <td>move pickup 2 km farther</td>
+          <td>ETA increases</td>
+          <td class="verdict v-fail">CATCHES · stale ETA calc</td>
+        </tr>
+        <tr>
+          <td>Trip completes only if GPS confirms dropoff</td>
+          <td>end trip outside dropoff radius</td>
+          <td>trip stays in_progress</td>
+          <td class="verdict v-fail">CATCHES · premature completion</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">Surge multiplier wrong for one zone boundary</td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-abst">ABSTAIN · formula holds, input value wrong</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L3</span>
+      <h3>Oracles — "is the number correct?"</h3>
+      <span class="cost">expensive · needs the rule + source of truth · few tests</span>
+    </div>
+    <p class="layer-desc">Exact expected outcome for fare, demand signaling, and the ride lifecycle.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Oracle</th><th>Rule (source of truth)</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Decision table — high-demand banner</td>
+          <td><code>surge &gt; 2.0× AND drivers_available &lt; 3</code></td>
+          <td>show_banner = true, exact rule row</td>
+          <td class="verdict v-fail">CATCHES · wrong demand threshold</td>
+        </tr>
+        <tr>
+          <td>State-transition — ride lifecycle</td>
+          <td><code>requested → matched → arrived → in_progress → completed</code></td>
+          <td>invalid skip (requested→completed) rejected</td>
+          <td class="verdict v-fail">CATCHES · illegal state skip</td>
+        </tr>
+        <tr>
+          <td>Contract — dispatch API response shape</td>
+          <td><code>GET /ride/:id</code></td>
+          <td><code>{fare, etaMinutes, driverId}</code> exact fields</td>
+          <td class="verdict v-fail">CATCHES · API field renamed</td>
+        </tr>
+        <tr>
+          <td>Formal — never charged for a stationary ride</td>
+          <td>every GPS/timing scenario</td>
+          <td>charge = $0 if trip distance ≈ 0</td>
+          <td class="verdict v-fail">CATCHES · phantom-trip charge</td>
+        </tr>
+        <tr>
+          <td>Differential — pricing engine v1 vs v2</td>
+          <td>same trip through both</td>
+          <td>fares match within $0.01</td>
+          <td class="verdict v-fail">CATCHES · silent fare-engine drift</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <h2><span class="num">§2</span> Coverage matrix — what each layer catches</h2>
+  <div class="scroll"><table class="matrix">
+    <thead><tr>
+      <th style="width:44%">Bug class</th>
+      <th class="cell">L1 flow</th>
+      <th class="cell">L2 invariants</th>
+      <th class="cell">L3 oracle</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Request button unresponsive on flaky network</td>
+        <td class="cell yes">✓</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Surge multiplier not applied for a specific zone</td>
+        <td class="cell no">✗</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+      <tr><td>Fare doesn't increase when a stop is added</td>
+        <td class="cell no">✗</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Ride marked completed without GPS confirming dropoff</td>
+        <td class="cell no">✗</td><td class="cell part">partial</td><td class="cell yes">✓</td></tr>
+      <tr><td>Dispatch API renames driverId, driver card shows blank</td>
+        <td class="cell part">partial</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+      <tr><td>Pricing engine v1/v2 disagree on airport-zone trips</td>
+        <td class="cell no">✗</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="num">§3</span> The minimum ER model to author L2 and L3</h2>
+  <p class="sub">A fare rule and a live surge feed replace the finance model's ComputationRule and Assumption.</p>
+
+  <div class="er-wrap">
+    <svg viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ride-hailing domain ER diagram">
+      <defs>
+        <marker id="arrow-uber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/>
+        </marker>
+        <style>
+          .box { fill: var(--paper); stroke: var(--ink); stroke-width: 1.2; }
+          .box.derived { stroke: var(--warn); stroke-dasharray: 4 3; }
+          .box.rules { fill: var(--paper); stroke: var(--accent); stroke-width: 1.4; }
+          .title { font: 600 12px ui-sans-serif, system-ui, sans-serif; fill: var(--ink); letter-spacing: 0.04em; text-transform: uppercase; }
+          .attr  { font: 11.5px ui-monospace, monospace; fill: var(--ink-2); }
+          .attr.pk { fill: var(--ink); font-weight: 700; }
+          .rel   { font: 10px ui-sans-serif, system-ui, sans-serif; fill: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase; }
+          .edge  { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+          .edge.dashed { stroke-dasharray: 3 3; stroke: var(--warn); }
+        </style>
+      </defs>
+
+      <g transform="translate(20,20)">
+        <rect class="box" width="190" height="100" rx="2"/>
+        <text class="title" x="12" y="22">Rider</text>
+        <line x1="0" y1="30" x2="190" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">rider_id</text>
+        <text class="attr"    x="12" y="64">home_zone</text>
+        <text class="attr"    x="12" y="80">payment_method</text>
+      </g>
+
+      <g transform="translate(250,20)">
+        <rect class="box derived" width="210" height="130" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--warn)">Ride</text>
+        <line x1="0" y1="30" x2="210" y2="30" stroke="var(--rule)"/>
+        <text class="attr"    x="12" y="48">ride_id</text>
+        <text class="attr"    x="12" y="64">rider_id →, driver_id →</text>
+        <text class="attr"    x="12" y="80">distance_km, duration_min</text>
+        <text class="attr"    x="12" y="96">fare, state</text>
+        <text class="attr"    x="12" y="112" fill="var(--warn)">(fare derived)</text>
+      </g>
+
+      <g transform="translate(500,20)">
+        <rect class="box rules" width="220" height="130" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--accent)">FareRule</text>
+        <line x1="0" y1="30" x2="220" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">rule_id</text>
+        <text class="attr"    x="12" y="64">base, per_km, per_min</text>
+        <text class="attr"    x="12" y="80">version, city</text>
+        <text class="attr"    x="12" y="96">source_doc_ref</text>
+      </g>
+
+      <g transform="translate(20,220)">
+        <rect class="box" width="190" height="110" rx="2"/>
+        <text class="title" x="12" y="22">Driver</text>
+        <line x1="0" y1="30" x2="190" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">driver_id</text>
+        <text class="attr"    x="12" y="64">zone, vehicle_type</text>
+      </g>
+
+      <g transform="translate(250,220)">
+        <rect class="box" width="210" height="110" rx="2"/>
+        <text class="title" x="12" y="22">SurgeZone</text>
+        <line x1="0" y1="30" x2="210" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">zone_id</text>
+        <text class="attr"    x="12" y="64">multiplier, demand_level</text>
+        <text class="attr"    x="12" y="80">effective_from</text>
+      </g>
+
+      <g transform="translate(500,220)">
+        <rect class="box" width="220" height="110" rx="2"/>
+        <text class="title" x="12" y="22">DispatchAPIContract</text>
+        <line x1="0" y1="30" x2="220" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">contract_id</text>
+        <text class="attr"    x="12" y="64">fields: fare, etaMinutes, driverId</text>
+        <text class="attr"    x="12" y="80">version</text>
+      </g>
+
+      <path class="edge" d="M210,70 L250,70" marker-end="url(#arrow-uber)"/>
+      <text class="rel" x="212" y="64">requests</text>
+      <path class="edge" d="M210,270 L250,270" marker-end="url(#arrow-uber)"/>
+      <text class="rel" x="212" y="264">assigned to</text>
+      <path class="edge dashed" d="M460,80 L500,80" marker-end="url(#arrow-uber)"/>
+      <text class="rel" x="462" y="74" fill="var(--warn)">computes fare</text>
+      <path class="edge" d="M460,275 L500,150" marker-end="url(#arrow-uber)"/>
+      <text class="rel" x="462" y="220">feeds</text>
+      <path class="edge" d="M460,90 L460,220" marker-end="url(#arrow-uber)"/>
+      <text class="rel" x="466" y="160">binds</text>
+    </svg>
+    <div class="er-legend">
+      <span class="lg-core">Core entities</span>
+      <span class="lg-derived">Derived (never authored, always computed)</span>
+      <span class="lg-rules">Rules (versioned, sourced)</span>
+    </div>
+  </div>
+
+  <h2><span class="num">§4</span> What to gather to make this real</h2>
+  <div class="scroll"><table>
+    <thead><tr>
+      <th style="width:26%">Input</th><th>Populates</th><th>Where to source</th><th style="width:16%">Effort</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Fare formula per city/zone + version</td>
+        <td>FareRule</td><td>Pricing team spec</td><td>1 day</td></tr>
+      <tr><td>Live surge-zone data feed</td>
+        <td>SurgeZone</td><td>Ops / dispatch data</td><td>0.5 day</td></tr>
+      <tr><td>Dispatch API contract</td>
+        <td>DispatchAPIContract</td><td>API docs / contract tests</td><td>0.5 day</td></tr>
+      <tr><td>Ride state-machine spec</td>
+        <td>Ride.state</td><td>Rider-app engineering</td><td>0.5 day</td></tr>
+      <tr><td>GPS dropoff-confirmation rule</td>
+        <td>Ride invariant</td><td>Trust &amp; safety team</td><td>0.5 day</td></tr>
+      <tr><td>Escaped ride/fare bugs, classified L1/L2/L3</td>
+        <td>BugClass</td><td>Support tickets / RCAs</td><td>0.5 day</td></tr>
+    </tbody>
+  </table></div>
+
+  </div><!-- /domain-panel: uber -->
+
+  <!-- ============ DOMAIN: CLOUD INFRA (AWS EC2) ============ -->
+  <div class="domain-panel" data-domain="aws">
+
+  <p class="domain-intro">Traced scenario: launching a t3.medium with a 20GB EBS volume in us-east-1.</p>
+
+  <div class="case">
+    <div class="label">The traced example</div>
+    <dl>
+      <dt>Instance</dt><dd><b>t3.medium</b> · us-east-1 · delete-on-termination: true</dd>
+      <dt>EBS volume</dt><dd>20GB gp3, attached</dd>
+      <dt>Security group</dt><dd>port 22 open (0.0.0.0/0, dev)</dd>
+      <dt>On-demand rate</dt><dd>$0.0416/hr, per-second billing</dd>
+      <dt>Lifecycle</dt><dd>pending → running → stopping → <b>stopped</b></dd>
+    </dl>
+  </div>
+
+  <h2><span class="num">§1</span> The three layers of assertion</h2>
+  <p>Every row below is a real test you could write today against the case above.</p>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L1</span>
+      <h3>Screen &amp; flow — "did it happen?"</h3>
+      <span class="cost">cheap · high volume · generatable</span>
+    </div>
+    <p class="layer-desc">Asserts the console/API flow completed. No knowledge of billing or the
+      lifecycle's edge cases.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Assertion</th><th>Input</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>"Launch Instance" transitions state to running</td>
+          <td><code>click(#launch)</code></td>
+          <td>State: pending → running</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Public IP assigned after running</td>
+          <td>wait for running</td>
+          <td><code>PublicIpAddress</code> non-null</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>SSH succeeds on port 22</td>
+          <td><code>ssh ec2-user@ip</code></td>
+          <td>Connection established</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td>Instance list persists after reload</td>
+          <td>reload console</td>
+          <td>Instance row present, same ID</td>
+          <td class="verdict v-pass">PASS-catches</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">Billing meter still charges after Stop</td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-fail">MISSES · console shows "stopped", flow passed</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L2</span>
+      <h3>Invariants — "does it stay coherent?"</h3>
+      <span class="cost">medium · glossary + rules of thumb · fuzzable</span>
+    </div>
+    <p class="layer-desc">Cross-resource relations between instance state, billing, storage, and network config.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Invariant</th><th>Perturbation</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Billing accrues only while state = running</td>
+          <td>stop instance, wait 1 hr</td>
+          <td>charge for that hour = $0.00</td>
+          <td class="verdict v-fail">CATCHES · billed-while-stopped bug</td>
+        </tr>
+        <tr>
+          <td>Stopping never deletes attached EBS (unless Terminate + flag)</td>
+          <td>stop instance</td>
+          <td>volume stays in-use/available</td>
+          <td class="verdict v-fail">CATCHES · accidental volume deletion</td>
+        </tr>
+        <tr>
+          <td>Security-group change applies without restart</td>
+          <td>edit SG rule</td>
+          <td>new rule active, instance still running</td>
+          <td class="verdict v-fail">CATCHES · unwanted forced restart</td>
+        </tr>
+        <tr>
+          <td>Resizing instance type preserves ENI/EBS</td>
+          <td>t3.medium → t3.large</td>
+          <td>same volumes/network attached after resize</td>
+          <td class="verdict v-fail">CATCHES · config loss on resize</td>
+        </tr>
+        <tr>
+          <td>Launch count never silently exceeds vCPU limit</td>
+          <td>launch batch near account limit</td>
+          <td>all succeed within limit, or explicit error</td>
+          <td class="verdict v-fail">CATCHES · silent partial launch</td>
+        </tr>
+        <tr>
+          <td style="color:var(--warn)">Metering rollup double-counts a stop/start within one hour</td>
+          <td>—</td>
+          <td>—</td>
+          <td class="verdict v-abst">ABSTAIN · per-instance invariant holds, rollup unverified</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="layer">
+    <div class="layer-head">
+      <span class="tag">L3</span>
+      <h3>Oracles — "is the number correct?"</h3>
+      <span class="cost">expensive · needs the rule + source of truth · few tests</span>
+    </div>
+    <p class="layer-desc">Exact expected outcome for billing, the API contract, and lifecycle transitions.</p>
+    <div class="scroll"><table>
+      <thead><tr>
+        <th style="width:36%">Oracle</th><th>Rule (source of truth)</th><th>Expected</th><th style="width:16%">If bug…</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td>Decision table — billing mode by OS</td>
+          <td><code>OS=Linux → per-second; OS=Windows-BYOL → per-hour</code></td>
+          <td>exact billing granularity per rule row</td>
+          <td class="verdict v-fail">CATCHES · wrong billing granularity</td>
+        </tr>
+        <tr>
+          <td>State-transition — instance lifecycle</td>
+          <td><code>pending → running → stopping → stopped → terminated</code></td>
+          <td>invalid transition (terminated→running) rejected</td>
+          <td class="verdict v-fail">CATCHES · illegal resurrect</td>
+        </tr>
+        <tr>
+          <td>Contract — <code>DescribeInstances</code> schema</td>
+          <td><code>DescribeInstances</code></td>
+          <td><code>{InstanceId, State.Name, PublicIpAddress}</code> exact fields</td>
+          <td class="verdict v-fail">CATCHES · SDK-breaking field rename</td>
+        </tr>
+        <tr>
+          <td>Formal — zero charge while stopped</td>
+          <td>every billing code path</td>
+          <td><code>compute_charge = $0</code> for state=stopped, always</td>
+          <td class="verdict v-fail">CATCHES · edge-path billing leak</td>
+        </tr>
+        <tr>
+          <td>Differential — metering v1 vs v2 vs known invoice</td>
+          <td>same usage window</td>
+          <td>charges match invoice to the cent</td>
+          <td class="verdict v-fail">CATCHES · silent metering drift</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <h2><span class="num">§2</span> Coverage matrix — what each layer catches</h2>
+  <div class="scroll"><table class="matrix">
+    <thead><tr>
+      <th style="width:44%">Bug class</th>
+      <th class="cell">L1 flow</th>
+      <th class="cell">L2 invariants</th>
+      <th class="cell">L3 oracle</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>Launch button doesn't transition to running</td>
+        <td class="cell yes">✓</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>EBS volume deleted on Stop instead of Terminate</td>
+        <td class="cell no">✗</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Compute billed while instance is stopped</td>
+        <td class="cell no">✗</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>Security-group change forces unexpected restart</td>
+        <td class="cell no">✗</td><td class="cell yes">✓</td><td class="cell yes">✓</td></tr>
+      <tr><td>DescribeInstances drops PublicIpAddress, SDK integration breaks</td>
+        <td class="cell no">✗</td><td class="cell no">✗</td><td class="cell yes">✓</td></tr>
+      <tr><td>Metering rollup off by one cycle on stop/start within the hour</td>
+        <td class="cell no">✗</td><td class="cell part">partial</td><td class="cell yes">✓</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2><span class="num">§3</span> The minimum ER model to author L2 and L3</h2>
+  <p class="sub">Billing replaces "Total need" as the derived, high-stakes number; the lifecycle
+    state machine plays the same role the payment/ride lifecycle does elsewhere.</p>
+
+  <div class="er-wrap">
+    <svg viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AWS EC2 domain ER diagram">
+      <defs>
+        <marker id="arrow-aws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/>
+        </marker>
+        <style>
+          .box { fill: var(--paper); stroke: var(--ink); stroke-width: 1.2; }
+          .box.derived { stroke: var(--warn); stroke-dasharray: 4 3; }
+          .box.rules { fill: var(--paper); stroke: var(--accent); stroke-width: 1.4; }
+          .title { font: 600 12px ui-sans-serif, system-ui, sans-serif; fill: var(--ink); letter-spacing: 0.04em; text-transform: uppercase; }
+          .attr  { font: 11.5px ui-monospace, monospace; fill: var(--ink-2); }
+          .attr.pk { fill: var(--ink); font-weight: 700; }
+          .rel   { font: 10px ui-sans-serif, system-ui, sans-serif; fill: var(--ink-3); letter-spacing: 0.04em; text-transform: uppercase; }
+          .edge  { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+          .edge.dashed { stroke-dasharray: 3 3; stroke: var(--warn); }
+        </style>
+      </defs>
+
+      <g transform="translate(20,20)">
+        <rect class="box derived" width="210" height="130" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--warn)">Instance</text>
+        <line x1="0" y1="30" x2="210" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">instance_id</text>
+        <text class="attr"    x="12" y="64">instance_type →</text>
+        <text class="attr"    x="12" y="80">state, region</text>
+        <text class="attr"    x="12" y="96">launched_at</text>
+        <text class="attr"    x="12" y="112" fill="var(--warn)">(state is derived)</text>
+      </g>
+
+      <g transform="translate(270,20)">
+        <rect class="box" width="190" height="100" rx="2"/>
+        <text class="title" x="12" y="22">InstanceType</text>
+        <line x1="0" y1="30" x2="190" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">type_id (t3.medium…)</text>
+        <text class="attr"    x="12" y="64">vcpu, memory</text>
+      </g>
+
+      <g transform="translate(500,20)">
+        <rect class="box" width="200" height="100" rx="2"/>
+        <text class="title" x="12" y="22">SecurityGroup</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">sg_id</text>
+        <text class="attr"    x="12" y="64">rules[] (port, cidr)</text>
+      </g>
+
+      <g transform="translate(20,220)">
+        <rect class="box" width="210" height="100" rx="2"/>
+        <text class="title" x="12" y="22">EBSVolume</text>
+        <line x1="0" y1="30" x2="210" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">volume_id</text>
+        <text class="attr"    x="12" y="64">size_gb, delete_on_term</text>
+      </g>
+
+      <g transform="translate(270,220)">
+        <rect class="box rules" width="210" height="130" rx="2"/>
+        <text class="title" x="12" y="22" fill="var(--accent)">BillingMeter</text>
+        <line x1="0" y1="30" x2="210" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">rule_id</text>
+        <text class="attr"    x="12" y="64">rate_per_hr, granularity</text>
+        <text class="attr"    x="12" y="80">version, os_scope</text>
+        <text class="attr"    x="12" y="96">source_doc_ref</text>
+      </g>
+
+      <g transform="translate(520,220)">
+        <rect class="box" width="200" height="110" rx="2"/>
+        <text class="title" x="12" y="22">EC2APIContract</text>
+        <line x1="0" y1="30" x2="200" y2="30" stroke="var(--rule)"/>
+        <text class="attr pk" x="12" y="48">contract_id</text>
+        <text class="attr"    x="12" y="64">fields: InstanceId,</text>
+        <text class="attr"    x="12" y="80">State.Name, PublicIp</text>
+      </g>
+
+      <path class="edge" d="M230,70 L270,70" marker-end="url(#arrow-aws)"/>
+      <text class="rel" x="232" y="64">is a</text>
+      <path class="edge" d="M460,70 L500,70" marker-end="url(#arrow-aws)"/>
+      <text class="rel" x="462" y="64">attached to</text>
+      <path class="edge" d="M125,150 L125,220" marker-end="url(#arrow-aws)"/>
+      <text class="rel" x="132" y="188">attached to</text>
+      <path class="edge dashed" d="M230,120 C 250,120 250,280 270,280" marker-end="url(#arrow-aws)"/>
+      <text class="rel" x="234" y="240" fill="var(--warn)">derives charge</text>
+      <path class="edge" d="M480,280 L520,280" marker-end="url(#arrow-aws)"/>
+      <text class="rel" x="482" y="274">describes</text>
+    </svg>
+    <div class="er-legend">
+      <span class="lg-core">Core entities</span>
+      <span class="lg-derived">Derived (never authored, always computed)</span>
+      <span class="lg-rules">Rules (versioned, sourced)</span>
+    </div>
+  </div>
+
+  <h2><span class="num">§4</span> What to gather to make this real</h2>
+  <div class="scroll"><table>
+    <thead><tr>
+      <th style="width:26%">Input</th><th>Populates</th><th>Where to source</th><th style="width:16%">Effort</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>EC2 pricing/billing spec per type+OS + version</td>
+        <td>BillingMeter</td><td>AWS pricing API / docs</td><td>1 day</td></tr>
+      <tr><td>DescribeInstances API schema/contract</td>
+        <td>EC2APIContract</td><td>AWS SDK docs / contract tests</td><td>0.5 day</td></tr>
+      <tr><td>Instance lifecycle state-machine spec</td>
+        <td>Instance.state</td><td>EC2 engineering docs</td><td>0.5 day</td></tr>
+      <tr><td>Security-group change-propagation rule</td>
+        <td>SecurityGroup invariant</td><td>Networking team</td><td>0.5 day</td></tr>
+      <tr><td>Known invoice fixtures for differential testing</td>
+        <td>BillingMeter oracle</td><td>Billing / finance team</td><td>1 day</td></tr>
+      <tr><td>Escaped EC2 bugs, classified L1/L2/L3</td>
+        <td>BugClass</td><td>Support tickets / RCAs</td><td>0.5 day</td></tr>
+    </tbody>
+  </table></div>
+
+  </div><!-- /domain-panel: aws -->
+
+  <h2><span class="num">§5</span> How this connects back to false-heal=0</h2>
+  <p>The gating principle carries over cleanly, in every domain above. A screen-flow test that passes
+    on a mispriced goal, an under-charged cart, a wrong fare, or a phantom EC2 charge is a
+    <em>false-heal at the verdict layer</em> — the framework said "safe" when the app was silently
+    wrong. L2 invariants are the equivalent of your diagnosis pipeline: they cannot always tell you
+    the right answer, but they can refuse to say "safe" when coherence breaks. L3 oracles are your
+    deterministic matcher: expensive to build, defensible when they fire, applied only where being
+    wrong matters.</p>
+  <p>Same discipline, one layer up: <em>a correct abstain with a named reason</em> — "we cannot verify
+    this charge because no rule is bound to this transaction type" — is a deliverable, not a failure.
+    That is the shape of a release-risk indicator a customer can trust, whether the product is a
+    goal planner, a checkout, a ride, or a cloud console.</p>
+
+  <div class="footer">
+    Numbers in each traced case are computed from the stated formulas; all bug scenarios and
+    coverage claims are illustrative, not measured against any specific product.
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var select = document.getElementById('domainSelect');
+  var panels = document.querySelectorAll('.domain-panel');
+  function show(domain) {
+    panels.forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-domain') === domain);
+    });
+  }
+  select.addEventListener('change', function () { show(this.value); });
+  show(select.value);
+})();
+</script>
+</body>
+</html>
