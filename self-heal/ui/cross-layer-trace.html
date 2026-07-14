@@ -1,0 +1,165 @@
+<title>One action, three layers — cross-layer trace</title>
+<style>
+  :root{
+    --ground:#f5f7f8; --panel:#ffffff; --ink:#1b2530; --text:#3f4d58; --muted:#68757f; --faint:#9aa5ae;
+    --hair:#e5eaed; --hair-soft:#eef2f4;
+    --accent:#0d6c74; --accent-soft:#e6f0f0;
+    --user:#2b62a8; --user-bg:#eaf1fa;
+    --app:#986a1c; --app-bg:#f7f0de;
+    --db:#5d4f92; --db-bg:#eeecf8;
+    --test:#2f7d55; --test-bg:#e9f4ee;
+    --log:#75539f; --log-bg:#f1ecf7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14.5px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:30px 22px 60px}
+
+  .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 6px}
+  h1{font-size:22px;font-weight:650;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+  .sub{margin:0 0 22px;color:var(--muted);max-width:70ch;font-size:13.5px}
+  .persona{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:26px}
+  .ptag{font-size:12px;border:1px solid var(--hair);border-radius:6px;padding:3px 9px;background:var(--panel);color:var(--text)}
+  .ptag b{color:var(--ink)}
+
+  /* the trace: 3 layer rows, each a horizontal band */
+  .trace{display:flex;flex-direction:column;gap:0;border:1px solid var(--hair);border-radius:14px;background:var(--panel);overflow:hidden}
+  .layer{display:grid;grid-template-columns:120px 1fr;border-top:1px solid var(--hair-soft)}
+  .layer:first-child{border-top:none}
+  .ltab{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:18px 16px;border-right:1px solid var(--hair-soft)}
+  .ltab .name{font-weight:700;font-size:13.5px}
+  .ltab .role{font-size:11px;color:var(--muted)}
+  .layer.user .ltab{color:var(--user)} .layer.app .ltab{color:var(--app)} .layer.db .ltab{color:var(--db)}
+  .lbody{padding:16px 20px 16px 18px;display:flex;flex-direction:column;gap:8px}
+
+  .action{font-size:13.5px;color:var(--text)}
+  .action b{color:var(--ink)}
+  .payload{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:var(--data-bg,#f8fafb);border:1px solid var(--hair);border-radius:7px;padding:9px 11px;color:#2b3a46;overflow-x:auto;white-space:pre}
+  .payload .k{color:var(--muted)}
+
+  .arrow-row{display:flex;justify-content:center;padding:2px 0}
+  .arrow{width:15px;height:15px;color:var(--faint)}
+
+  /* annotation chips under each layer body: tests / logs this layer enables */
+  .annots{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+  .an{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:6px;padding:3px 8px}
+  .an.test{color:var(--test);background:var(--test-bg)}
+  .an.log{color:var(--log);background:var(--log-bg)}
+  .an .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+  /* legend */
+  .legend{display:flex;gap:18px;margin:20px 0 0;font-size:12px;color:var(--muted)}
+  .legend .li{display:flex;align-items:center;gap:6px}
+  .legend .sw{width:9px;height:9px;border-radius:3px}
+
+  /* gaps section */
+  h2{font-size:15px;font-weight:700;margin:38px 0 4px;letter-spacing:-.005em}
+  .h2sub{margin:0 0 16px;color:var(--muted);font-size:13px;max-width:68ch}
+  .gaps{display:grid;grid-template-columns:1fr;gap:10px}
+  .gap{display:grid;grid-template-columns:44px 1fr;gap:14px;background:var(--panel);border:1px solid var(--hair);border-radius:10px;padding:13px 15px}
+  .gap .gid{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:var(--test);align-self:start;padding-top:2px}
+  .gap .gname{font-weight:650;font-size:13.5px;margin-bottom:2px}
+  .gap .gwhy{font-size:12.5px;color:var(--muted);margin-bottom:5px}
+  .gap .goracle{font-size:12.5px;color:var(--text)}
+  .gap .goracle b{color:var(--ink)}
+
+  footer{margin-top:30px;font-size:12px;color:var(--faint);max-width:66ch;line-height:1.6}
+  footer code{background:var(--panel);border:1px solid var(--hair);border-radius:4px;padding:1px 5px;font-size:11.5px}
+
+  @media(max-width:640px){
+    .layer{grid-template-columns:1fr}
+    .ltab{border-right:none;border-bottom:1px solid var(--hair-soft);flex-direction:row;align-items:center;gap:8px;padding:10px 16px}
+    .gap{grid-template-columns:1fr}
+  }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">AIA iPOS+ · Needs Analysis</p>
+  <h1>One action, three layers</h1>
+  <p class="sub">A single tap ripples through User → App → DB. Most escaped defects hide <b>between</b>
+    layers, not inside one — this traces one real action with sample data, then reads off what a
+    single-layer test would miss.</p>
+
+  <div class="persona">
+    <span class="ptag">Persona <b>Family Breadwinner</b></span>
+    <span class="ptag">Advisor <b>ADV-8821</b></span>
+    <span class="ptag">NRIC <b>S1234567D</b></span>
+    <span class="ptag">Age <b>38</b> · Income <b>S$96,000</b> · Dependents <b>2</b></span>
+    <span class="ptag">Quotation <b>SQS-000734</b></span>
+    <span class="ptag">Rate table <b>v2026.2</b></span>
+  </div>
+
+  <div class="trace">
+    <div class="layer user">
+      <div class="ltab"><span class="name">User</span><span class="role">UI / journey</span></div>
+      <div class="lbody">
+        <div class="action">Needs Analysis → <b>Add Goal</b> → type <b>Education</b>, target <b>S$200,000</b>, horizon <b>12 yrs</b> → Save</div>
+        <div class="payload">screen: shows new goal row + "Total need: <span class="k">S$1,394,800</span>"</div>
+        <div class="annots">
+          <span class="an test"><span class="dot"></span>L1 shown = sent = stored</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row"><svg class="arrow" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="layer app">
+      <div class="ltab"><span class="name">App</span><span class="role">API / services</span></div>
+      <div class="lbody">
+        <div class="action">Needs-calc service runs against <b>rate v2026.2</b></div>
+        <div class="payload">POST /quotation/SQS-000734/goals
+<span class="k">req</span>  {type:"EDU", target:200000, horizonYears:12}
+<span class="k">resp</span> 201 {goalId:"G-3", pvNeed:172400, totalNeed:1394800}</div>
+        <div class="annots">
+          <span class="an test"><span class="dot"></span>L2 calc integrity</span>
+          <span class="an test"><span class="dot"></span>L6 idempotency</span>
+          <span class="an log"><span class="dot"></span>calc log</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row"><svg class="arrow" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M4 9l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+
+    <div class="layer db">
+      <div class="ltab"><span class="name">DB</span><span class="role">persistence / state</span></div>
+      <div class="lbody">
+        <div class="action">Goal row written, total re-derived, decision logged</div>
+        <div class="payload">INSERT goals(quote_id, goal_id, type, target, horizon, pv_need, created_by, ts)
+UPDATE quotation SET total_need = 1394800
+INSERT audit_log(event:"goal_added", rule_version:"needs-2.3",
+                  rate_version:"v2026.2", advisor:"ADV-8821", ts)</div>
+        <div class="annots">
+          <span class="an test"><span class="dot"></span>L3 atomic total update</span>
+          <span class="an test"><span class="dot"></span>L4 audit completeness</span>
+          <span class="an test"><span class="dot"></span>L5 rate-version stamp</span>
+          <span class="an test"><span class="dot"></span>L7 referential integrity</span>
+          <span class="an log"><span class="dot"></span>decision log</span>
+          <span class="an log"><span class="dot"></span>rate/rule registry</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="li"><span class="sw" style="background:var(--test)"></span>test point this layer enables</span>
+    <span class="li"><span class="sw" style="background:var(--log)"></span>log this layer must emit</span>
+  </div>
+
+  <h2>What this surfaces that per-screen tests miss</h2>
+  <p class="h2sub">Reading top-to-bottom is where the gaps appear — none of these are visible from any single layer alone.</p>
+
+  <div class="gaps">
+    <div class="gap"><div class="gid">L1</div><div><div class="gname">Shown = sent = stored = shown-back</div><div class="gwhy">UI formats "200,000", API sends 200000, DB stores 200000 — a locale/rounding bug can slip in any hop</div><div class="goracle">Oracle — <b>all four values are exactly equal</b>, re-rendered summary included</div></div></div>
+    <div class="gap"><div class="gid">L2</div><div><div class="gname">Calculation integrity</div><div class="gwhy">PV need is computed in the App layer but must match what's persisted and displayed</div><div class="goracle">Oracle — <b>pvNeed / totalNeed identical</b> across API response, DB row, and UI</div></div></div>
+    <div class="gap"><div class="gid">L3</div><div><div class="gname">Atomic total-need update</div><div class="gwhy">Editing or deleting a goal must recompute the total, not just the row</div><div class="goracle">Oracle — <b>total_need = Σ active goals</b> after every add/edit/delete, never stale</div></div></div>
+    <div class="gap"><div class="gid">L4</div><div><div class="gname">Audit-log completeness</div><div class="gwhy">Every rule-bearing advice decision must be logged for compliance review</div><div class="goracle">Oracle — <b>one audit_log row per decision</b>, carrying rule + rate version</div></div></div>
+    <div class="gap"><div class="gid">L5</div><div><div class="gname">Rate/rule version stamping</div><div class="gwhy">A quote must be reproducible against the exact filed rate table used</div><div class="goracle">Oracle — <b>quote pins rate_version</b>; mid-draft rate changes are flagged</div></div></div>
+    <div class="gap"><div class="gid">L6</div><div><div class="gname">Idempotency</div><div class="gwhy">A double-tap or retried Save shouldn't double the goal or the total</div><div class="goracle">Oracle — <b>exactly one goal row</b> persists per logical save</div></div></div>
+    <div class="gap"><div class="gid">L7</div><div><div class="gname">Referential integrity</div><div class="gwhy">Deleting a goal shouldn't leave dependent recommendations orphaned</div><div class="goracle">Oracle — <b>no orphan rows</b>; dependent recommendations recompute</div></div></div>
+    <div class="gap"><div class="gid">L8–L10</div><div><div class="gname">Draft persistence · concurrency · migration</div><div class="gwhy">Not visible in this single trace, but the same three-layer read exposes them for exit/resume, two-device edits, and schema changes</div><div class="goracle">See <code>test-authoring-layers-logging-metrics.md</code> §2</div></div></div>
+  </div>
+
+  <footer>Sample data is <code>asserted</code> for illustration — not measured from a live iPOS+ system.
+    Full method + logging detail: <code>self-heal/docs/test-authoring-layers-logging-metrics.md</code>.</footer>
+</div>
