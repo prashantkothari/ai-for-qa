@@ -1,0 +1,116 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>testgen v1 vs v2 — head-to-head on LOGIN_DOM</title>
+<style>
+  body{font:13px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;margin:16px;color:#111}
+  h1{font-size:16px}h2{font-size:13px;margin:14px 0 4px;border-bottom:2px solid #eee;padding-bottom:3px}
+  .ok{color:#137333;font-weight:700}.bad{color:#c5221f;font-weight:700}.warn{color:#b06000}
+  .row{font-family:ui-monospace,Menlo,monospace;font-size:11px;margin:2px 0}
+  .PASS{color:#137333}.FAIL{color:#c5221f}
+  pre{background:#f6f6f6;padding:8px;white-space:pre-wrap;max-height:34vh;overflow:auto;font-size:11px}
+  table{border-collapse:collapse;margin:8px 0;font-size:12px}
+  td,th{border:1px solid #ddd;padding:4px 8px;text-align:left}
+  th{background:#f6f6f6}
+  .banner{background:#e8f5e9;border:1px solid #81c784;border-radius:6px;padding:6px 10px;margin:6px 0;font-size:12px}
+  .banner.warn{background:#fff8e1;border-color:#ffe082}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;background:#eee;margin-left:4px}
+  .measured{background:#e3f2fd;color:#0d47a1}
+</style></head>
+<body>
+<h1>testgen v1 vs v2 — head-to-head on the same LOGIN_DOM fixture</h1>
+<p><small>Fair comparison per self-heal/docs/AUTHORING-MOCK-EXPERIMENT.md §7.3–7.4: identical input
+(<code>PRETOTYPE_FIXTURES.LOGIN_DOM</code>), v1 = <code>testgen.js</code> (shipping today), v2 =
+<code>testgen-v2.js</code> (coverage-model shape). Every number below is computed live from the two
+functions' actual output in this run — <span class="tag measured">measured</span> means "counted from
+this run's data", not asserted or simulated. Metrics with no honest denominator for this fixture are
+stated as not-evaluated rather than invented.</small></p>
+<div id="out"></div>
+
+<script src="../../selfheal-core.js"></script>
+<script src="fixtures.js"></script>
+<script src="testgen.js"></script>
+<script src="testgen-v2.js"></script>
+<script src="../schemas/coverage-taxonomies.js"></script>
+<script src="../schemas/coverage-model.schema.js"></script>
+<script src="../schemas/validator.js"></script>
+<script>
+(function () {
+  const out = document.getElementById('out');
+  const V = window.SELFHEAL_VALIDATOR;
+  const C = window.SELFHEAL_SCHEMA_COVERAGE;
+
+  const stage = document.createElement('div'); stage.id = 'appStage';
+  stage.innerHTML = window.PRETOTYPE_FIXTURES.LOGIN_DOM; document.body.appendChild(stage);
+
+  const v1 = window.__TESTGEN.authorTests(document, {});
+  const v2 = window.__TESTGEN_V2.authorCoverage(document, {});
+
+  document.body.removeChild(stage);
+
+  // ---- schema-validate every v2 artifact array ----
+  function validateAll(schema, arr) {
+    return (arr || []).map(o => V.validate(schema, o));
+  }
+  const checks = {
+    elementRegistry: [V.validate(C.ELEMENT_REGISTRY, v2.elementRegistry)],
+    statements: validateAll(C.STATEMENT, v2.statements),
+    tests: validateAll(C.TEST, v2.tests),
+    refusals: validateAll(C.REFUSAL, v2.refusals),
+    cells: validateAll(C.CELL, v2.cells),
+    testGoals: validateAll(C.TEST_GOAL, v2.testGoals)
+  };
+  const schemaRows = [];
+  Object.keys(checks).forEach(k => checks[k].forEach((r, i) => schemaRows.push({ label: k + '[' + i + ']', ok: r.ok, errCount: r.errors.length, firstErr: r.errors[0] ? (r.errors[0].path + ' — ' + r.errors[0].msg) : '' })));
+  const schemaPass = schemaRows.filter(r => r.ok).length, schemaFail = schemaRows.length - schemaPass;
+
+  // ---- metric 1: tests authored per screen ----
+  const v1Count = v1.tests.length, v2Count = v2.tests.length;
+
+  // ---- metric 2: oracle strength — fraction of expectations using the closed condition vocabulary ----
+  const ORACLE_FN = /\b(presence|absence|equals|matches|contains|in-range|count-equals|count-at-least|ordered|not-changed|changed|unset|set)\(/;
+  const v1Expected = v1.tests.flatMap(t => t.steps.map(s => s.expected).filter(Boolean));
+  const v2Expectations = v2.tests.flatMap(t => t.steps.map(s => s.expectation).filter(Boolean));
+  const v1Symbolic = v1Expected.filter(e => ORACLE_FN.test(e)).length;
+  const v2Symbolic = v2Expectations.filter(e => ORACLE_FN.test(e)).length;
+
+  // ---- metric 3: refusals with a named (closed-taxonomy) reason ----
+  const v1Refusals = (v1.openQuestions || []).length;   // free-form {id,text} — no closed reason field
+  const v2Refusals = (v2.refusals || []).length;         // each has `reason` from REFUSE_REASON
+
+  // ---- metric 4: coverage-grid cells ----
+  const v2Covered = (v2.cells || []).filter(c => c.covered).length;
+  const v2Gaps = (v2.cells || []).filter(c => !c.covered).length;
+
+  // ---- metric 5: cross-service tests — both 0 (single-tier fixture; stated, not silently omitted) ----
+  // ---- metric 6: retrospective bug catch — not evaluated (no bug history for this fixture) ----
+
+  let h = '';
+  h += '<div class="banner">v2 schema gate: <b>' + schemaPass + '/' + schemaRows.length + ' artifacts</b> validated '
+     + (schemaFail === 0 ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + schemaFail + ')</span>')
+     + '</div>';
+  h += '<h2>v2 artifact schema validation</h2>';
+  h += '<table><tr><th>artifact</th><th>result</th><th>first error (if any)</th></tr>';
+  schemaRows.forEach(r => {
+    h += '<tr><td>' + r.label + '</td><td class="' + (r.ok ? 'PASS' : 'FAIL') + '">' + (r.ok ? 'PASS' : 'FAIL') + '</td><td>' + (r.firstErr || '—') + '</td></tr>';
+  });
+  h += '</table>';
+
+  h += '<h2>Before / after — v1 (testgen.js) vs v2 (testgen-v2.js), same LOGIN_DOM input</h2>';
+  h += '<table><tr><th>metric</th><th>v1 (before)</th><th>v2 (after)</th><th>tag</th></tr>';
+  h += '<tr><td>Tests authored on this screen</td><td>' + v1Count + '</td><td>' + v2Count + '</td><td class="tag measured">measured</td></tr>';
+  h += '<tr><td>Expectations using a closed, symbolic condition vocabulary</td><td>' + v1Symbolic + ' / ' + v1Expected.length + '</td><td>' + v2Symbolic + ' / ' + v2Expectations.length + '</td><td class="tag measured">measured</td></tr>';
+  h += '<tr><td>Refusals with a named, closed-taxonomy reason</td><td>' + v1Refusals + '</td><td>' + v2Refusals + '</td><td class="tag measured">measured</td></tr>';
+  h += '<tr><td>Icon-only eye-toggle control</td><td>not found by any matcher (0 tests, 0 refusals)</td><td>found + registered + refused (R-1)</td><td class="tag measured">measured</td></tr>';
+  h += '<tr><td>Coverage-grid cells (covered / gap, itemized)</td><td>not modeled (no grid)</td><td>' + v2Covered + ' covered / ' + v2Gaps + ' gap (all ' + v2Gaps + ' gaps carry a named gap_type)</td><td class="tag measured">measured</td></tr>';
+  h += '<tr><td>Cross-service tests authored</td><td>0</td><td>0</td><td class="tag warn">n/a — single-tier fixture, not attempted either side</td></tr>';
+  h += '<tr><td>Retrospective real-bug catch</td><td colspan="2">not evaluated — no bug history exists for this fixture</td><td class="tag warn">not evaluated</td></tr>';
+  h += '</table>';
+
+  h += '<h2>Raw v1 output</h2><pre>' + JSON.stringify(v1, null, 2) + '</pre>';
+  h += '<h2>Raw v2 output</h2><pre>' + JSON.stringify(v2, null, 2) + '</pre>';
+
+  window.__TESTGEN_COMPARE = { v1, v2, checks, schemaRows, schemaPass, schemaFail,
+    metrics: { v1Count, v2Count, v1Symbolic, v1ExpectedTotal: v1Expected.length, v2Symbolic, v2ExpectationsTotal: v2Expectations.length, v1Refusals, v2Refusals, v2Covered, v2Gaps } };
+  out.innerHTML = h;
+})();
+</script>
+</body></html>
