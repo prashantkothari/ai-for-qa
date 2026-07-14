@@ -4,7 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test Authoring &amp; Execution — AIA iPOS+ Financial Health Review</title>
+<script src="https://unpkg.com/lucide@latest"></script>
 <style>
+  @font-face{
+    font-family:'DM Sans';
+    src:url('./fonts/DM_Sans/DMSans-VariableFont.ttf') format('truetype-variations');
+    font-weight:100 1000;
+    font-style:normal;
+    font-display:swap;
+  }
+  @font-face{
+    font-family:'DM Sans';
+    src:url('./fonts/DM_Sans/DMSans-Italic-VariableFont.ttf') format('truetype-variations');
+    font-weight:100 1000;
+    font-style:italic;
+    font-display:swap;
+  }
   :root{
     --teal:#0d8b8b;
     --teal-dark:#0a6f6f;
@@ -22,12 +37,13 @@
     --notrun:#9aa6ac;
     --radius:8px;
     --shadow:0 1px 2px rgba(20,40,45,.05), 0 1px 3px rgba(20,40,45,.06);
+    --font-sans:'DM Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     font-synthesis:none;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:var(--font-sans);
     color:var(--ink);
     background:var(--bg);
     font-size:13.5px;
@@ -68,8 +84,45 @@
   }
   .pnav-item:hover{background:var(--line-2);color:var(--ink);}
   .pnav-item.active{background:var(--teal-tint);color:var(--teal-dark);}
-  .pnav-item .pnav-ic{font-size:14px;width:16px;text-align:center;flex:none;}
+  .pnav-item .pnav-ic{width:16px;flex:none;display:flex;align-items:center;justify-content:center;}
+  .pnav-item .pnav-ic svg{width:15px;height:15px;stroke-width:2;}
   .pnav-group{margin-bottom:4px;}
+
+  /* ---------- Workspace switcher ---------- */
+  .wsw{position:relative;margin-bottom:14px;}
+  .wsw-trigger{display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+    border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 8px;
+    font:inherit;cursor:pointer;color:var(--ink);}
+  .wsw-trigger:hover{border-color:var(--ink-3);}
+  .wsw.open .wsw-trigger{border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-tint);}
+  .wsw-icon{flex:none;width:24px;height:24px;border-radius:6px;background:var(--ink);color:#fff;
+    display:flex;align-items:center;justify-content:center;}
+  .wsw-icon svg{width:14px;height:14px;stroke-width:2;}
+  .wsw-text{flex:1;display:flex;flex-direction:column;line-height:1.25;overflow:hidden;}
+  .wsw-name{font-size:12.5px;font-weight:650;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wsw-tier{font-size:10.5px;color:var(--ink-3);}
+  .wsw-chevron{flex:none;color:var(--ink-3);display:flex;}
+  .wsw-chevron svg{width:14px;height:14px;stroke-width:2;}
+  .wsw-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:45;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 8px 28px rgba(20,40,45,.16);padding:6px;}
+  .wsw.open .wsw-menu{display:block;}
+  .wsw-menu-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
+    font-weight:650;padding:6px 8px 4px;}
+  .wsw-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent;
+    padding:7px 8px;border-radius:7px;font:inherit;cursor:pointer;color:var(--ink-2);}
+  .wsw-item:hover{background:var(--line-2);}
+  .wsw-item .wsw-item-name{flex:1;font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wsw-item .wsw-item-tier{font-size:11px;color:var(--ink-3);flex:none;}
+  .wsw-item .wsw-check{flex:none;width:14px;color:var(--teal);display:none;}
+  .wsw-item .wsw-check svg{width:14px;height:14px;stroke-width:2.5;}
+  .wsw-item.active .wsw-check{display:flex;}
+  .wsw-item.active .wsw-item-tier{margin-right:2px;}
+  .wsw-sep{height:1px;background:var(--line-2);margin:6px 2px;}
+  .wsw-add{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent;
+    padding:7px 8px;border-radius:7px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-2);cursor:pointer;}
+  .wsw-add:hover{background:var(--line-2);color:var(--ink);}
+  .wsw-add svg{width:14px;height:14px;stroke-width:2;}
   .pnav-sub{display:flex;flex-direction:column;margin:1px 0 8px 24px;border-left:1px solid var(--line);padding-left:11px;}
   .pnav-subitem{
     display:block;width:100%;text-align:left;border:0;background:transparent;padding:6px 9px;
@@ -142,6 +195,7 @@
   .dot.fail{background:var(--fail);}
   .dot.block{background:var(--block);}
   .dot.notrun{background:var(--notrun);}
+  .dot.healed{background:var(--teal);}
 
   /* run node meta */
   .runmeta{font-size:10.5px;color:var(--ink-3);padding:0 8px 6px 42px;margin-top:-2px;}
@@ -155,7 +209,8 @@
   .maintabs .titleblock{margin-bottom:9px;}
   .maintabs .titleblock h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em;}
   .maintabs .titleblock .meta{font-size:12px;color:var(--ink-3);margin-top:2px;}
-  .tabrow{display:flex;gap:2px;margin-left:auto;align-self:flex-end;}
+  .tabrow{display:flex;gap:2px;align-self:flex-end;}
+  .maintabs.no-tabs .tabrow{display:none;}
   .tab{
     border:0;background:transparent;font:inherit;font-weight:600;font-size:13px;color:var(--ink-3);
     padding:8px 14px;border-bottom:2px solid transparent;cursor:pointer;margin-bottom:-1px;
@@ -248,16 +303,18 @@
   .btn:hover{border-color:var(--ink-3);color:var(--ink);}
   .tablewrap{flex:1;overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);}
   table{border-collapse:separate;border-spacing:0;width:100%;min-width:1020px;font-size:12.5px;}
+  table.compact{min-width:0;}
   thead th{
     position:sticky;top:0;background:var(--panel);text-align:left;font-weight:650;color:var(--ink-2);
-    font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;
+    font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;
     border-bottom:1px solid var(--line);white-space:nowrap;z-index:1;
   }
-  tbody td{padding:9px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap;color:var(--ink);}
+  th.chk,td.chk-box-cell{width:32px;padding-left:12px;padding-right:0;}
+  tbody td{padding:7px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap;color:var(--ink);}
   tbody tr:hover{background:var(--line-2);}
   tbody tr:last-child td{border-bottom:0;}
   td.id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink-3);}
-  td.name{white-space:normal;min-width:230px;font-weight:550;color:var(--ink);}
+  td.name{white-space:normal;min-width:0;font-weight:550;color:var(--ink);}
   .mini{font-size:11px;font-weight:650;padding:2px 8px;border-radius:5px;display:inline-block;}
   .mini.auto{color:var(--teal-dark);border:1px solid var(--teal);background:var(--teal-tint);}
   .mini.manual{color:var(--ink-2);border:1px solid var(--line);background:var(--bg);}
@@ -268,6 +325,7 @@
   .statuscell.fail{color:var(--fail);}
   .statuscell.block{color:var(--block);}
   .statuscell.notrun{color:var(--notrun);}
+  .statuscell.healed{color:var(--teal-dark);}
   .assignee{display:inline-flex;align-items:center;gap:7px;}
   .avatar{width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;
     font-size:10px;font-weight:700;flex:none;}
@@ -377,11 +435,26 @@
   .modal-body .m-section{margin-bottom:12px;}
   .modal-body .m-section:last-child{margin-bottom:0;}
   .modal-body .m-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:650;margin-bottom:4px;}
+  /* ---------- Create Test Run form ---------- */
+  .ctr-req{color:var(--fail);}
+  .ctr-input{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;
+    font:inherit;font-size:12.5px;color:var(--ink);background:var(--panel);}
+  .ctr-input:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-tint);}
+  .ctr-seg{display:flex;gap:8px;}
+  .ctr-seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+    border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink-2);
+    font:inherit;font-size:12.5px;font-weight:600;padding:9px 10px;cursor:pointer;}
+  .ctr-seg button.active{border-color:var(--teal);background:var(--teal-tint);color:var(--teal-dark);}
+  .ctr-machine{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .ctr-field .m-lbl{margin-bottom:5px;}
   .modal-foot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;}
   .modal-foot .spacer{flex:1;}
   .modal-foot .audit{font-size:11.5px;color:var(--ink-3);}
   .btn-primary{background:var(--teal);border:1px solid var(--teal);color:#fff;}
   .btn-primary:hover{background:var(--teal-dark);border-color:var(--teal-dark);color:#fff;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .btn:disabled:hover{border-color:var(--line);color:var(--ink-2);}
+  .btn-primary:disabled:hover{background:var(--teal);border-color:var(--teal);color:#fff;}
 
   /* Change-set modal rows */
   .cs-row{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px dashed var(--line-2);}
@@ -400,7 +473,8 @@
     box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:70;opacity:0;transition:opacity .18s;pointer-events:none;}
   .toast.show{opacity:1;}
 
-  /* ---------- Part B: right-pane authoring assistant ---------- */
+  /* ---------- Part B: right-pane authoring assistant (removed from layout) ---------- */
+  body:not(.section-home) .chatpane, body:not(.section-home) .pane-reopen.right{display:none!important;}
   .chatpane{
     width:380px;min-width:340px;max-width:420px;
     background:var(--panel);border-left:1px solid var(--line);
@@ -443,16 +517,18 @@
   .cbar-clarify .chip-btn{border:1px solid var(--teal);color:var(--teal-dark);background:var(--teal-tint);
     border-radius:14px;padding:2px 10px;font:inherit;font-size:11.5px;cursor:pointer;}
   .cbar-clarify .chip-btn:hover{background:var(--teal);color:#fff;}
-  .cbar-input-row{display:flex;gap:6px;align-items:center;}
-  .cbar-input-row .prefix{color:var(--teal);font-weight:700;font-size:13px;padding:0 2px 0 4px;}
-  .cbar-input-row input{flex:1;border:1px solid var(--line);border-radius:7px;padding:8px 11px;
-    font:inherit;font-size:13px;color:var(--ink);background:var(--panel);}
-  .cbar-input-row input:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-tint);}
+  .cbar-input-row{display:flex;gap:6px;align-items:flex-end;}
+  .cbar-input-row .prefix{color:var(--teal);font-weight:700;font-size:13px;padding:6px 2px 0 4px;}
+  .cbar-input-row textarea{flex:1;border:1px solid var(--line);border-radius:7px;padding:8px 11px;
+    font:inherit;font-size:13px;line-height:1.4;color:var(--ink);background:var(--panel);
+    resize:none;min-height:52px;}
+  .cbar-input-row textarea:focus{outline:0;border-color:var(--teal);box-shadow:0 0 0 3px var(--teal-tint);}
   .cbar-input-row .cbar-submit{border:1px solid var(--teal);background:var(--teal);color:#fff;
-    border-radius:7px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;}
-  .cbar-examples{display:flex;gap:6px;flex-wrap:wrap;}
-  .cbar-examples .ex{font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:14px;
-    padding:2px 9px;cursor:pointer;background:var(--bg);}
+    border-radius:7px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:650;cursor:pointer;
+    align-self:flex-end;margin-bottom:1px;}
+  .cbar-examples{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .cbar-examples .ex{font-size:12.5px;color:var(--ink-3);border:1px solid var(--line);border-radius:14px;
+    padding:4px 11px;cursor:pointer;background:var(--bg);}
   .cbar-examples .ex:hover{color:var(--ink);border-color:var(--ink-3);}
 
   /* Draft preview card (inline in content) */
@@ -501,6 +577,9 @@
   .pane-reopen:hover{background:var(--teal-tint);}
   .pane-reopen.left{left:184px;border-radius:0 8px 8px 0;}
   .pane-reopen.right{right:0;border-radius:8px 0 0 8px;}
+  .pane-reopen.labelled{padding:9px 14px;font-size:12px;font-weight:650;white-space:nowrap;
+    top:76px;background:transparent;box-shadow:none;}
+  .pane-reopen.labelled:hover{background:var(--teal-tint);}
 
   /* ---------- Part D: Atto AI chat list (second nav) ---------- */
   .chatlist{display:flex;flex-direction:column;gap:2px;}
@@ -510,13 +589,18 @@
   .cl-new:hover{background:var(--teal);color:#fff;}
   .cl-group{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);
     font-weight:650;padding:8px 8px 4px;}
-  .cl-item{display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;border:0;background:transparent;
-    padding:7px 9px;border-radius:6px;cursor:pointer;color:var(--ink-2);}
+  .cl-item{display:flex;align-items:center;gap:4px;width:100%;text-align:left;border:0;background:transparent;
+    padding:7px 9px;border-radius:6px;cursor:pointer;color:var(--ink-2);position:relative;}
   .cl-item:hover{background:var(--line-2);}
   .cl-item.active{background:var(--teal-tint);}
-  .cl-item .cl-title{font-size:12.5px;font-weight:600;color:var(--ink);overflow:hidden;
+  .cl-item .cl-title{flex:1;font-size:12.5px;font-weight:600;color:var(--ink);overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap;}
   .cl-item.active .cl-title{color:var(--teal-dark);}
+  .cl-item .cl-menu-trigger{flex:none;opacity:0;border:0;background:transparent;color:var(--ink-3);
+    cursor:pointer;padding:2px 5px;border-radius:5px;font-size:13px;line-height:1;}
+  .cl-item:hover .cl-menu-trigger, .cl-item .cl-menu-trigger.open{opacity:1;}
+  .cl-item .cl-menu-trigger:hover{background:var(--line-2);color:var(--ink);}
+  .cl-item.active .cl-menu-trigger:hover{background:var(--panel);}
   .cl-item .cl-meta{font-size:10.5px;color:var(--ink-3);display:flex;gap:6px;align-items:center;}
   .cl-item .cl-src{border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:9.5px;
     text-transform:uppercase;letter-spacing:.03em;}
@@ -594,8 +678,8 @@
   .rel-breadcrumb .rb-current{color:var(--ink);font-weight:600;}
 
   /* Summary tab cards */
-  .rel-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    box-shadow:var(--shadow);padding:14px 16px;margin-bottom:14px;}
+  .rel-card{background:none;background-color:transparent;border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:14px 16px;margin-bottom:14px;margin-top:20px;}
   .rel-card .rc-title{font-size:12.5px;font-weight:650;color:var(--ink);margin-bottom:12px;
     display:flex;align-items:center;gap:8px;}
   .rel-card .rc-title .rc-sub{color:var(--ink-3);font-weight:500;font-size:11.5px;}
@@ -650,6 +734,13 @@
   .gate-chip.conditional{background:#fdf5e6;color:var(--block);border:1px solid #f0d8ab;}
   .gate-chip.nogo{background:#fdeef1;color:var(--fail);border:1px solid #f2c2cb;}
 
+  /* ---------- Test Cases › Insights: flaky-signal + machine-matrix pills ---------- */
+  .tci-pill{display:inline-flex;align-items:center;font-size:10.5px;font-weight:700;
+    letter-spacing:.03em;text-transform:uppercase;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+  .tci-pill.tci-amber{background:#fdf5e6;color:var(--block);border:1px solid #f0d8ab;}
+  .tci-pill.tci-red{background:#fdeef1;color:var(--fail);border:1px solid #f2c2cb;}
+  .tci-pill.tci-neutral{background:var(--line-2);color:var(--ink-2);border:1px solid var(--line);}
+
   /* ---------- Part F: Release Gate (adapted from qi-dashboard.html §2, white bg) ---------- */
   .gate-block{border-left:3px solid var(--line-2);}
   .gate-block.go{border-left-color:var(--pass);}
@@ -665,6 +756,73 @@
   .gate-block ul{margin:8px 0 0;padding-left:20px;font-size:13px;color:var(--ink);line-height:1.6;}
   .gate-block li{margin:5px 0;}
   .gate-why{color:var(--ink-3);font-size:12px;margin-top:12px;font-style:italic;line-height:1.5;}
+
+  /* --- Release summary v2: header strip + Test Plans & Execution --- */
+  .rls-header{display:grid;grid-template-columns:60% 40%;gap:0;background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+  .rls-hdr-left{padding:16px 18px;}
+  .rls-hdr-right{padding:16px 18px;border-left:1px solid var(--line-2);background:#fff;}
+  .rls-eyebrow{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:10px;}
+  .rls-hdr-primary{display:grid;grid-template-columns:120px 1fr;row-gap:6px;column-gap:16px;
+    font-size:14px;color:var(--ink);margin-bottom:10px;}
+  .rls-hdr-primary dt{color:var(--ink-2);font-weight:600;}
+  .rls-hdr-primary dd{margin:0;color:var(--ink);font-weight:650;}
+  .rls-hdr-secondary{display:grid;grid-template-columns:120px 1fr;row-gap:5px;column-gap:16px;
+    font-size:12px;color:var(--ink-3);margin:0;padding-top:8px;border-top:1px dashed var(--line-2);}
+  .rls-hdr-secondary dt{color:var(--ink-3);font-weight:600;}
+  .rls-hdr-secondary dd{margin:0;color:var(--ink-2);}
+  .rls-gate-headline{font-size:13px;color:var(--ink);margin:10px 0 8px;line-height:1.45;font-weight:600;}
+  .rls-gate-rules{margin:0;padding-left:18px;font-size:11.5px;color:var(--ink-3);line-height:1.55;}
+  .rls-gate-rules li{margin:3px 0;}
+
+  .rls-plans{background:none;background-color:transparent;border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:14px 16px;margin-top:20px;}
+  .rls-plans .rls-plans-title{font-size:13px;font-weight:650;color:var(--ink);}
+  .rls-plans .rls-plans-sub{font-size:11.5px;color:var(--ink-3);margin-top:2px;margin-bottom:12px;}
+  .rls-tabs{display:flex;gap:6px;border-bottom:1px solid var(--line-2);padding-bottom:0;margin-bottom:14px;flex-wrap:wrap;}
+  .rls-tab{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px 6px 0 0;
+    background:transparent;border:1px solid transparent;border-bottom:2px solid transparent;
+    cursor:pointer;font-size:12px;color:var(--ink-2);margin-bottom:-1px;}
+  .rls-tab:hover{background:var(--line-2);}
+  .rls-tab.active{color:var(--teal-dark);background:var(--teal-tint);border-bottom-color:var(--teal);font-weight:650;}
+  .rls-tab .rls-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+  .rls-tab .rls-tab-sub{color:var(--ink-3);font-weight:500;font-size:11px;}
+  .rls-tab.active .rls-tab-sub{color:var(--teal-dark);}
+
+  .rls-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+  .rls-tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:10px 12px;}
+  .rls-tile .rls-tile-k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--ink-3);font-weight:650;}
+  .rls-tile .rls-tile-v{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.01em;
+    font-variant-numeric:tabular-nums;margin-top:4px;line-height:1.1;}
+  .rls-tile .rls-tile-v.pass{color:var(--pass);}
+  .rls-tile .rls-tile-v.warn{color:var(--block);}
+  .rls-tile .rls-tile-v.fail{color:var(--fail);}
+  .rls-tile .rls-tile-sub{font-size:11px;color:var(--ink-3);margin-top:2px;}
+
+  .rls-plan-card{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;background:var(--bg);}
+  .rls-plan-head{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .rls-plan-title{font-size:13px;font-weight:650;color:var(--ink);flex:1;display:flex;
+    align-items:center;gap:8px;flex-wrap:wrap;}
+  .rls-auto-badge{font-size:10px;font-weight:650;color:var(--teal-dark);border:1px solid var(--teal);
+    background:var(--teal-tint);border-radius:10px;padding:2px 7px;letter-spacing:.02em;}
+  .rls-add-btn{border:1px solid var(--teal);background:var(--panel);color:var(--teal-dark);
+    border-radius:6px;padding:5px 11px;font-size:11.5px;font-weight:650;cursor:pointer;flex:none;}
+  .rls-add-btn:hover{background:var(--teal-tint);}
+  .rls-plan-desc{font-size:11.5px;color:var(--ink-3);margin:0 0 10px;line-height:1.5;}
+  .rls-suites{display:flex;flex-direction:column;gap:6px;}
+  .rls-suite-row{display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;cursor:pointer;}
+  .rls-suite-row:hover{background:var(--line-2);border-color:var(--ink-3);}
+  .rls-suite-left{flex:1;min-width:0;}
+  .rls-suite-name{font-size:12.5px;font-weight:650;color:var(--ink);}
+  .rls-suite-meta{font-size:11px;color:var(--ink-3);margin-top:2px;}
+  .rls-suite-counts{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;flex:none;}
+  .rls-suite-counts .rls-c-pass{color:var(--pass);}
+  .rls-suite-counts .rls-c-fail{color:var(--fail);}
+  .rls-suite-counts .rls-c-nr{color:var(--ink-3);}
 
   .qm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
   .qm-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -690,6 +848,137 @@
   .wf-row .wf-val.neg{color:var(--fail);}
   .prio-P0{color:var(--fail);}
 
+  /* ---------- Part G: Home dashboard (qi-dashboard.html §1, scoped, white bg) ----------
+     Loaded verbatim from ../nostalgic-benz-2f7c3a/qi-dashboard.html §1 Manager tab.
+     All classes prefixed with .qi-home so they don't collide with v3's own .card/.pill/etc.
+     Only the KPI grid + twoup + track record are pulled in — the source's h1/lede/case
+     box/attention strip/section markers aren't included per the user's screenshot scope. */
+  .qi-home{
+    --qh-ground:#ffffff;
+    --qh-callout:#f4f2ec;
+    --qh-hairline:#e3e0d3;
+    --qh-hairline-strong:#c6c0a7;
+    --qh-ink:#1B1A16;
+    --qh-muted:#5A5850;
+    --qh-dim:#8A8577;
+    --qh-accent:#38513B;
+    --qh-accent-soft:#5E7A61;
+    --qh-accent-pale:#B8C7BA;
+    --qh-good:#38513B;
+    --qh-warn:#B27E28;
+    --qh-warn-soft:#D4A75B;
+    --qh-crit:#9A3B2B;
+    --qh-crit-soft:#C48273;
+    color:var(--qh-ink);max-width:1100px;margin:0 auto;padding:4px 4px 40px;
+  }
+  .qi-home .qh-head{display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:12px;margin-bottom:20px;}
+  .qi-home .qh-title{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0;}
+  .qi-home .qh-filter{display:flex;background:var(--qh-callout);border:1px solid var(--qh-hairline);
+    border-radius:7px;padding:2px;flex:none;}
+  .qi-home .qh-filter button{border:0;background:transparent;padding:6px 16px;border-radius:5px;
+    font:inherit;font-size:12.5px;font-weight:600;color:var(--qh-muted);cursor:pointer;}
+  .qi-home .qh-filter button.active{background:var(--qh-ground);color:var(--qh-ink);
+    box-shadow:0 1px 2px rgba(20,40,45,.08);}
+
+  .qi-home .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+  .qi-home .card{background:var(--qh-ground);padding:20px 22px 18px;
+    border:1px solid var(--qh-hairline);border-radius:8px;}
+  .qi-home .card .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--qh-muted);
+    font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .qi-home .card .v{font-size:34px;font-weight:700;letter-spacing:-.02em;margin-top:6px;
+    font-variant-numeric:tabular-nums;line-height:1.05;}
+  .qi-home .card .v .unit{font-size:14px;color:var(--qh-muted);font-weight:600;margin-left:4px;}
+  .qi-home .card .sub{font-size:13.5px;color:var(--qh-muted);margin-top:6px;}
+  .qi-home .card .sub b{color:var(--qh-ink);font-weight:600;}
+  .qi-home .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10.5px;
+    letter-spacing:.08em;text-transform:uppercase;font-weight:700;background:var(--qh-callout);color:var(--qh-muted);}
+  .qi-home .pill.good{background:#DDE5DE;color:var(--qh-good);}
+  .qi-home .pill.warn{background:#EFE1C6;color:var(--qh-warn);}
+  .qi-home .pill.crit{background:#EED9D2;color:var(--qh-crit);}
+  .qi-home .info{display:inline-block;width:14px;height:14px;border-radius:50%;
+    border:1px solid var(--qh-hairline-strong);color:var(--qh-muted);font-size:9.5px;line-height:12px;
+    text-align:center;font-style:italic;font-family:Georgia,serif;cursor:help;font-weight:600;}
+  .qi-home .strip{display:flex;gap:2px;align-items:flex-end;height:34px;margin-top:10px;}
+  .qi-home .strip span{flex:1;background:var(--qh-accent-soft);opacity:.65;border-radius:1px;}
+  .qi-home .strip span.now{background:var(--qh-accent);opacity:1;}
+  .qi-home .strip.drop span{background:var(--qh-crit-soft);opacity:.9;}
+  .qi-home .strip.drop span.now{background:var(--qh-good);}
+  .qi-home .stack{display:flex;height:26px;border-radius:2px;overflow:hidden;margin-top:12px;background:var(--qh-callout);}
+  .qi-home .stack span{display:block;height:100%;}
+  .qi-home .stack .s-unit{background:#B8C7BA;}
+  .qi-home .stack .s-int{background:#8FAA93;}
+  .qi-home .stack .s-qa{background:var(--qh-accent);}
+  .qi-home .stack .s-stg{background:var(--qh-warn-soft);}
+  .qi-home .stack .s-prod{background:var(--qh-crit);}
+  .qi-home .legend{display:flex;flex-wrap:wrap;gap:14px 18px;margin-top:10px;font-size:12px;color:var(--qh-muted);}
+  .qi-home .legend .sw{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:6px;vertical-align:middle;}
+  .qi-home .ages{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+  .qi-home .age{background:var(--qh-callout);padding:10px 12px;border-radius:2px;}
+  .qi-home .age .n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+  .qi-home .age .l{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--qh-muted);font-weight:600;}
+  .qi-home .age.crit{background:#EED9D2;}
+  .qi-home .age.warn{background:#EFE1C6;}
+  .qi-home .foot{color:var(--qh-muted);font-family:Georgia,serif;font-size:13.5px;margin-top:14px;}
+  .qi-home .foot em{color:var(--qh-ink);}
+  .qi-home .twoup{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--qh-hairline);
+    border:1px solid var(--qh-hairline);margin-top:24px;}
+  .qi-home .twoup > div{background:var(--qh-ground);padding:22px 24px;}
+  .qi-home .twoup .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--qh-muted);font-weight:600;}
+  .qi-home .twoup .headline{font-size:18px;font-weight:700;margin-top:8px;letter-spacing:-.01em;}
+  .qi-home .twoup .headline em{font-family:Georgia,serif;font-style:italic;font-weight:500;color:var(--qh-accent);}
+  .qi-home .twoup .why{font-size:13.5px;color:var(--qh-muted);margin-top:8px;font-family:Georgia,serif;}
+  .qi-home .twoup ul{margin:8px 0 0;padding-left:18px;font-size:14px;}
+  .qi-home .twoup li{padding:3px 0;}
+  .qi-home .qh-sec{margin:32px 0 4px;font-size:16px;font-weight:700;letter-spacing:-.01em;}
+  .qi-home .qh-sec-sub{color:var(--qh-muted);font-size:13px;font-family:Georgia,serif;margin:0 0 12px;}
+  .qi-home .trk{display:grid;grid-template-columns:0.9fr 0.9fr 1.1fr 0.9fr 0.9fr;gap:0;margin-top:8px;font-size:14px;}
+  .qi-home .trk > *{padding:12px 12px;border-bottom:1px solid var(--qh-hairline);font-variant-numeric:tabular-nums;}
+  .qi-home .trk .h{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--qh-muted);font-weight:600;
+    border-bottom-color:var(--qh-hairline-strong);}
+  .qi-home .trk .rel{font-weight:600;font-variant-numeric:normal;}
+  .qi-home .trk .now{background:var(--qh-callout);}
+  .qi-home .trk .go{color:var(--qh-good);font-weight:700;}
+  .qi-home .trk .cond{color:var(--qh-warn);font-weight:700;}
+  .qi-home .trk .nogo{color:var(--qh-crit);font-weight:700;}
+  @media(max-width:720px){
+    .qi-home .cards{grid-template-columns:1fr;}
+    .qi-home .twoup{grid-template-columns:1fr;}
+    .qi-home .trk{grid-template-columns:1fr 1fr;font-size:13px;}
+  }
+
+  /* ---------- clickable dashboard cards (Home) ---------- */
+  .qi-home .card.clickable{cursor:pointer;position:relative;transition:border-color .12s,box-shadow .12s,transform .12s;}
+  .qi-home .card.clickable:hover{border-color:var(--teal);box-shadow:0 2px 10px rgba(13,139,139,.10);}
+  .qi-home .card.clickable::after{
+    content:"›";position:absolute;top:10px;right:14px;font-size:18px;line-height:1;
+    color:var(--teal);opacity:0;transition:opacity .12s,transform .12s;font-weight:700;
+  }
+  .qi-home .card.clickable:hover::after{opacity:1;transform:translateX(2px);}
+
+  /* ---------- Dashboard-card pop-up (wide modal) ---------- */
+  .modal.wide{max-width:920px;}
+  .dcm-sub{font-size:12.5px;color:var(--ink-2);margin-bottom:12px;line-height:1.5;}
+  .dcm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:10px;}
+  .dcm-stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow);}
+  .dcm-stat .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:650;}
+  .dcm-stat .v{font-size:16px;font-weight:650;color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums;}
+  .dcm-stat .stat-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;}
+  .dcm-stat .stat-row .v{margin-top:0;}
+  .dcm-stat .spark-wrap{flex:none;display:flex;align-items:center;}
+  .dcm-stat .spark{display:block;}
+  .dcm-simtag{font-size:11px;color:var(--ink-3);margin:2px 0 12px;font-style:italic;}
+  .dcm-tablewrap{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:52vh;background:var(--panel);box-shadow:var(--shadow);}
+  .dcm-tablewrap table{width:100%;border-collapse:collapse;font-size:12px;}
+  .dcm-tablewrap th,.dcm-tablewrap td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line-2);vertical-align:top;white-space:nowrap;}
+  .dcm-tablewrap th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:650;background:var(--line-2);position:sticky;top:0;z-index:1;}
+  .dcm-tablewrap tr:last-child td{border-bottom:0;}
+  .dcm-tablewrap td.wrap{white-space:normal;min-width:220px;}
+  .dcm-tablewrap tr.cge-grouphdr td{background:var(--cream,var(--line-2));color:var(--ink-2);
+    font-weight:650;font-size:11px;padding:7px 10px;}
+  .dcm-pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:650;
+    background:var(--line-2);color:var(--ink-2);letter-spacing:.03em;}
+
   /* ---------- version picker ---------- */
   .verpick{display:inline-flex;align-items:center;gap:8px;margin-right:14px;}
   .verpick-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:650;}
@@ -703,14 +992,167 @@
   }
   .verpick select:hover{border-color:var(--ink-3);}
   .verpick select:focus{outline:2px solid var(--teal-tint);outline-offset:1px;border-color:var(--teal);}
+
+  /* ---------- Testcraft authoring view (scoped under .tc-view) ---------- */
+  .tc-view {
+    --bg:#FFFFFF; --cream:#f2f4f5; --cream-2:#e7ebec;
+    --ink:#1c2529; --ink-2:#48555c; --muted:#7a878e;
+    --line:#e3e8ea; --line-2:#eef2f3;
+    --olive:var(--teal-dark); --olive-soft:var(--teal-tint);
+    --sage:#93A98A;
+    --terracotta:#d1435b; --terracotta-soft:#fdeef1;
+    --gold:#C08A2E; --gold-soft:#F2E7CF;
+    --user-bg:#1c2529; --user-ink:#F5F1E8;
+    position:fixed; inset:0; z-index:1000;
+    background:var(--bg); color:var(--ink);
+    font-family:var(--font-sans);
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .tc-view * { box-sizing:border-box; }
+  .tc-view .sans { font-family:var(--font-sans); }
+  .tc-view .mono { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  .tc-view .app { display:grid; grid-template-rows:54px 1fr; height:100%; min-height:640px; }
+  .tc-view .rail { display:flex; align-items:center; gap:18px; padding:0 22px; border-bottom:1px solid var(--line); background:var(--bg); }
+  .tc-view .brand { display:flex; align-items:baseline; gap:6px; font-weight:700; font-size:15px; }
+  .tc-view .brand .dot { color:var(--terracotta); }
+  .tc-view .brand-sub { font-family:var(--font-sans); color:var(--muted); font-weight:500; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; margin-left:4px; }
+  .tc-view .rail-spacer { flex:1; }
+  .tc-view .tc-back { all:unset; cursor:pointer; font-family:var(--font-sans); font-size:11.5px; color:var(--ink-2); padding:5px 10px; border-radius:999px; border:1px solid var(--line-2); background:var(--bg); }
+  .tc-view .tc-back:hover { background:var(--cream-2); border-color:var(--olive); }
+  .tc-view .stepper { display:inline-flex; align-items:center; font-family:var(--font-sans); font-size:12px; }
+  .tc-view .stepper .step { all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; color:var(--muted); }
+  .tc-view .stepper .step:hover { background:var(--cream-2); color:var(--ink-2); }
+  .tc-view .stepper .step .n { width:17px; height:17px; border-radius:50%; background:var(--cream); color:var(--ink-2); display:grid; place-items:center; font-size:10px; font-weight:700; }
+  .tc-view .stepper .step[aria-current="step"] { background:transparent; border:1px solid var(--olive); color:var(--olive); }
+  .tc-view .stepper .step[aria-current="step"] .n { background:var(--olive); color:#fff; }
+  .tc-view .stepper .step.disabled { cursor:not-allowed; opacity:0.55; }
+  .tc-view .stepper .step.disabled:hover { background:transparent; }
+  .tc-view .stepper .arrow { color:var(--line-2); margin:0 2px; font-size:11px; }
+  .tc-view .rail-meta { font-family:var(--font-sans); color:var(--muted); font-size:11.5px; }
+  .tc-view .rail-meta strong { color:var(--ink-2); font-weight:600; }
+  .tc-view .panes { display:grid; grid-template-columns:26% 74%; min-height:0; }
+  .tc-view .chat, .tc-view .work { min-height:0; display:flex; flex-direction:column; }
+  .tc-view .chat { border-right:1px solid var(--line); background:var(--bg); }
+  .tc-view .chat-head { padding:16px 20px 12px; border-bottom:1px solid var(--line); font-family:var(--font-sans); }
+  .tc-view .chat-head .title { font-weight:700; font-size:13px; }
+  .tc-view .chat-head .sub { color:var(--muted); font-size:11.5px; margin-top:2px; }
+  .tc-view .chat-scroll { flex:1; overflow-y:auto; padding:16px 20px 8px; display:flex; flex-direction:column; gap:12px; font-family:var(--font-sans); }
+  .tc-view .msg { display:flex; gap:9px; }
+  .tc-view .msg .who { width:22px; height:22px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; font-size:10px; font-weight:700; }
+  .tc-view .msg.agent .who { background:var(--cream); color:var(--ink-2); }
+  .tc-view .msg.user .who { background:var(--ink); color:var(--user-ink); }
+  .tc-view .msg .body { font-size:12.5px; color:var(--ink); }
+  .tc-view .msg .body p { margin:0 0 4px; }
+  .tc-view .msg .body p:last-child { margin-bottom:0; }
+  .tc-view .msg.user .bubble { background:var(--cream); color:var(--ink); padding:7px 10px; border-radius:9px; display:inline-block; font-size:12.5px; cursor:default; }
+  .tc-view .msg.user .bubble:hover { background:var(--cream-2); }
+  .tc-view .stage-chip { display:inline-flex; align-items:center; gap:5px; background:var(--cream); color:var(--ink-2); padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; margin-bottom:5px; }
+  .tc-view .stage-chip .dot { width:4px; height:4px; border-radius:50%; background:var(--ink-3); }
+  .tc-view .chat-input { border-top:1px solid var(--line); padding:12px 14px; background:var(--bg); }
+  .tc-view .chat-input .box { border:1px solid var(--line-2); background:var(--cream-2); border-radius:10px; padding:9px 12px; color:var(--muted); font-family:var(--font-sans); font-size:12.5px; display:flex; align-items:center; justify-content:space-between; cursor:text; }
+  .tc-view .chat-input .box:hover { border-color:var(--olive); }
+  .tc-view .chat-input .box .kbd { font-family:ui-monospace,monospace; font-size:10px; color:var(--muted); border:1px solid var(--line-2); border-radius:4px; padding:1px 5px; }
+  .tc-view .work { background:var(--bg); }
+  .tc-view .work-head { padding:18px 30px 16px; display:flex; align-items:flex-end; justify-content:space-between; gap:20px; border-bottom:1px solid var(--line); }
+  .tc-view .work-head .eyebrow { font-family:var(--font-sans); color:var(--muted); font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; font-weight:600; margin-bottom:6px; }
+  .tc-view .work-head h1 { margin:0; font-size:24px; font-weight:700; letter-spacing:-0.01em; text-wrap:balance; }
+  .tc-view .work-head h1 em { color:var(--ink-2); font-style:italic; font-weight:400; }
+  .tc-view .head-meta { display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-family:var(--font-sans); }
+  .tc-view .head-meta .pill { background:var(--cream); border:1px solid var(--line); padding:3px 9px; border-radius:999px; font-size:11px; color:var(--ink-2); font-weight:500; cursor:default; }
+  .tc-view .head-meta .pill:hover { background:var(--cream-2); }
+  .tc-view .head-meta .pill.warn { background:var(--gold-soft); color:var(--gold); border-color:transparent; }
+  .tc-view .work-body { flex:1; overflow-y:auto; padding:26px 30px 44px; }
+  .tc-view .intake { max-width:700px; display:flex; flex-direction:column; gap:16px; }
+  .tc-view .card { background:var(--cream-2); border:1px solid var(--line); border-radius:10px; padding:18px 20px; font-family:var(--font-sans); }
+  .tc-view .card .label { color:var(--muted); font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; font-weight:700; margin-bottom:8px; }
+  .tc-view .card h2 { margin:0 0 12px; font-size:15px; font-weight:600; font-family:"Iowan Old Style",Georgia,serif; }
+  .tc-view .badge-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 20px; }
+  .tc-view .badge { display:flex; flex-direction:column; gap:2px; padding:9px 11px; background:var(--bg); border-radius:8px; border:1px solid var(--line); cursor:default; }
+  .tc-view .badge:hover { border-color:var(--line-2); }
+  .tc-view .badge .k { color:var(--muted); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; }
+  .tc-view .badge .v { font-size:12.5px; color:var(--ink); font-weight:500; }
+  .tc-view .q { display:flex; gap:12px; padding:14px 16px; border:1px solid var(--line); background:var(--bg); border-radius:9px; font-family:var(--font-sans); }
+  .tc-view .q + .q { margin-top:8px; }
+  .tc-view .q .num { width:20px; height:20px; border-radius:50%; background:var(--cream); color:var(--ink-2); display:grid; place-items:center; flex-shrink:0; font-size:10.5px; font-weight:700; }
+  .tc-view .q .qbody { flex:1; min-width:0; }
+  .tc-view .q .qtext { font-size:13px; color:var(--ink); margin:0 0 8px; font-weight:600; }
+  .tc-view .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .tc-view .chip { border:1px solid var(--line-2); background:var(--bg); color:var(--ink-2); padding:5px 11px; border-radius:999px; font-size:11.5px; cursor:pointer; transition:background 0.1s,border-color 0.1s; }
+  .tc-view .chip:hover { border-color:var(--olive); }
+  .tc-view .chip.selected { background:var(--olive); color:#fff; border-color:var(--olive); }
+  .tc-view .chip.abstain { color:var(--gold); border-color:var(--gold-soft); background:var(--gold-soft); }
+  .tc-view .actions-row { display:flex; justify-content:flex-end; align-items:center; margin-top:2px; }
+  .tc-view .btn { all:unset; cursor:pointer; padding:9px 16px; border-radius:999px; font-family:var(--font-sans); font-size:12.5px; font-weight:600; display:inline-flex; align-items:center; gap:6px; border:1px solid transparent; transition:opacity 0.1s,background 0.1s; }
+  .tc-view .btn.primary { background:var(--olive); color:#fff; }
+  .tc-view .btn.primary:hover { background:#38362F; }
+  .tc-view .btn.ghost { background:transparent; color:var(--ink-2); border-color:var(--line-2); }
+  .tc-view .btn.ghost:hover { background:var(--cream-2); }
+  .tc-view .btn.good { background:var(--olive); color:#fff; }
+  .tc-view .btn.good:hover { background:#38362F; }
+  .tc-view .btn:disabled, .tc-view .btn.disabled { opacity:0.4; cursor:not-allowed; }
+  .tc-view .btn:disabled:hover, .tc-view .btn.disabled:hover { background:var(--olive); }
+  .tc-view .btn.primary.disabled:hover { background:var(--olive); }
+  .tc-view .tools { display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap; font-family:var(--font-sans); }
+  .tc-view .filter { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px; background:var(--bg); border:1px solid var(--line); color:var(--ink-2); font-size:11.5px; cursor:pointer; }
+  .tc-view .filter:hover { border-color:var(--olive); }
+  .tc-view .filter.active { background:var(--olive); color:#fff; border-color:var(--olive); }
+  .tc-view .filter .count { background:var(--cream); color:var(--ink-2); padding:0 6px; border-radius:999px; font-family:ui-monospace,monospace; font-size:10px; }
+  .tc-view .filter.active .count { background:rgba(255,255,255,0.2); color:#fff; }
+  .tc-view .tools .spacer { flex:1; }
+  .tc-view .bulkbar { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; background:var(--cream); border-left:3px solid var(--olive); border-radius:6px 10px 10px 6px; margin-bottom:10px; font-family:var(--font-sans); font-size:12.5px; }
+  .tc-view .bulkbar .left { display:flex; align-items:center; gap:9px; color:var(--ink-2); font-weight:600; }
+  .tc-view .bulkbar .actions { display:flex; gap:6px; }
+  .tc-view .bulkbar .actions .btn { padding:5px 11px; font-size:11.5px; }
+  .tc-view .bulkbar .actions .btn.ghost { background:var(--bg); }
+  .tc-view .table-wrap { background:var(--bg); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  .tc-view .tbl-scroll { overflow-x:auto; }
+  .tc-view table.tbl { width:100%; border-collapse:collapse; font-family:var(--font-sans); font-size:12px; font-variant-numeric:tabular-nums; min-width:760px; }
+  .tc-view .tbl th { text-align:left; font-weight:700; color:var(--muted); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; padding:10px 12px 8px; border-bottom:1px solid var(--line); background:var(--cream-2); }
+  .tc-view .tbl td { padding:10px 12px; border-bottom:1px solid var(--line); color:var(--ink); vertical-align:top; }
+  .tc-view .tbl tr:last-child td { border-bottom:0; }
+  .tc-view .tbl tbody tr:hover td { background:var(--cream-2); }
+  .tc-view .tbl tr.grouphdr td { background:var(--cream); color:var(--ink-2); font-weight:700; font-size:11px; letter-spacing:0.02em; padding:7px 12px; border-bottom:1px solid var(--line); }
+  .tc-view .tbl tr.grouphdr:hover td { background:var(--cream); }
+  .tc-view .tbl td.chk { width:30px; padding-right:0; }
+  .tc-view .tbl td.id { font-family:ui-monospace,monospace; color:var(--ink-2); font-size:11px; width:66px; }
+  .tc-view .tbl .title-cell { max-width:340px; }
+  .tc-view .tbl .title-cell .t { color:var(--ink); }
+  .tc-view .chk-box { width:14px; height:14px; border-radius:4px; border:1.5px solid var(--line-2); display:inline-block; vertical-align:middle; background:var(--bg); cursor:pointer; }
+  .tc-view .chk-box:hover { border-color:var(--olive); }
+  .tc-view .chk-box.on { background:var(--olive); border-color:var(--olive); position:relative; }
+  .tc-view .chk-box.on::after { content:""; position:absolute; left:3px; top:-1px; width:4px; height:8px; border:solid #fff; border-width:0 1.6px 1.6px 0; transform:rotate(45deg); }
+  .tc-view .sev { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; }
+  .tc-view .sev .stripe { width:3px; height:11px; border-radius:2px; background:var(--muted); }
+  .tc-view .sev.sev1 .stripe { background:var(--terracotta); }
+  .tc-view .sev.sev2 .stripe { background:var(--gold); }
+  .tc-view .sev.sev1 { color:var(--terracotta); }
+  .tc-view .sev.sev2 { color:var(--gold); }
+  .tc-view .tag { display:inline-block; padding:1px 7px; border-radius:4px; font-family:ui-monospace,monospace; font-size:10px; background:var(--cream); color:var(--ink-2); border:1px solid var(--line); }
+  .tc-view .status { display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:999px; font-size:10.5px; font-weight:600; cursor:pointer; }
+  .tc-view .status.draft { background:var(--cream); color:var(--ink-2); }
+  .tc-view .status.approved { background:transparent; border:1px solid var(--olive); color:var(--olive); }
+  .tc-view .status.abstain { background:var(--gold-soft); color:var(--gold); }
+  .tc-view .status .dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
+  .tc-view .ctas { margin-top:16px; display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--cream-2); border-radius:10px; font-family:var(--font-sans); }
+  .tc-view .cta-step { display:flex; align-items:center; gap:7px; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:600; color:var(--muted); }
+  .tc-view .cta-step .stepdot { width:17px; height:17px; border-radius:50%; background:var(--line-2); color:var(--bg); display:grid; place-items:center; font-size:10px; font-weight:700; }
+  .tc-view .cta-step.current { color:var(--ink); background:var(--bg); }
+  .tc-view .cta-step.current .stepdot { background:var(--olive); color:#fff; }
+  .tc-view .cta-step.done { color:var(--olive); }
+  .tc-view .cta-step.done .stepdot { background:var(--olive); color:#fff; }
+  .tc-view .cta-arrow { color:var(--line-2); font-size:11px; }
+  .tc-view .ctas .spacer { flex:1; }
+  .tc-view .ctas .btn { padding:9px 18px; }
+  .tc-view .app[data-view="step1"] .view-step2,
+  .tc-view .app[data-view="step2"] .view-step1 { display:none !important; }
 </style>
 </head>
 <body>
   <div class="topbar">
     <div class="brand">
-      <span class="mark">iP</span>
-      <span>iPOS+ Test Studio</span>
-      <span class="sub">· AIA Financial Health Review</span>
+      <span class="mark">T</span>
+      <span>Testsigma</span>
     </div>
     <div class="spacer"></div>
     <label class="verpick" title="Switch mockup version">
@@ -719,9 +1161,10 @@
         <option value="test-authoring-mockup.html">v1 · Baseline (no AI)</option>
         <option value="test-authoring-mockup-v2.html">v2 · With AI (Part B)</option>
         <option value="test-authoring-mockup-v3.html" selected>v3 · Nav rework (Home / Test Cases / Releases)</option>
+        <option value="test-authoring-mockup-v4.html">v4 · Intake · progressive disclosure + new sample chats</option>
       </select>
     </label>
-    <div class="crumb" id="crumb"></div>
+    <div class="crumb" id="crumb" style="display:none;"></div>
   </div>
   <script>
     (function(){
@@ -739,11 +1182,41 @@
   <div class="layout">
     <!-- Part C: PRIMARY NAV RAIL (Home / Test Cases / Releases) -->
     <aside class="primarynav" id="primaryNav">
-      <button class="pnav-item" data-section="home"><span class="pnav-ic">⌂</span><span>Home</span></button>
-      <button class="pnav-item" data-section="atto"><span class="pnav-ic">⚡</span><span>Atto AI</span></button>
+      <div class="wsw" id="wsSwitcher">
+        <button class="wsw-trigger" id="wsTrigger">
+          <span class="wsw-icon"><i data-lucide="building-2"></i></span>
+          <span class="wsw-text"><span class="wsw-name">Testsigma</span><span class="wsw-tier">Pro</span></span>
+          <span class="wsw-chevron"><i data-lucide="chevrons-up-down"></i></span>
+        </button>
+        <div class="wsw-menu" id="wsMenu">
+          <div class="wsw-menu-lbl">Workspaces</div>
+          <button class="wsw-item active" data-ws="testsigma">
+            <span class="wsw-icon"><i data-lucide="building-2"></i></span>
+            <span class="wsw-item-name">Testsigma</span>
+            <span class="wsw-item-tier">Pro</span>
+            <span class="wsw-check"><i data-lucide="check"></i></span>
+          </button>
+          <button class="wsw-item" data-ws="personal">
+            <span class="wsw-icon"><i data-lucide="code-2"></i></span>
+            <span class="wsw-item-name">Personal</span>
+            <span class="wsw-item-tier">Free</span>
+            <span class="wsw-check"><i data-lucide="check"></i></span>
+          </button>
+          <button class="wsw-item" data-ws="labs">
+            <span class="wsw-icon"><i data-lucide="rocket"></i></span>
+            <span class="wsw-item-name">Startup Labs</span>
+            <span class="wsw-item-tier">Team</span>
+            <span class="wsw-check"><i data-lucide="check"></i></span>
+          </button>
+          <div class="wsw-sep"></div>
+          <button class="wsw-add"><i data-lucide="plus"></i><span>Add workspace</span></button>
+        </div>
+      </div>
+      <button class="pnav-item" data-section="home"><span class="pnav-ic"><i data-lucide="home"></i></span><span>Home</span></button>
+      <button class="pnav-item" data-section="atto"><span class="pnav-ic"><i data-lucide="zap"></i></span><span>Atto AI</span></button>
 
       <div class="pnav-group">
-        <button class="pnav-item" data-section="testcases" data-sub="library"><span class="pnav-ic">☑</span><span>Test Cases</span></button>
+        <button class="pnav-item" data-section="testcases" data-sub="library"><span class="pnav-ic"><i data-lucide="list-checks"></i></span><span>Test Cases</span></button>
         <div class="pnav-sub">
           <button class="pnav-subitem" data-section="testcases" data-sub="insights">Insights</button>
           <button class="pnav-subitem" data-section="testcases" data-sub="library">Library</button>
@@ -751,10 +1224,28 @@
       </div>
 
       <div class="pnav-group">
-        <button class="pnav-item" data-section="releases" data-sub="details"><span class="pnav-ic">🏷</span><span>Releases</span></button>
+        <button class="pnav-item" data-section="releases" data-sub="details"><span class="pnav-ic"><i data-lucide="tag"></i></span><span>Releases / Runs</span></button>
         <div class="pnav-sub">
-          <button class="pnav-subitem" data-section="releases" data-sub="insights">Insights</button>
-          <button class="pnav-subitem" data-section="releases" data-sub="details">Details</button>
+          <button class="pnav-subitem" data-section="releases" data-sub="details">Releases</button>
+          <button class="pnav-subitem" data-section="releases" data-sub="runs">Runs</button>
+        </div>
+      </div>
+
+      <div class="pnav-group">
+        <button class="pnav-item" data-section="reports" data-sub="heal"><span class="pnav-ic"><i data-lucide="bar-chart-3"></i></span><span>Reports</span></button>
+        <div class="pnav-sub">
+          <button class="pnav-subitem" data-section="reports" data-sub="heal">Self-heal</button>
+          <button class="pnav-subitem" data-section="reports" data-sub="flaky">Flakiness</button>
+          <button class="pnav-subitem" data-section="reports" data-sub="bugs">Defects Deflection</button>
+        </div>
+      </div>
+
+      <div class="pnav-group">
+        <button class="pnav-item" data-section="contextgraph" data-sub="product"><span class="pnav-ic"><i data-lucide="git-fork"></i></span><span>Context Graph</span></button>
+        <div class="pnav-sub">
+          <button class="pnav-subitem" data-section="contextgraph" data-sub="product">Product</button>
+          <button class="pnav-subitem" data-section="contextgraph" data-sub="elements">Elements</button>
+          <button class="pnav-subitem" data-section="contextgraph" data-sub="dbmodel">DB Model</button>
         </div>
       </div>
     </aside>
@@ -792,7 +1283,7 @@
     <!-- Part B: conversational authoring pane (right side, Claude/Gemini-style) -->
     <aside class="chatpane" id="chatPane" aria-label="Authoring assistant">
       <div class="chatpane-head">
-        <span class="cp-title">⚡ Authoring assistant</span>
+        <span class="cp-title"><i data-lucide="zap" style="width:13px;height:13px;vertical-align:-2px;"></i> Ask Atto AI</span>
         <span class="cp-sub">Ask · draft · summarize</span>
         <button class="cp-collapse" id="chatCollapse" title="Hide chat panel">›</button>
       </div>
@@ -802,8 +1293,8 @@
         <div class="cbar-clarify" id="cbarClarify" style="display:none;"></div>
         <div class="cbar-input-row">
           <span class="prefix">✎</span>
-          <input id="cbarInput" type="text"
-            placeholder='Ask or author — e.g. "add a negative case for expired NRIC at submission"'>
+          <textarea id="cbarInput" rows="2"
+            placeholder='Ask or author — e.g. "add a negative case for expired NRIC at submission"'></textarea>
           <button class="cbar-submit" id="cbarSubmit">↵</button>
         </div>
       </div>
@@ -1372,6 +1863,54 @@ const RELEASES = [
           {c:"C1",s:"pass"},{c:"C4",s:"pass"},{c:"D1",s:"pass"},{c:"D4",s:"pass"},{c:"D12",s:"pass"}]},
     ]
   },
+  {
+    id:"REL-FHR-1.3", name:"REL-FHR-1.3 — Full regression re-verify", targetShip:"2026-07-14",
+    businessContext:{
+      surface:"Financial Health Review · iPOS+ · web + mobile",
+      release:"v3.5.1 — feature freeze 2026-07-11 · target ship 2026-07-14",
+      scope:"4 sub-flows · full 55-case Regression re-run against iPOS-3.5.1 (JIRA-7841/7862/7870 fixes)",
+      plansGenerated:"Regression (55) · topmost = Regression",
+      topmostExecuted:"Regression — 55 of 55 cases attempted",
+      owningTeam:"FHR QA · 5 testers · lead: R. Menon"
+    },
+    runs:[
+      { id:"RUN-FHR-1301", name:"Regression Test", suite:"Full sub-flow A/B/C/D",
+        platform:"web", env:"UAT", build:"iPOS-3.5.1", executedBy:"Marcus L.", lastRun:"2026-07-12 11:05",
+        results:[
+          {c:"A1",s:"pass"},{c:"A2",s:"pass"},{c:"A3",s:"pass"},{c:"A4",s:"pass"},
+          {c:"A5",s:"pass"},{c:"A6",s:"pass"},{c:"A7",s:"pass"},{c:"A8",s:"pass"},{c:"A9",s:"pass"},
+          {c:"A10",s:"pass"},{c:"A11",s:"notrun"},{c:"A12",s:"notrun"},
+          {c:"E1",s:"pass"},{c:"E2",s:"notrun"},{c:"E3",s:"pass"},
+          {c:"B1",s:"pass"},{c:"B2",s:"pass"},{c:"B3",s:"pass"},{c:"B4",s:"pass"},{c:"B5",s:"notrun"},
+          {c:"B6",s:"pass"},{c:"B7",s:"pass"},{c:"B8",s:"pass"},{c:"B9",s:"notrun"},
+          {c:"B10",s:"pass"},{c:"B11",s:"pass"},{c:"B12",s:"notrun"},{c:"B13",s:"pass"},{c:"B14",s:"pass"},
+          {c:"E4",s:"pass"},{c:"E5",s:"pass"},
+          {c:"C1",s:"pass"},{c:"C2",s:"pass"},{c:"C3",s:"pass"},{c:"C4",s:"pass"},
+          {c:"C5",s:"pass"},{c:"C6",s:"pass"},{c:"C7",s:"pass"},{c:"C8",s:"pass"},{c:"C9",s:"notrun"},
+          {c:"C10",s:"pass"},{c:"C11",s:"notrun"},{c:"C12",s:"pass"},
+          {c:"D1",s:"pass"},{c:"D2",s:"pass"},{c:"D3",s:"notrun"},{c:"D4",s:"pass"},{c:"D5",s:"pass"},
+          {c:"D6",s:"pass"},{c:"D7",s:"pass"},{c:"D8",s:"pass"},{c:"D9",s:"pass"},{c:"D10",s:"notrun"},
+          {c:"D11",s:"notrun"},{c:"D12",s:"pass"}]},
+    ]
+  },
+  {
+    id:"REL-FHR-1.4", name:"REL-FHR-1.4 — Sprint 24 smoke", targetShip:"2026-07-21",
+    businessContext:{
+      surface:"Financial Health Review · iPOS+ · mobile",
+      release:"v3.6.0 — feature freeze 2026-07-18 · target ship 2026-07-21",
+      scope:"9 stories · smoke pass ahead of Sprint 24 regression",
+      plansGenerated:"Smoke (9) · topmost = Smoke",
+      topmostExecuted:"Smoke — 9 of 9 attempted",
+      owningTeam:"FHR QA · 2 testers · lead: Aisha R."
+    },
+    runs:[
+      { id:"RUN-FHR-1401", name:"Smoke Test", suite:"Sprint 24 pre-regression smoke",
+        platform:"mobile", env:"UAT", build:"iPOS-3.6.0", executedBy:"Aisha R.", lastRun:"2026-07-19 08:47",
+        results:[
+          {c:"A1",s:"pass"},{c:"A4",s:"pass"},{c:"B1",s:"pass"},{c:"B6",s:"pass"},
+          {c:"C1",s:"pass"},{c:"C4",s:"pass"},{c:"D1",s:"pass"},{c:"D4",s:"pass"},{c:"D12",s:"pass"}]},
+    ]
+  },
 ];
 
 // derive: which release a case belongs to (for List "Release/Sprint" column)
@@ -1468,6 +2007,55 @@ const QUALITY_GATES = {
     recommendedTests:[
       {scenario:"Full Regression suite (55 cases) on iPOS-3.5.0", reason:"Not yet executed against this build", where:"web + mobile", priority:"P0"},
       {scenario:"Underinsurance threshold boundary (TPD)", reason:"Still blocked on Q-A2 since REL-FHR-1.0", where:"web", priority:"P2"},
+    ],
+  },
+  "REL-FHR-1.3":{
+    verdict:"go", verdictLabel:"GO",
+    headline:"Safe to ship — full regression clean, JIRA-7841/7862/7870 fixes verified.",
+    rules:[
+      "0 open P1/P2 defects — TC-A4, TC-B6, TC-C4 (previously failing) now pass on iPOS-3.5.1.",
+      "44 of 55 regression cases have a real result; remaining 11 are correctly-abstained pending product/compliance answers, not skipped.",
+    ],
+    confidence:92,
+    scoredAgainst:"the full Regression plan (55 tests)",
+    coverageThisRelease:80, coverageSub:"44 of 55 planned cases attempted · 11 abstained (unchanged, still pending answers).",
+    coverageChangedCode:95, coverageChangedSub:"All 3 previously-failing sub-flows (A, B, C) now fully pass on this build.",
+    passRateFirst:92, passRateFinal:100, passRateSub:"No failures or blocks this run — all attempted cases passed.",
+    regressionDuration:17, regressionDurationPrev:18, suiteTrend:"stable",
+    suiteSub:"Down slightly from 18 min last full run. Flake rate 0.8%.",
+    waterfall:[
+      {label:"Starting", val:100, barPct:100, cls:"total"},
+      {label:"Regulatory abstains not run", val:-8, barPct:8, cls:"warn"},
+      {label:"Confidence", val:92, barPct:92, cls:"total"},
+    ],
+    topAction:"get product/compliance answers on the remaining 11 abstains to close out full coverage. Projected recovery: +8 points.",
+    recommendedTests:[
+      {scenario:"Underinsurance threshold boundary (TPD)", reason:"Blocked on Q-A2 — no threshold defined yet", where:"web", priority:"P2"},
+      {scenario:"Zero-goal gating", reason:"Blocked on Q-B5 — proceeding with 0 goals undefined", where:"web", priority:"P2"},
+    ],
+  },
+  "REL-FHR-1.4":{
+    verdict:"go", verdictLabel:"GO",
+    headline:"Safe to ship — smoke clean, no regressions expected ahead of Sprint 24.",
+    rules:[
+      "All 9 smoke cases passed on iPOS-3.6.0, matching REL-FHR-1.2's clean smoke baseline.",
+      "No code changes to previously-failing sub-flows since the last full Regression pass (REL-FHR-1.3).",
+    ],
+    confidence:88,
+    scoredAgainst:"the smoke plan (9 tests) — full Regression last ran clean on REL-FHR-1.3",
+    coverageThisRelease:16, coverageSub:"9 of 55 library cases attempted this build; smoke-only by design ahead of Sprint 24.",
+    coverageChangedCode:18, coverageChangedSub:"No P1 sub-flow changes landed since REL-FHR-1.3's full regression pass.",
+    passRateFirst:100, passRateFinal:100, passRateSub:"No reruns needed — small sample, all clean.",
+    regressionDuration:17, regressionDurationPrev:17, suiteTrend:"stable",
+    suiteSub:"Showing REL-FHR-1.3's last full Regression time — this build hasn't run one yet.",
+    waterfall:[
+      {label:"Starting", val:100, barPct:100, cls:"total"},
+      {label:"Smoke-only sample size", val:-12, barPct:12, cls:"warn"},
+      {label:"Confidence", val:88, barPct:88, cls:"total"},
+    ],
+    topAction:"run the full Regression suite once Sprint 24 stories land, to keep confidence above the smoke-only baseline.",
+    recommendedTests:[
+      {scenario:"Full Regression suite (55 cases) on iPOS-3.6.0", reason:"Not yet executed against this build", where:"web + mobile", priority:"P1"},
     ],
   },
 };
@@ -1568,6 +2156,65 @@ const ATTO_MOCK_DRAFTS = [
   {id:"TC-308", title:"Whitespace-only coverage amount is rejected", cat:"negative"},
 ];
 let ATTO_CHATS = [
+  {id:"chA", title:"P2P daily-limit intake — AIA-P2P-812 (Payments)", when:"Today", source:"PR + PRD",
+   messages:[
+     {role:"user",
+      text:`<b>AIA-P2P-812:</b> Instant P2P transfer, new daily-limit rule. Web + iOS. PR + PRD attached — please intake.`,
+      src:"🧩 Jira · AIA-P2P-812  ·  📄 PR #813 (backend Java + iOS SwiftUI)  ·  📄 PRD excerpt"},
+     {role:"bot",
+      text:`<b>Understood so far</b> — reading the diff + PRD before I ask anything.<br><br>
+<b>Change fingerprint</b><br>
+· Mixed: backend rule change in <code>PaymentsTransferHandler</code> + iOS <code>ErrorBanner</code>. <span class="muted">inferred</span><br>
+· Web named in the story but <b>no web diff</b> in this PR. <span class="muted">unknown — will confirm</span><br>
+· Not changing: transfer happy-path, KYC-tier definitions, <code>verifiedCap</code> value. <span class="muted">inferred</span><br><br>
+<b>Business intent &amp; blast radius</b><br>
+· Money-moving, per-user cap → regulated, high blast. <span class="muted">inferred</span><br>
+· Worst case: cap fails open under load; user drains beyond cap. <span class="muted">inferred</span><br><br>
+<b>Actors &amp; personas</b><br>
+· Base user (<code>baseCap = $1,000</code>) and KYC-verified (higher cap). <span class="muted">inferred</span><br>
+· Unauthenticated / suspended / frozen accounts not addressed in diff. <span class="muted">unknown</span><br><br>
+<b>Oracle availability</b><br>
+· Strong: HTTP 429 + <code>DAILY_LIMIT_EXCEEDED</code> + <code>remaining</code> amount. <span class="muted">inferred from handler</span><br>
+· PRD punts on rolling-window TZ semantics + partial-cap under concurrency. <span class="muted">abstain-candidates</span><br><br>
+<b>State &amp; environment</b><br>
+· Rolling 24h → time-travel / clock-skew testable. <span class="muted">inferred</span><br>
+· Retry / double-submit / offline queue not mentioned. <span class="muted">unknown</span><br><br>
+<b>Cross-layer &amp; observability</b><br>
+· iOS UI → API → <code>limitStore</code> (DB or cache?). <span class="muted">inferred</span><br>
+· No audit-log line visible for 429 rejects. <span class="muted">unknown — Rule 12 asks me to verify</span><br><br>
+<b>Data &amp; privacy</b><br>
+· Financial PII; synthetic accounts with KYC-tier flags. <span class="muted">assumed</span><br><br>
+<b>Governance &amp; history</b><br>
+· No test-suite reference in ticket; escaped-defects for this handler <span class="muted">unknown</span>; assuming <b>P0/P1</b> given money + regulated. <span class="muted">assumed</span>`},
+     {role:"bot",
+      text:`<b>Before I proceed — 5 questions.</b> Two confirm my read; three unblock things I can't infer.<br><br>
+<b>Q1 · Platform scope</b> — story says Web + iOS; diff only touches iOS + backend. Fires 1 or 2 platform packs.<br>
+◦ iOS + backend only, Web ships later &nbsp; ◦ Web + iOS + backend (both packs) &nbsp; ◦ Your call<br><br>
+<b>Q2 · Rolling-window semantics</b> <span style="color:#c26a1a;font-weight:650;">(abstain probe)</span> — PRD doesn't pin TZ semantics. Changes whether I author DST + TZ-drift cases.<br>
+◦ Server UTC, ms-precision rolling &nbsp; ◦ Sender-local calendar day &nbsp; ◦ Flag as open — ship dual candidate oracles (Rule 11)<br><br>
+<b>Q3 · Concurrency</b> <span style="color:#c26a1a;font-weight:650;">(abstain probe)</span> — PRD calls partial-cap under concurrency out of scope. I'd still author a property invariant — the money says so.<br>
+◦ Include (invariant: Σ accepted ≤ cap always) — recommended &nbsp; ◦ Respect out-of-scope, mark as known gap &nbsp; ◦ Your call<br><br>
+<b>Q4 · Audit-log presence</b> — Rule 12: rule-bearing rejects should log a decision row. Not visible in diff.<br>
+◦ Exists upstream via interceptor (I add L4 audit case) &nbsp; ◦ Doesn't exist today (I raise as testability finding, not test) &nbsp; ◦ Your call<br><br>
+<b>Q5 · Priority + reuse</b> — assuming P0. Extend existing <code>PaymentsTransferSpec</code>, or greenfield?<br>
+◦ P0, extend spec &nbsp; ◦ P0, greenfield &nbsp; ◦ P1, greenfield &nbsp; ◦ Your call`},
+     {role:"user",
+      text:`<b>Q1:</b> Web + iOS. Web diff is on PR #814 — same rule, thinner UI.<br>
+<b>Q2:</b> Flag as open. Backend team decides Thursday.<br>
+<b>Q3:</b> Include it. If a race drains the cap I want to know now.<br>
+<b>Q4:</b> Actually you're wrong — the interceptor logs successes but <b>not</b> 429 rejects today. That's a real gap.<br>
+<b>Q5:</b> P0, extend <code>PaymentsTransferSpec</code>. Nick's the reviewer.`},
+     {role:"bot",
+      text:`Got it. Recording the <b>Q4 correction</b> as a testability finding, not a test — flowing to the coverage report. Both platform packs on; concurrency invariant on; TZ semantics carries dual candidate oracles into Draft (Rule 11) and resolves the moment Thursday's decision lands.<br><br>
+<b>Technique bundle</b> — decision table on <code>(kyc_tier × amount-vs-remaining)</code> · BVA on <code>remaining ∈ {0.01, 0, -0.01}</code> · property invariant <code>Σ accepted ≤ cap</code> (Hypothesis) · contract test on the 429 body · fault-injection on limit-store · iOS + Web platform packs · cross-layer L1 / L4 / L5.<br><br>
+<b>Coverage-critic rules firing:</b> Rule 2 (interaction), Rule 6 (mobile+web packs), Rule 7 (backend boundary), Rule 8 (money/suitability), Rule 11 (abstain actionable), Rule 12 (cross-layer + audit-log gap raised).<br><br>
+<b>3 draft scenarios</b> queued — review and add to the Library:`,
+      drafts:[
+        {id:"TC-401", title:"Base user, cumulative crosses cap mid-day — 429 with remaining=0.00; shown=sent=stored=shown-back", cat:"negative"},
+        {id:"TC-402", title:"Concurrent double-submit within cap, sum over cap — invariant Σ accepted ≤ cap always holds", cat:"property"},
+        {id:"TC-403", title:"KYC promotion mid-window — verifiedCap applies; prior-amount carry-over abstained pending product", cat:"edge"},
+      ]},
+   ]},
   {id:"ch1", title:"Edge cases for NRIC expiry at submission", when:"Today", source:"Figma",
    messages:[
      {role:"user", text:"From this Figma flow, generate negative + boundary cases for NRIC expiry at submission.", src:"🎨 Figma · FHR-submit-flow"},
@@ -1683,6 +2330,51 @@ function runCounts(run){
   return c;
 }
 
+/* ---- Releases › Runs: flat list of every run across all releases ---- */
+function testRunsEl(){
+  const wrap=el("div");
+  const headRow=el("div"); headRow.style.cssText="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;";
+  const head=el("div","allrel-head");
+  head.innerHTML=`<h2>Test runs</h2>`+
+    `<p>Every run executed across releases in this workspace. Open a release to see its full test-case breakdown.</p>`;
+  headRow.appendChild(head);
+  const addRunBtn=el("button","btn btn-primary","+ Add Run");
+  addRunBtn.style.flex="none";
+  addRunBtn.addEventListener("click",()=>openAddRunModal());
+  headRow.appendChild(addRunBtn);
+  wrap.appendChild(headRow);
+  const tblWrap=el("div","rel-index"); tblWrap.style.marginTop="16px";
+  const table=el("table");
+  table.innerHTML=`<thead><tr>
+    <th>Run</th><th>Release</th><th>Platform</th><th>Executed by</th><th>Last run</th><th>Results</th>
+  </tr></thead>`;
+  const tb=el("tbody");
+  RELEASES.forEach(rel=>{
+    rel.runs.forEach(run=>{
+      const c=runCounts(run);
+      const tr=el("tr");
+      tr.innerHTML=
+        `<td><div class="r-name">${escapeHtml(run.name)}</div><span class="r-sub">${escapeHtml(run.suite)}</span></td>`+
+        `<td class="r-suites">${escapeHtml(rel.id)}</td>`+
+        `<td><span class="platcell"><span class="pic">${PLAT_ICON[run.platform]}</span>${run.platform}</span></td>`+
+        `<td>${escapeHtml(run.executedBy)}</td>`+
+        `<td class="mono">${escapeHtml(run.lastRun.split(" ")[0])}</td>`+
+        `<td><span class="pill ${c.fail?"fail":(c.block?"block":"pass")}"><span class="dot ${c.fail?"fail":(c.block?"block":"pass")}"></span>${c.pass}✓ ${c.fail}✕ ${c.block}▮${c.notrun?` ${c.notrun}—`:""}</span></td>`;
+      tr.style.cursor="pointer";
+      tr.addEventListener("click",()=>{
+        STATE.section="releases"; STATE.subview="details"; STATE.releaseId=rel.id;
+        STATE.suiteFilter="all"; STATE.featureFilter=null; STATE.tab="list";
+        renderApp();
+      });
+      tb.appendChild(tr);
+    });
+  });
+  table.appendChild(tb);
+  tblWrap.appendChild(table);
+  wrap.appendChild(tblWrap);
+  return wrap;
+}
+
 /* =========================================================================
    SELECTION HANDLERS
    ========================================================================= */
@@ -1703,26 +2395,28 @@ function currentCases(){
 function render(){
   // Module (Test Cases › Library) header + content. Release drilldown has its
   // own render path (renderReleaseDetails) and doesn't come through here.
+  // Detail/List toggle is hidden here — Library always shows the table (List)
+  // view now; renderDetail() is kept for reference but no longer reachable.
   const {f,s}=STATE.modScenario;
   const feat=MODULE_TREE.features[f], scen=feat.scenarios[s];
-  $("#mainTitle").textContent = scen.name;
+  $("#maintabs .titleblock").style.display="";
+  $("#mainTitle").textContent = `Test Cases for Scenario: ${scen.name}`;
   $("#crumb").innerHTML = `Test Cases › Library · <b>${feat.name}</b>`;
-  if(STATE.tab==="detail") renderDetail();
-  else renderList();
+  renderList();
 }
 
 /* ---- DETAIL (Library only) ---- */
 function renderDetail(){
   const content=$("#content"); content.className="content"; content.innerHTML="";
 
-  // Module view: scenario header with Suggest-missing-edge-cases CTA
+  // Module view: scenario header (Suggest-missing-edge-cases + Add Test Case
+  // CTAs now live in the List view tools bar, next to each other — see renderList)
   const {f,s}=STATE.modScenario;
   const scen=MODULE_TREE.features[f].scenarios[s];
   const sh=el("div","scenario-head");
-  sh.innerHTML=`<h2>${scen.name} <button class="btn" style="margin-left:8px;font-size:11.5px;padding:3px 9px;" id="suggestEdgeBtn">Suggest missing edge cases</button></h2>`+
+  sh.innerHTML=`<h2>${scen.name}</h2>`+
     `<p>Scenario covers ${scen.cases.length} cases in ${MODULE_TREE.features[f].name}.</p>`;
   content.appendChild(sh);
-  sh.querySelector("#suggestEdgeBtn").addEventListener("click",e=>{e.stopPropagation();openSuggestEdgeCasesModal(scen);});
 
   // Draft card, if any
   if(STATE.draft){ content.appendChild(draftCardEl(STATE.draft)); }
@@ -1843,15 +2537,43 @@ function runSummaryEl(rel, run){
 function renderList(){
   const content=$("#content"); content.className="content listmode"; content.innerHTML="";
   const showExecCols = STATE.view==="release";
+  const selected = new Set();
 
   const tools=el("div","tabletools");
+  const filterBtn=el("button","btn","⚙ Filters");
+  filterBtn.addEventListener("click",()=>toast("Filters (mock)"));
+  tools.appendChild(filterBtn);
   tools.appendChild(el("div","spacer"));
-  tools.appendChild(el("button","btn","Export"));
+  // Add Test Case + Suggestions live together in the Library list only —
+  // the Releases › Details test-case list has no scenario to add/suggest into.
+  if(!showExecCols){
+    const {f,s}=STATE.modScenario;
+    const scen=MODULE_TREE.features[f].scenarios[s];
+    const addBtn=el("button","btn","+ Add Test Case");
+    addBtn.addEventListener("click",()=>openAddTestCaseModal(scen));
+    tools.appendChild(addBtn);
+    const suggestBtn=el("button","btn","✨ Suggestions");
+    suggestBtn.addEventListener("click",()=>openSuggestEdgeCasesModal(scen));
+    tools.appendChild(suggestBtn);
+  }
+  const runBtn=el("button","btn btn-primary","Create Test Run");
+  runBtn.disabled=true;
+  runBtn.addEventListener("click",()=>{
+    if(!selected.size) return;
+    openCreateTestRunModal(selected.size);
+  });
+  tools.appendChild(runBtn);
   content.appendChild(tools);
 
+  function updateRunBtn(){
+    runBtn.disabled = selected.size===0;
+    runBtn.textContent = selected.size ? `Create Test Run (${selected.size})` : "Create Test Run";
+  }
+
   const wrap=el("div","tablewrap");
-  const table=el("table");
+  const table=el("table"); if(!showExecCols) table.className="compact";
   table.innerHTML=`<thead><tr>
+    <th class="chk"><input type="checkbox" id="selectAllCases"></th>
     <th>ID</th><th>Type</th><th>Test case</th><th>Manual / Auto</th>`+
     (showExecCols?`<th>Platform</th><th>Release / Sprint</th><th>Assignee</th>`:``)+
     `<th>Last run</th><th>Status</th>
@@ -1863,6 +2585,7 @@ function renderList(){
     const tr=el("tr");
     tr.style.cursor="pointer";
     tr.addEventListener("click",(ev)=>{
+      if(ev.target.closest(".chk-box-cell")) return;
       const trig=ev.target.closest(".rowmenu-trigger");
       if(trig){ ev.stopPropagation(); openRowMenu(trig, r.key, r.runId); return; }
       openDrawer(r.key, r.runId);
@@ -1871,10 +2594,10 @@ function renderList(){
     // Failed cases get a ⋯ mini-menu (Explain failure / Create defect / Retry).
     const rowMenu = (r.status==="fail")
       ? `<button class="rowmenu-trigger" data-menu-case="${r.key}" title="Actions">⋯</button>` : "";
-    const statusCell = r.abstain
-      ? `<span class="abstain-pill">Abstain · <span class="qid">${r.abstain.q}</span></span>`
-      : `<span class="statuscell ${r.status}"><span class="dot ${r.status}"></span>${STATUS_LABEL[r.status]}${rowMenu}</span>`;
+    const statusCell = `<span class="statuscell ${r.status}"><span class="dot ${r.status}"></span>${STATUS_LABEL[r.status]}${rowMenu}</span>`;
+    const lastRunDate = r.lastRun==="—" ? "—" : r.lastRun.split(" ")[0];
     tr.innerHTML=
+      `<td class="chk-box-cell"><input type="checkbox" class="case-chk" data-case="${r.key}"></td>`+
       `<td class="id">${r.id}</td>`+
       `<td><span class="ctype cat-${r.category}">${r.category}</span></td>`+
       `<td class="name">${r.title}</td>`+
@@ -1884,13 +2607,30 @@ function renderList(){
           `<td>${r.release}</td>`+
           `<td><span class="assignee"><span class="avatar">${initials(r.assignee)}</span>${r.assignee}</span></td>`
         : ``)+
-      `<td class="${r.lastRun==="—"?"muted":""}">${r.lastRun}</td>`+
+      `<td class="${lastRunDate==="—"?"muted":""}">${lastRunDate}</td>`+
       `<td>${statusCell}</td>`;
     tb.appendChild(tr);
+    const cb=tr.querySelector(".case-chk");
+    cb.addEventListener("click",e=>e.stopPropagation());
+    cb.addEventListener("change",e=>{
+      if(e.target.checked) selected.add(r.key); else selected.delete(r.key);
+      selectAll.checked = selected.size>0 && selected.size===rows.length;
+      updateRunBtn();
+    });
   });
   table.appendChild(tb);
   wrap.appendChild(table);
   content.appendChild(wrap);
+
+  const selectAll = table.querySelector("#selectAllCases");
+  selectAll.addEventListener("click",e=>e.stopPropagation());
+  selectAll.addEventListener("change",e=>{
+    tb.querySelectorAll(".case-chk").forEach(cb=>{
+      cb.checked = e.target.checked;
+      if(e.target.checked) selected.add(cb.dataset.case); else selected.delete(cb.dataset.case);
+    });
+    updateRunBtn();
+  });
 }
 
 function listRows(){
@@ -1931,7 +2671,23 @@ function updatePrimaryNavActive(){
 }
 
 function renderApp(){
+  // Testcraft view: fullscreen overlay above v3's chrome. Escape hatch back to Atto.
+  const existingTc = document.getElementById("tcRoot");
+  if(STATE.testcraft){
+    if(!existingTc){
+      const root = renderTestcraftView();
+      document.body.appendChild(root);
+      tcInit(root);
+      if(window.lucide) lucide.createIcons();
+    }
+    return;
+  } else if(existingTc){
+    existingTc.remove();
+  }
   updatePrimaryNavActive();
+  setReleaseBreadcrumb();
+
+  document.body.classList.toggle("section-home", STATE.section==="home");
 
   // Left tree only shows for Test Cases › Library (module view). The release
   // list/drill-in lives entirely in the main pane now — no second nav.
@@ -1954,6 +2710,8 @@ function renderApp(){
 
   $("#treeNav").classList.toggle("hidden", !secondNavPresent || STATE.treeCollapsed);
   $("#treeReopen").style.display = (secondNavPresent && STATE.treeCollapsed) ? "" : "none";
+  $("#treeReopen").textContent = isAtto ? "View Chats" : "»";
+  $("#treeReopen").classList.toggle("labelled", isAtto);
   // Main tabs (Detail/List, now Summary/Test Cases inside Releases) only shown
   // for Library, or for the drilled-in release view.
   $("#maintabs").style.display = (showTree || (isReleasesDetails && STATE.releaseId)) ? "" : "none";
@@ -1962,7 +2720,8 @@ function renderApp(){
 
   if(showTree){
     STATE.view = "module";
-    $("#navheadTitle").textContent = "Module";
+    $("#navheadTitle").textContent = "Module > Feature > Scenarios";
+    $("#maintabs").classList.add("no-tabs");
     if(!STATE.modScenario) STATE.modScenario={f:0,s:0};
     renderTree();
     render();
@@ -1972,6 +2731,7 @@ function renderApp(){
     renderAtto();
   } else if(isReleasesDetails){
     STATE.view = "release";
+    $("#maintabs").classList.remove("no-tabs");
     updateReleasesTabs();
     if(STATE.releaseId){
       renderReleaseDetails();
@@ -1981,6 +2741,10 @@ function renderApp(){
   } else {
     renderBlankSection();
   }
+  // Convert any freshly-inserted <i data-lucide="..."> placeholders from this
+  // render pass into inline SVGs (icons added via innerHTML need re-conversion
+  // every time, unlike the static nav icons which only need it once on load).
+  if(window.lucide) lucide.createIcons();
 }
 
 // Swap the tab labels between Module (Detail/List) and Release (Summary/Test Cases),
@@ -2024,10 +2788,16 @@ function renderAllReleases(){
   $("#crumb").innerHTML = `Releases › Details`;
   const content=$("#content"); content.className="content"; content.innerHTML="";
 
+  const headRow=el("div"); headRow.style.cssText="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;";
   const head=el("div","allrel-head");
   head.innerHTML=`<h2>All releases</h2>`+
     `<p>Every release with tests in this workspace. Open one to see its summary, business context, and test cases.</p>`;
-  content.appendChild(head);
+  headRow.appendChild(head);
+  const addRelBtn=el("button","btn btn-primary","+ Add Release");
+  addRelBtn.style.flex="none";
+  addRelBtn.addEventListener("click",()=>openAddReleaseModal());
+  headRow.appendChild(addRelBtn);
+  content.appendChild(headRow);
 
   const wrap=el("div","rel-index");
   const table=el("table");
@@ -2073,7 +2843,9 @@ function renderReleaseDetails(){
   setReleaseBreadcrumb();
   const rel = relById(STATE.releaseId);
   if(!rel){ STATE.releaseId=null; renderAllReleases(); return; }
-  $("#mainTitle").textContent = rel.name.split("—")[0].trim() + " — " + (rel.name.split("—")[1]||"").trim();
+  // Release name already appears in the breadcrumb above — drop the duplicate
+  // h1 here so the Summary/Test Cases tabs can sit left-aligned in its place.
+  $("#maintabs .titleblock").style.display="none";
   $("#crumb").innerHTML = `Releases › Details · <b>${escapeHtml(rel.id)}</b>`;
   if(STATE.tab==="detail") renderReleaseSummary(rel);
   else renderReleaseTestCases(rel);
@@ -2082,13 +2854,261 @@ function renderReleaseDetails(){
 /* ---- Summary tab: three cards ---- */
 function renderReleaseSummary(rel){
   const content=$("#content"); content.className="content"; content.innerHTML="";
-  content.appendChild(releaseGateCard(rel));
-  content.appendChild(releaseTestRunCard(rel));
-  content.appendChild(releaseQualityMetricsCard(rel));
-  content.appendChild(releaseConfidenceWaterfallCard(rel));
-  content.appendChild(releaseRecommendedTestsCard(rel));
-  content.appendChild(releaseBusinessContextCard(rel));
+  content.appendChild(releaseHeaderStrip(rel));
+  content.appendChild(releasePlansSection(rel));
   content.appendChild(releaseFeatureCoverageCard(rel));
+}
+
+/* ---- A. Release under review + Gate strip (two-column) ---- */
+function releaseHeaderStrip(rel){
+  const g = QUALITY_GATES[rel.id] || {verdict:"conditional",verdictLabel:"CONDITIONAL",headline:"",rules:[]};
+  const bc = rel.businessContext || {};
+  const box=el("div","rls-header");
+  const left=el("div","rls-hdr-left");
+  left.innerHTML=
+    `<div class="rls-eyebrow">The release under review</div>`+
+    `<dl class="rls-hdr-primary">`+
+      `<dt>Product surface</dt><dd>${escapeHtml(bc.surface||"—")}</dd>`+
+      `<dt>Release</dt><dd>${escapeHtml(bc.release||"—")}</dd>`+
+    `</dl>`;
+  const right=el("div","rls-hdr-right");
+  right.innerHTML=
+    `<span class="gate-pill ${g.verdict}">Release Gate · ${g.verdictLabel}</span>`+
+    (g.headline?`<div class="rls-gate-headline">${escapeHtml(g.headline)}</div>`:"");
+  box.appendChild(left); box.appendChild(right);
+  return box;
+}
+
+/* ---- Plan buckets — real runs + synthetic Feature/Deep-Regression mocks ---- */
+function getPlanBuckets(rel){
+  const findRun = (prefix)=>rel.runs.find(r=>r.name.toLowerCase().startsWith(prefix.toLowerCase()));
+  const featureOf = (caseId)=>{
+    const f = MODULE_TREE.features.find(feat=>feat.scenarios.some(s=>s.cases.includes(caseId)));
+    return f? f.name : "General";
+  };
+  const suitesFromRun = (run, planType)=>{
+    const byFeat={};
+    run.results.forEach(r=>{
+      const f=featureOf(r.c);
+      if(!byFeat[f]) byFeat[f]={feature:f,platform:run.platform,tests:0,pass:0,fail:0,untested:0,block:0};
+      byFeat[f].tests++;
+      if(r.s==="pass") byFeat[f].pass++;
+      else if(r.s==="fail") byFeat[f].fail++;
+      else if(r.s==="block"){ byFeat[f].block++; byFeat[f].untested++; }
+      else byFeat[f].untested++;
+    });
+    return Object.values(byFeat).map(s=>({...s,planType,runId:run.id}));
+  };
+  const humanRel = (ts)=>{
+    if(!ts) return "recent";
+    // Rough relative — mock only. Just return a friendly label based on trailing pattern.
+    const m=ts.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if(!m) return "recent";
+    return m[3]+" "+m[2]+" · "+ts.slice(11,16);
+  };
+  const readinessOf = (pass)=> pass>=85?"Ready":(pass<60?"Not ready":"Partial");
+  const c=relCounts(rel);
+  const totalTests=relTotal(rel);
+  const passRateOverall=relPassRate(rel);
+
+  const smokeRun = findRun("Smoke");
+  const regRun   = findRun("Regression");
+
+  // ---- Smoke ----
+  let smoke;
+  if(smokeRun){
+    const rc=runCounts(smokeRun); const t=smokeRun.results.length;
+    const pr = t? Math.round(rc.pass/t*100):0;
+    smoke={
+      name:"Smoke", planType:"Smoke", auto:true,
+      description:`Critical-path check — P0 & high-risk cases. ${t} cases · run on ${smokeRun.platform}.`,
+      passRate:pr, testsRun:t,
+      confidence: Math.max(0,pr-2), confidenceSub: rc.fail? `${rc.fail} flaky · click to fix` : "clean",
+      readiness: readinessOf(pr), blockers: rc.fail+rc.block,
+      lastRunRelative: humanRel(smokeRun.lastRun), platform: smokeRun.platform,
+      suites: suitesFromRun(smokeRun,"Smoke"),
+    };
+  }else{
+    // synthesize a tight smoke off overall pool
+    const t = Math.max(7, Math.round(totalTests*0.15));
+    const pr = Math.min(100, passRateOverall+5);
+    smoke={
+      name:"Smoke", planType:"Smoke", auto:true,
+      description:`Critical-path check — P0 & high-risk cases. ${t} cases · quick check on ${rel.runs[0]?.platform||"web"}.`,
+      passRate:pr, testsRun:t, confidence:pr, confidenceSub:"clean",
+      readiness:readinessOf(pr), blockers:0,
+      lastRunRelative:"3h ago", platform:rel.runs[0]?.platform||"web",
+      suites:[{feature:"Happy paths",platform:rel.runs[0]?.platform||"web",tests:t,pass:Math.round(t*pr/100),fail:0,untested:t-Math.round(t*pr/100),planType:"Smoke"}],
+    };
+  }
+
+  // ---- Regression ----
+  let regression;
+  if(regRun){
+    const rc=runCounts(regRun); const t=regRun.results.length;
+    const pr = t? Math.round(rc.pass/t*100):0;
+    regression={
+      name:"Regression", planType:"Regression", auto:true,
+      description:`Full sub-flow sweep across the release scope. ${t} cases · ${rc.fail} failed · ${rc.notrun} not run.`,
+      passRate:pr, testsRun:t,
+      confidence: Math.max(0,pr-4), confidenceSub: rc.fail>1? `${rc.fail} flaky · click to fix` : (rc.fail? "1 flaky · click to fix":"clean"),
+      readiness: readinessOf(pr), blockers: rc.fail+rc.block,
+      lastRunRelative: humanRel(regRun.lastRun), platform: regRun.platform,
+      suites: suitesFromRun(regRun,"Regression"),
+    };
+  }else{
+    const t = Math.max(20, Math.round(totalTests*0.9));
+    const pr = passRateOverall;
+    regression={
+      name:"Regression", planType:"Regression", auto:true,
+      description:`Full sub-flow sweep. ${t} cases · ${rel.runs[0]?.platform||"web"}.`,
+      passRate:pr, testsRun:t, confidence:Math.max(0,pr-4), confidenceSub:"clean",
+      readiness:readinessOf(pr), blockers:0,
+      lastRunRelative:"1d ago", platform:rel.runs[0]?.platform||"web",
+      suites:[{feature:"Full regression pool",platform:rel.runs[0]?.platform||"web",tests:t,pass:Math.round(t*pr/100),fail:0,untested:t-Math.round(t*pr/100),planType:"Regression"}],
+    };
+  }
+
+  // ---- Feature (synthesized off Regression, ~60% cases, slightly worse pass rate) ----
+  const featBase = regression;
+  const featTests = Math.max(6, Math.round(featBase.testsRun*0.6));
+  const featPr = Math.max(0, featBase.passRate - 6);
+  const featFail = Math.max(1, Math.round(featTests*(1-featPr/100)*0.5));
+  const featNr = Math.max(0, featTests - Math.round(featTests*featPr/100) - featFail);
+  // pick top 2-3 features from regression suites for mock rows
+  const featSuiteBases = (featBase.suites||[]).slice(0,3);
+  const featSuites = featSuiteBases.length
+    ? featSuiteBases.map(s=>({
+        feature:s.feature, platform:s.platform,
+        tests:Math.max(3,Math.round(s.tests*0.6)),
+        pass:Math.round(s.tests*0.6*featPr/100),
+        fail:Math.max(0,Math.round(s.tests*0.6*(1-featPr/100)*0.5)),
+        untested:Math.max(0,Math.round(s.tests*0.6*(1-featPr/100)*0.5)),
+        planType:"Feature"
+      }))
+    : [{feature:"New scope",platform:featBase.platform,tests:featTests,pass:Math.round(featTests*featPr/100),fail:featFail,untested:featNr,planType:"Feature"}];
+  const feature={
+    name:"Feature", planType:"Feature", auto:true,
+    description:`Deep-dive on this sprint's new scope. ${featTests} cases · fresh coverage on changed sub-flows.`,
+    passRate:featPr, testsRun:featTests,
+    confidence:Math.max(0,featPr-3), confidenceSub: featFail>1? `${featFail} flaky · click to fix`:"1 flaky · click to fix",
+    readiness:readinessOf(featPr), blockers:featFail,
+    lastRunRelative:"5h ago", platform:featBase.platform,
+    suites:featSuites,
+  };
+
+  // ---- Deep Regression (synthesized cross-sprint pool, ~90% pass rate, larger) ----
+  const dpTests = Math.max(80, Math.round((regression.testsRun||30)*2.2));
+  const dpPr = 90;
+  const dpFail = Math.round(dpTests*(1-dpPr/100)*0.4);
+  const dpPass = Math.round(dpTests*dpPr/100);
+  const dpNr = dpTests - dpPass - dpFail;
+  const dpPlat = regression.platform;
+  const deep={
+    name:"Deep Regression", planType:"Deep Regression", auto:true,
+    description:`Cross-sprint stability pool. ${dpTests} cases · nightly cadence · covers historically flaky areas.`,
+    passRate:dpPr, testsRun:dpTests,
+    confidence:dpPr-1, confidenceSub: dpFail? `${dpFail} flaky · click to fix`:"clean",
+    readiness:readinessOf(dpPr), blockers:dpFail,
+    lastRunRelative:"2h ago", platform:dpPlat,
+    suites:[
+      {feature:"Historical flake pool",platform:dpPlat,tests:Math.round(dpTests*0.45),pass:Math.round(dpPass*0.45),fail:Math.round(dpFail*0.5),untested:Math.round(dpNr*0.45),planType:"Deep Regression"},
+      {feature:"Long-tail regressions",platform:dpPlat,tests:Math.round(dpTests*0.35),pass:Math.round(dpPass*0.35),fail:Math.round(dpFail*0.3),untested:Math.round(dpNr*0.35),planType:"Deep Regression"},
+      {feature:"Cross-release invariants",platform:dpPlat,tests:Math.round(dpTests*0.20),pass:Math.round(dpPass*0.20),fail:Math.round(dpFail*0.2),untested:Math.round(dpNr*0.20),planType:"Deep Regression"},
+    ],
+  };
+
+  return [smoke, feature, regression, deep];
+}
+
+/* ---- B. Test Plans & Execution ---- */
+function releasePlansSection(rel){
+  const buckets = getPlanBuckets(rel);
+  const box=el("div","rls-plans");
+  const tabLabels = [
+    {dot:"var(--pass)"},
+    {dot:"var(--teal)"},
+    {dot:"var(--block)"},
+    {dot:"#7a5cd6"},
+  ];
+  box.innerHTML=
+    `<div class="rls-plans-title">Test Plans &amp; Execution</div>`;
+  const tabs=el("div","rls-tabs");
+  const body=el("div","rls-plans-body");
+  let active=0;
+  const renderBody=()=>{
+    body.innerHTML="";
+    const p=buckets[active];
+    // tiles
+    const tiles=el("div","rls-tiles");
+    const prCls = p.passRate>=85?"pass":(p.passRate<60?"fail":"warn");
+    const cCls  = p.confidence>=85?"pass":(p.confidence<60?"fail":"warn");
+    const rdCls = p.readiness==="Ready"?"pass":(p.readiness==="Not ready"?"fail":"warn");
+    const tile=(k,v,vCls,sub)=>{
+      const t=el("div","rls-tile");
+      t.innerHTML=`<div class="rls-tile-k">${k}</div><div class="rls-tile-v ${vCls||""}">${v}</div><div class="rls-tile-sub">${escapeHtml(sub)}</div>`;
+      return t;
+    };
+    tiles.appendChild(tile("Pass Rate", p.passRate+"%", prCls, p.testsRun+" tests run"));
+    tiles.appendChild(tile("Confidence", p.confidence+"%", cCls, p.confidenceSub));
+    tiles.appendChild(tile("Readiness", p.readiness, rdCls, p.blockers+" blocker"+(p.blockers===1?"":"s")));
+    tiles.appendChild(tile("Last run", p.lastRunRelative, "", p.platform));
+    body.appendChild(tiles);
+
+    // plan card
+    const card=el("div","rls-plan-card");
+    const head=el("div","rls-plan-head");
+    head.innerHTML=
+      `<div class="rls-plan-title">${escapeHtml(rel.id)} <span style="color:var(--ink-3);font-weight:500;">|</span> ${escapeHtml(p.planType)} Testing`+
+        (p.auto?` <span class="rls-auto-badge">+ Auto Generated</span>`:"")+
+      `</div>`+
+      `<button class="rls-add-btn">Add cases</button>`;
+    card.appendChild(head);
+    const desc=el("div","rls-plan-desc",escapeHtml(p.description));
+    card.appendChild(desc);
+    const suites=el("div","rls-suites");
+    (p.suites||[]).forEach(s=>{
+      const row=el("div","rls-suite-row");
+      row.title="Open this suite in Test Cases";
+      row.innerHTML=
+        `<div class="rls-suite-left">`+
+          `<div class="rls-suite-name">${escapeHtml(p.planType)} · ${escapeHtml(s.feature)}</div>`+
+          `<div class="rls-suite-meta">${(PLAT_ICON[s.platform]||"")} ${escapeHtml(String(s.platform||"").toUpperCase())} · ${s.tests} tests</div>`+
+        `</div>`+
+        `<div class="rls-suite-counts">`+
+          `<span class="rls-c-pass">${s.pass} pass</span> / `+
+          `<span class="rls-c-fail">${s.fail} fail</span> / `+
+          `<span class="rls-c-nr">${s.untested} untested</span>`+
+        `</div>`;
+      row.addEventListener("click",()=>{
+        if(s.runId){
+          STATE.tab="list"; STATE.suiteFilter=s.runId; STATE.featureFilter=null;
+        }else{
+          STATE.tab="list"; STATE.suiteFilter="all"; STATE.featureFilter=s.feature;
+        }
+        document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab==="list"));
+        renderApp();
+      });
+      suites.appendChild(row);
+    });
+    card.appendChild(suites);
+    body.appendChild(card);
+  };
+  buckets.forEach((p,i)=>{
+    const tab=el("div","rls-tab"+(i===active?" active":""));
+    tab.innerHTML=`<span class="rls-dot" style="background:${tabLabels[i].dot};"></span>`+
+      `<span>${escapeHtml(p.name)}</span>`;
+    tab.addEventListener("click",()=>{
+      active=i;
+      Array.from(tabs.children).forEach((c,j)=>c.classList.toggle("active",j===active));
+      renderBody();
+    });
+    tabs.appendChild(tab);
+  });
+  box.appendChild(tabs);
+  box.appendChild(body);
+  renderBody();
+  return box;
 }
 
 /* ---- Release Gate + Quality metrics + Confidence + Recommended tests ----
@@ -2237,7 +3257,7 @@ function releaseBusinessContextCard(rel){
 function releaseFeatureCoverageCard(rel){
   const box=el("div","rel-card");
   const rollup=relFeatureRollup(rel);
-  box.innerHTML=`<div class="rc-title">Feature run summary <span class="rc-sub">· rolled up across all suites · click a feature to filter test cases</span></div>`;
+  box.innerHTML=`<div class="rc-title">Feature run summary</div>`;
   const list=el("div","feat-list");
   rollup.forEach(f=>{
     const row=el("div","feat-row");
@@ -2314,9 +3334,7 @@ function renderReleaseTestCases(rel){
     const rowMenu = (r.s==="fail")
       ? `<button class="rowmenu-trigger" data-menu-case="${r.c}" title="Actions">⋯</button>` : "";
     const lastRun = (r.s==="notrun"||tc.abstain) ? "—" : r.run.lastRun;
-    const statusCell = tc.abstain
-      ? `<span class="abstain-pill">Abstain · <span class="qid">${tc.abstain.q}</span></span>`
-      : `<span class="statuscell ${r.s}"><span class="dot ${r.s}"></span>${STATUS_LABEL[r.s]}${rowMenu}</span>`;
+    const statusCell = `<span class="statuscell ${r.s}"><span class="dot ${r.s}"></span>${STATUS_LABEL[r.s]}${rowMenu}</span>`;
     tr.innerHTML=
       `<td class="id">${tc.id}</td>`+
       `<td><span class="ctype cat-${tc.category}">${tc.category}</span></td>`+
@@ -2343,7 +3361,7 @@ function renderReleaseTestCases(rel){
    ========================================================================= */
 function renderChatList(){
   const box=$("#chatList"); box.innerHTML="";
-  const newBtn=el("button","cl-new",`<span>✎</span><span>New chat</span>`);
+  const newBtn=el("button","cl-new",`<span><i data-lucide="square-pen" style="width:13px;height:13px;display:block;"></i></span><span>New chat</span>`);
   newBtn.addEventListener("click",()=>{ STATE.activeChat=null; renderApp(); });
   box.appendChild(newBtn);
   // group chats by their 'when' bucket, preserving insertion order
@@ -2354,8 +3372,16 @@ function renderChatList(){
     groups[g].forEach(c=>{
       const it=el("button","cl-item"+(STATE.activeChat===c.id?" active":""));
       it.innerHTML=`<span class="cl-title">${escapeHtml(c.title)}</span>`+
-        `<span class="cl-meta">${c.source?`<span class="cl-src">${escapeHtml(c.source)}</span>`:""}${c.messages.length} msg</span>`;
-      it.addEventListener("click",()=>{ STATE.activeChat=c.id; renderApp(); });
+        `<span class="cl-menu-trigger" data-menu-chat="${c.id}" title="Chat options">⋯</span>`;
+      it.addEventListener("click",(ev)=>{
+        const trig=ev.target.closest(".cl-menu-trigger");
+        if(trig){ ev.stopPropagation(); openChatMenu(trig, c); return; }
+        // Existing chats open the Testcraft 2-pane authoring view (same as
+        // Generate tests), not the old single-pane draft-list conversation.
+        STATE.activeChat=c.id;
+        STATE.testcraft=true;
+        renderApp();
+      });
       box.appendChild(it);
     });
   });
@@ -2376,7 +3402,7 @@ function renderAtto(){
 function attoHomeEl(){
   const w=el("div","atto-home");
   w.innerHTML=
-    `<span class="ah-badge">⚡ Atto AI</span>`+
+    `<span class="ah-badge"><i data-lucide="zap" style="width:12px;height:12px;"></i> Atto AI</span>`+
     `<h2>What should Atto build tests for?</h2>`+
     `<p class="ah-sub">Describe a flow in plain language, or attach a source — a spec URL, a Jira ticket, or a Figma frame — and Atto drafts test cases you can review and add to the Library.</p>`;
   const attached=[];
@@ -2385,9 +3411,9 @@ function attoHomeEl(){
     `<textarea id="attoInput" placeholder="e.g. Generate boundary + negative cases for the coverage-amount field on Priorities & Needs"></textarea>`+
     `<div class="atto-attached" id="attoAttached"></div>`+
     `<div class="ac-foot">`+
-      `<button class="atto-attach" data-src="🔗 URL">🔗 URL</button>`+
-      `<button class="atto-attach" data-src="🧩 Jira">🧩 Jira</button>`+
-      `<button class="atto-attach" data-src="🎨 Figma">🎨 Figma</button>`+
+      `<button class="atto-attach" data-src="🔗 URL"><i data-lucide="link" style="width:12px;height:12px;"></i> URL</button>`+
+      `<button class="atto-attach" data-src="🧩 Jira"><i data-lucide="puzzle" style="width:12px;height:12px;"></i> Jira</button>`+
+      `<button class="atto-attach" data-src="🎨 Figma"><i data-lucide="figma" style="width:12px;height:12px;"></i> Figma</button>`+
       `<button class="ac-gen" id="attoGen">Generate tests</button>`+
     `</div>`;
   w.appendChild(comp);
@@ -2414,9 +3440,11 @@ function attoHomeEl(){
     attached.push(b.dataset.src); renderAttached();
   }));
   comp.querySelector("#attoGen").addEventListener("click",()=>{
-    const val=comp.querySelector("#attoInput").value.trim();
-    if(!val && !attached.length){ toast("Type a prompt or attach a source"); return; }
-    createAttoChat(val||"Generate tests from the attached source", attached.slice());
+    // Route unconditionally into the Testcraft authoring view.
+    // (createAttoChat draft-list path retained as dead code; reachable via
+    //  clicking an existing chat in the chat list.)
+    STATE.testcraft = true;
+    renderApp();
   });
   return w;
 }
@@ -2492,17 +3520,575 @@ function renderBlankSection(){
     content.appendChild(releaseInsightsEl());
     return;
   }
-  let icon="⌂", title="Home", sub="Home is coming soon — this will surface what needs your attention across modules and releases.";
-  let crumb="Home";
-  if(STATE.section==="testcases"){
-    icon="📊"; title="Test Cases · Insights";
-    sub="Test-case-level insights — coverage gaps, flaky signals, authoring velocity — will land here.";
-    crumb="Test Cases › Insights";
+  if(STATE.section==="releases" && STATE.subview==="runs"){
+    $("#crumb").innerHTML = `Releases › Runs`;
+    content.appendChild(testRunsEl());
+    return;
   }
-  $("#crumb").innerHTML = crumb;
+  if(STATE.section==="home"){
+    $("#crumb").innerHTML = `Home`;
+    content.appendChild(homeDashboardEl());
+    content.querySelectorAll('.card.clickable[data-popup]').forEach(card=>{
+      card.addEventListener('click', ()=> openDashboardCardModal(card.getAttribute('data-popup')));
+    });
+    return;
+  }
+  if(STATE.section==="reports"){
+    const kind = STATE.subview || "heal";
+    const label = {heal:"Self-heal", flaky:"Flakiness", bugs:"Defects Deflection"}[kind] || kind;
+    $("#crumb").innerHTML = `Reports › ${label}`;
+    content.appendChild(reportPageEl(kind));
+    return;
+  }
+  if(STATE.section==="testcases" && STATE.subview==="insights"){
+    $("#crumb").innerHTML = `Test Cases › Insights`;
+    content.appendChild(testCaseInsightsEl());
+    return;
+  }
+  if(STATE.section==="contextgraph"){
+    const label = {product:"Product", elements:"Elements", dbmodel:"DB Model"}[STATE.subview] || STATE.subview;
+    $("#crumb").innerHTML = `Context Graph › ${label}`;
+    if(STATE.subview==="elements"){
+      content.appendChild(contextGraphElementsEl());
+      return;
+    }
+    const bp=el("div","blankpage");
+    bp.innerHTML=`<div class="bp-icon">🕸️</div><div class="bp-title">Context Graph · ${label}</div>`+
+      `<div class="bp-sub">Coming soon.</div>`;
+    content.appendChild(bp);
+    return;
+  }
   const bp=el("div","blankpage");
-  bp.innerHTML=`<div class="bp-icon">${icon}</div><div class="bp-title">${title}</div><div class="bp-sub">${sub}</div>`;
+  bp.innerHTML=`<div class="bp-icon">📊</div><div class="bp-title">Blank</div>`;
   content.appendChild(bp);
+}
+
+/* ---- Context Graph › Elements — screen-wise element inventory: primary
+   locator, backup/self-heal fallback signal if the primary can't be found,
+   and a live pass/fail/healed insight per element. ---- */
+const CONTEXT_ELEMENTS = [
+  {screen:"About You / Priorities & Needs", elements:[
+    {name:"TPD toggle",           locator:"role=switch[name='TPD']",             backup:"data-testid=tpd-toggle",              status:"passing"},
+    {name:"Sum assured input",    locator:"#sumAssured",                          backup:"role=textbox[name='Sum assured']",    status:"passing"},
+    {name:"Next button",          locator:".btn-primary.next",                    backup:"role=button[name='Next']",            status:"healed"},
+  ]},
+  {screen:"Needs Analysis", elements:[
+    {name:"Add Goal button",      locator:"button.add-goal",                      backup:"role=button[name='Add Goal']",        status:"passing"},
+    {name:"Goal amount field",    locator:"input[name=goalAmount]",               backup:"role=spinbutton[name='Goal amount']", status:"failing"},
+    {name:"Goal horizon selector",locator:"#goalHorizon",                         backup:"role=combobox[name='Horizon']",       status:"passing"},
+  ]},
+  {screen:"Investment Risk", elements:[
+    {name:"Risk profile radio group", locator:"[name=riskProfile]",               backup:"role=radiogroup[name='Risk profile']",status:"passing"},
+    {name:"Suitability banner",   locator:".suitability-banner",                  backup:"role=alert",                          status:"healed"},
+  ]},
+  {screen:"Replacement & Switching", elements:[
+    {name:"DIP dropdown",         locator:"#dipSelect",                           backup:"role=combobox[name='DIP']",           status:"passing"},
+    {name:"Replacement justification textarea", locator:"textarea.justification", backup:"role=textbox[name='Justification']", status:"failing"},
+  ]},
+];
+function elementStatusPill(status){
+  const map = {
+    passing:{label:"Passing", cls:"pass"},
+    failing:{label:"Failing", cls:"fail"},
+    healed: {label:"Healed",  cls:"healed"},
+  };
+  const m = map[status] || {label:status, cls:"notrun"};
+  return `<span class="statuscell ${m.cls}"><span class="dot ${m.cls}"></span>${m.label}</span>`;
+}
+function contextGraphElementsEl(){
+  const wrap=el("div");
+  const head=el("div","allrel-head");
+  head.innerHTML=`<h2>Screen-wise elements</h2>`+
+    `<p>Every tracked element, its primary locator, the backup signal self-heal falls back to if the primary can't be found, and the latest run insight.</p>`;
+  wrap.appendChild(head);
+  const tw=el("div","dcm-tablewrap"); tw.style.maxHeight="none"; tw.style.marginTop="14px";
+  tw.innerHTML=`<table><thead><tr><th>Element</th><th>Primary locator</th><th>Backup locator (if primary not found)</th><th>Insight</th></tr></thead><tbody>`+
+    CONTEXT_ELEMENTS.map(g=>
+      `<tr class="cge-grouphdr"><td colspan="4">${escapeHtml(g.screen)}</td></tr>`+
+      g.elements.map(el2=>`<tr><td>${escapeHtml(el2.name)}</td>`+
+        `<td><span class="mono">${escapeHtml(el2.locator)}</span></td>`+
+        `<td><span class="mono">${escapeHtml(el2.backup)}</span></td>`+
+        `<td>${elementStatusPill(el2.status)}</td></tr>`).join("")
+    ).join("")+
+    `</tbody></table>`;
+  wrap.appendChild(tw);
+  return wrap;
+}
+
+/* ---- Test Cases › Insights — §3b Flaky Tests + §3b-2 Machine Matrix ---- */
+const FLAKY_INSIGHT_ROWS = [
+  {test:"TC-812 · Apple Pay retry after 3DS",        score:0.71, flips:4, signal:"flaky",           action:"Quarantine + assign owner"},
+  {test:"TC-655 · 3DS challenge timeout",             score:0.63, flips:5, signal:"flaky",           action:"Quarantine + assign owner"},
+  {test:"TC-903 · Guest checkout · SGD",               score:0.58, flips:3, signal:"flaky",           action:"Quarantine"},
+  {test:"TC-655b · Session timeout mid-checkout",      score:0.55, flips:4, signal:"flaky",           action:"Quarantine"},
+  {test:"TC-702 · Wallet top-up retry",                score:0.47, flips:3, signal:"flaky",           action:"Quarantine"},
+  {test:"TC-819 · Apple Pay sheet dismiss",            score:0.34, flips:2, signal:"platform-ios",    action:"Route to bug tracker, not flaky list"},
+  {test:"TC-770 · Refund idempotency",                 score:0.12, flips:0, signal:"platform-android",action:"Route to bug tracker, not flaky list"},
+  {test:"TC-588 · Coupon stacking",                    score:0.09, flips:0, signal:"stable",          action:"—"},
+  {test:"TC-641 · Card decline UX",                    score:0.05, flips:0, signal:"stable",          action:"—"},
+  {test:"TC-714 · Refund to original method",          score:0.02, flips:0, signal:"stable",          action:"—"},
+];
+const MACHINE_MATRIX_ROWS = [
+  {test:"TC-770 · Refund idempotency",       chrome:"pass", safari:"pass",  ios:"pass",    android:"fail3"},
+  {test:"TC-819 · Apple Pay sheet dismiss",  chrome:"na",   safari:"pass",  ios:"fail2",   android:"na"},
+  {test:"TC-812 · Apple Pay retry",          chrome:"na",   safari:"pass",  ios:"blocked", android:"pass"},
+  {test:"TC-655 · 3DS challenge timeout",    chrome:"pass", safari:"fail1", ios:"pass",    android:"pass"},
+  {test:"TC-903 · Guest checkout · SGD",     chrome:"pass", safari:"pass",  ios:"pass",    android:"pass"},
+  {test:"TC-702 · Wallet top-up retry",      chrome:"pass", safari:"pass",  ios:"pass",    android:"pass"},
+  {test:"TC-588 · Coupon stacking",          chrome:"pass", safari:"pass",  ios:"pass",    android:"pass"},
+  {test:"TC-641 · Card decline UX",          chrome:"pass", safari:"pass",  ios:"pass",    android:"pass"},
+];
+function insightSignalPill(signal){
+  const map = {
+    "flaky":            {label:"FLAKY",                       cls:"tci-amber"},
+    "platform-android": {label:"PLATFORM BUG — ANDROID",      cls:"tci-red"},
+    "platform-ios":     {label:"PLATFORM BUG — IOS",          cls:"tci-red"},
+    "stable":           {label:"STABLE",                      cls:"tci-neutral"},
+  };
+  const m = map[signal] || {label:signal, cls:"tci-neutral"};
+  return `<span class="tci-pill ${m.cls}">${escapeHtml(m.label)}</span>`;
+}
+function matrixCellHtml(status){
+  const map = {
+    pass:   {label:"Pass",    cls:"pass"},
+    fail1:  {label:"Fail ×1", cls:"fail"},
+    fail2:  {label:"Fail ×2", cls:"fail"},
+    fail3:  {label:"Fail ×3", cls:"fail"},
+    blocked:{label:"Blocked", cls:"block"},
+    na:     {label:"n/a",     cls:"notrun"},
+  };
+  const m = map[status] || {label:status, cls:"notrun"};
+  return `<span class="statuscell ${m.cls}"><span class="dot ${m.cls}"></span>${m.label}</span>`;
+}
+function testCaseInsightsEl(){
+  const wrap=el("div");
+  const tabsEl=el("div","rls-tabs");
+  const body=el("div");
+  const TABS=[{key:"flaky",label:"Flaky Tests"},{key:"matrix",label:"Machine Matrix"}];
+  let active=0;
+  function renderBody(){
+    body.innerHTML="";
+    if(TABS[active].key==="flaky"){
+      const head=el("div","allrel-head");
+      head.innerHTML=`<h2>Which tests are hurting us — and how are they behaving across machines?</h2>`+
+        `<p>Flaky = a test that flips pass/fail on the <em>same</em> environment across runs. Consistent cross-machine differences are a platform-bug signal, not flakiness.</p>`;
+      body.appendChild(head);
+      const tw=el("div","dcm-tablewrap"); tw.style.maxHeight="none"; tw.style.marginTop="14px";
+      tw.innerHTML=`<table><thead><tr><th>Test</th><th>Flake Score</th><th>Last-10 Flips</th><th>Signal</th><th>Suggested Action</th></tr></thead><tbody>`+
+        FLAKY_INSIGHT_ROWS.map(r=>`<tr><td>${escapeHtml(r.test)}</td><td>${r.score.toFixed(2)}</td><td>${r.flips}</td>`+
+          `<td>${insightSignalPill(r.signal)}</td><td>${escapeHtml(r.action)}</td></tr>`).join("")+
+        `</tbody></table>`;
+      body.appendChild(tw);
+    } else {
+      const head=el("div","allrel-head");
+      head.innerHTML=`<h2>Machine matrix — cross-platform pass/fail, last run</h2>`+
+        `<p>Consistent divergence across machines is a platform-bug signal, not a flakiness event.</p>`;
+      body.appendChild(head);
+      const tw=el("div","dcm-tablewrap"); tw.style.maxHeight="none"; tw.style.marginTop="14px";
+      tw.innerHTML=`<table><thead><tr><th>Test × latest run</th><th>Chrome</th><th>Safari</th><th>iOS</th><th>Android</th></tr></thead><tbody>`+
+        MACHINE_MATRIX_ROWS.map(r=>`<tr><td>${escapeHtml(r.test)}</td><td>${matrixCellHtml(r.chrome)}</td>`+
+          `<td>${matrixCellHtml(r.safari)}</td><td>${matrixCellHtml(r.ios)}</td><td>${matrixCellHtml(r.android)}</td></tr>`).join("")+
+        `</tbody></table>`;
+      body.appendChild(tw);
+    }
+  }
+  TABS.forEach((t,i)=>{
+    const b=el("button","rls-tab"+(i===active?" active":""),t.label);
+    b.addEventListener("click",()=>{
+      active=i;
+      Array.from(tabsEl.children).forEach((c,j)=>c.classList.toggle("active",j===active));
+      renderBody();
+    });
+    tabsEl.appendChild(b);
+  });
+  wrap.appendChild(tabsEl);
+  wrap.appendChild(body);
+  renderBody();
+  return wrap;
+}
+
+/* =========================================================================
+   PART G — HOME DASHBOARD
+   -------------------------------------------------------------------------
+   §1 Manager KPIs imported verbatim from
+   .../nostalgic-benz-2f7c3a/qi-dashboard.html (Payments squad · Checkout v4.2).
+   The markup is copied as-is; the source was authored for a cream/olive theme,
+   here it's re-scoped under .qi-home and re-themed to a white background using
+   locally-namespaced CSS variables (see the .qi-home block above).
+   ========================================================================= */
+// === Dashboard-card pop-up data (from DASHBOARD-CARD-MOCKS.md; simulated). ===
+const HOME_BUGS = {
+  title: "Where bugs were caught · last release",
+  subtitle: "75 bugs last release · caught 94% pre-ship · Unit 12 / Integration 18 / QA 34 / Staging 8 / Prod 3.",
+  stats: [
+    {k:"Median time-to-detect", v:"1.4 days", trend:[2.3,2.0,1.9,1.7,1.5,1.4]},
+    {k:"Median time-to-fix",    v:"3.1 days"},
+    {k:"Regression rate (30d)", v:"6%"},
+    {k:"Top offender area",     v:"checkout → payment step (11 bugs)"},
+  ],
+  columns: ["id","title","severity","stage caught","area","test","owner","opened","status"],
+  records: [
+    ["BUG-4821","Checkout total mis-rounds on 3-item cart with coupon","S1","QA","checkout/pricing","checkout.coupon.rounding.spec","payments","2026-06-14","fixed"],
+    ["BUG-4822","Login button loses focus ring in Safari 17","S3","Unit","auth/ui","login.a11y.focus.spec","web-platform","2026-06-15","fixed"],
+    ["BUG-4823","Search returns 0 results for query with trailing space","S2","Integration","search","search.query.trim.spec","search","2026-06-15","fixed"],
+    ["BUG-4824","PDF export truncates last row on 50+ row tables","S2","QA","reports","report.export.pdf.spec","reports","2026-06-16","fixed"],
+    ["BUG-4825","Session logout does not clear localStorage `prefs.*`","S2","QA","auth","auth.logout.cleanup.spec","auth","2026-06-16","fixed"],
+    ["BUG-4826","Timezone offset off-by-one in daily digest email","S2","Staging","notifications","email.digest.tz.spec","growth","2026-06-17","fixed"],
+    ["BUG-4827","Dashboard \"Month\" toggle keeps \"Week\" data on first click","S3","QA","dashboard","dashboard.range.toggle.spec","insights","2026-06-17","fixed"],
+    ["BUG-4828","CSV import crashes on BOM-prefixed UTF-8 files","S1","Integration","import","csv.import.bom.spec","data-tools","2026-06-18","fixed"],
+    ["BUG-4829","Duplicate webhook fires on retry when 202 is returned","S1","Prod","webhooks","webhook.retry.idempotency.spec","integrations","2026-06-18","in-progress"],
+    ["BUG-4830","Slack notification omits thread link for replies","S3","Unit","notifications","slack.thread.link.spec","growth","2026-06-19","fixed"],
+    ["BUG-4831","Free-plan users see paid-only \"Trends\" tab briefly","S2","Staging","billing/ui","billing.plan.gates.spec","billing","2026-06-19","fixed"],
+    ["BUG-4832","Role picker allows assigning `owner` twice on same team","S2","Integration","admin","admin.role.assign.spec","admin","2026-06-20","fixed"],
+    ["BUG-4833","Chart legend colors swap Unit/Integration in dark mode","S3","QA","dashboard","dashboard.chart.legend.spec","insights","2026-06-20","fixed"],
+    ["BUG-4834","API returns 500 on empty JSON array to `/v1/bulk`","S1","Integration","api","api.bulk.empty.spec","api-core","2026-06-21","fixed"],
+    ["BUG-4835","Mobile web: file upload picker cancels itself on iOS 18","S1","Prod","uploads","upload.mobile.ios18.spec","mobile-web","2026-06-21","in-progress"],
+    ["BUG-4836","Search sort \"recent\" ignores tie-breaker, order flaps","S3","QA","search","search.sort.recent.spec","search","2026-06-22","fixed"],
+    ["BUG-4837","Onboarding step 3 accepts empty company name","S2","Unit","onboarding","onboarding.validation.spec","growth","2026-06-22","fixed"],
+    ["BUG-4838","Rate-limit header missing on 429 response","S2","Prod","api","api.ratelimit.header.spec","api-core","2026-06-23","in-progress"],
+  ],
+  // per-column render hints: which cells wrap in mono, which are pills, which is a long-text wrap column
+  mono:   [true,false,false,false,false,true,false,false,false],
+  pill:   [false,false,true,true,false,false,false,false,true],
+  wrap:   [false,true,false,false,false,false,false,false,false],
+};
+
+const HOME_FLAKY = {
+  title: "Flakiness · last 7 days",
+  subtitle: "2.5% flake rate · down from 4.2% four releases ago.",
+  stats: [
+    {k:"Flaky tests (7d)",              v:"19", trend:[31,28,25,23,21,19]},
+    {k:"Median retries / flaky run",    v:"1.6", trend:[2.4,2.1,1.9,1.8,1.7,1.6]},
+    {k:"Top root cause",                v:"timing / animation wait (42%)"},
+    {k:"Quarantined tests",             v:"4"},
+  ],
+  columns: ["id","test","suite","flake % (7d)","runs","root cause","env","owner","firstSeen","status"],
+  records: [
+    ["FLK-101","checkout.confirm.button.spec","e2e/checkout","7.4%","216","animation wait","Chrome/Linux","payments","2026-06-02","quarantined"],
+    ["FLK-102","search.autocomplete.debounce.spec","e2e/search","6.1%","198","debounce race","Chrome/Linux","search","2026-06-03","investigating"],
+    ["FLK-103","dashboard.week.toggle.spec","e2e/dashboard","5.8%","202","selector drift","Firefox/Linux","insights","2026-06-04","self-healed"],
+    ["FLK-104","login.oauth.google.spec","e2e/auth","5.5%","180","3p redirect timing","Chrome/Linux","auth","2026-06-05","investigating"],
+    ["FLK-105","notifications.toast.dismiss.spec","e2e/notifications","4.9%","240","animation wait","Chrome/Linux","growth","2026-06-06","fixed"],
+    ["FLK-106","admin.role.picker.spec","e2e/admin","4.3%","175","dropdown scroll-into-view","Chrome/Linux","admin","2026-06-06","self-healed"],
+    ["FLK-107","report.export.pdf.spec","e2e/reports","4.1%","156","file-download detect","Chrome/Linux","reports","2026-06-07","investigating"],
+    ["FLK-108","billing.upgrade.modal.spec","e2e/billing","3.9%","210","modal focus trap","Chrome/Linux","billing","2026-06-08","fixed"],
+    ["FLK-109","onboarding.step2.next.spec","e2e/onboarding","3.6%","190","selector drift","Chrome/Linux","growth","2026-06-09","self-healed"],
+    ["FLK-110","search.filter.chips.spec","e2e/search","3.4%","220","animation wait","Firefox/Linux","search","2026-06-10","fixed"],
+    ["FLK-111","settings.tabs.reorder.spec","e2e/settings","3.2%","165","drag-drop timing","Chrome/Linux","admin","2026-06-11","investigating"],
+    ["FLK-112","dashboard.month.chart.spec","e2e/dashboard","3.0%","240","canvas ready","Chrome/Linux","insights","2026-06-12","fixed"],
+    ["FLK-113","checkout.tax.state.spec","e2e/checkout","2.8%","205","dropdown scroll","Chrome/Linux","payments","2026-06-13","self-healed"],
+    ["FLK-114","mobile.upload.picker.spec","e2e/mobile-web","2.7%","120","picker timing","Safari/iOS","mobile-web","2026-06-14","quarantined"],
+    ["FLK-115","api.bulk.progress.spec","e2e/api","2.4%","240","poll interval","Chrome/Linux","api-core","2026-06-15","fixed"],
+    ["FLK-116","notifications.email.preview.spec","e2e/notifications","2.1%","195","iframe load","Chrome/Linux","growth","2026-06-16","fixed"],
+    ["FLK-117","admin.audit.filter.spec","e2e/admin","1.9%","170","date-picker open","Chrome/Linux","admin","2026-06-17","fixed"],
+    ["FLK-118","search.zero.state.spec","e2e/search","1.6%","240","animation wait","Chrome/Linux","search","2026-06-18","fixed"],
+  ],
+  mono: [true,true,true,false,false,false,false,false,false,false],
+  pill: [false,false,false,false,false,false,false,false,false,true],
+  wrap: [false,false,false,false,false,false,false,false,false,false],
+};
+
+const HOME_HEAL = {
+  title: "Self-healing · heal events this release",
+  subtitle: "96% heal success · 340 heals absorbed this release · 12 needed a human fix.",
+  stats: [
+    {k:"Median heal latency",           v:"0.8 s", trend:[1.3,1.1,1.0,0.9,0.85,0.8]},
+    {k:"Most common signal",            v:"role+name (48%)"},
+    {k:"Fallback signal",               v:"stable-ancestor + role (27%)"},
+    {k:"Manual overrides accepted",     v:"331 / 340"},
+  ],
+  columns: ["id","test","old selector","new signal","reason","confidence","latency","outcome","when"],
+  records: [
+    ["HEA-9001","checkout.confirm.button.spec",".btn.btn-primary.confirm","role=button name=\"Place order\"","class churn","0.97","0.6 s","accepted","2026-06-24 09:12"],
+    ["HEA-9002","search.autocomplete.debounce.spec","#s-2f8a input","role=combobox name=\"Search\"","id hashed","0.95","0.7 s","accepted","2026-06-24 09:41"],
+    ["HEA-9003","dashboard.week.toggle.spec","button:nth-child(2)","role=tab name=\"Month\"","index drift","0.92","0.9 s","accepted","2026-06-24 10:03"],
+    ["HEA-9004","login.oauth.google.spec",".oauth-google-btn","role=button name=\"Continue with Google\"","class churn","0.98","0.5 s","accepted","2026-06-24 10:22"],
+    ["HEA-9005","admin.role.picker.spec","#role-select","role=combobox name=\"Role\"","id changed","0.94","0.8 s","accepted","2026-06-24 10:44"],
+    ["HEA-9006","report.export.pdf.spec",".export .pdf-icon","role=menuitem name=\"Export as PDF\"","icon-only → labelled","0.93","1.0 s","accepted","2026-06-24 11:05"],
+    ["HEA-9007","billing.upgrade.modal.spec",".modal .cta-upgrade","role=button name=\"Upgrade plan\"","class churn","0.96","0.7 s","accepted","2026-06-24 11:31"],
+    ["HEA-9008","onboarding.step2.next.spec","button.next","role=button name=\"Next\"","class removed","0.97","0.6 s","accepted","2026-06-24 11:55"],
+    ["HEA-9009","settings.tabs.reorder.spec","[data-tab=\"notifications\"]","role=tab name=\"Notifications\"","data-attr renamed","0.90","1.1 s","accepted","2026-06-24 12:18"],
+    ["HEA-9010","notifications.toast.dismiss.spec",".toast .close","role=button name=\"Dismiss\"","class churn","0.95","0.7 s","accepted","2026-06-24 12:40"],
+    ["HEA-9011","checkout.tax.state.spec","select[name=state]","role=combobox name=\"State\"","tag → combobox pattern","0.91","0.9 s","accepted","2026-06-24 13:02"],
+    ["HEA-9012","search.filter.chips.spec",".chip.active","role=button name=\"Filter: Open\" pressed","class semantics","0.89","1.2 s","accepted","2026-06-24 13:27"],
+    ["HEA-9013","dashboard.month.chart.spec","canvas#chart1","region name=\"Bugs by stage\"","id numbered","0.88","1.3 s","accepted","2026-06-24 13:49"],
+    ["HEA-9014","api.bulk.progress.spec",".progress .bar","progressbar name=\"Bulk import\"","class churn","0.94","0.7 s","accepted","2026-06-24 14:11"],
+    ["HEA-9015","admin.audit.filter.spec",".date-range .from","textbox name=\"From date\"","class churn","0.92","0.8 s","accepted","2026-06-24 14:36"],
+    ["HEA-9016","mobile.upload.picker.spec","#upload-btn-2","role=button name=\"Upload file\"","id numbered","0.86","1.4 s","needs-review","2026-06-24 15:02"],
+    ["HEA-9017","search.zero.state.spec",".empty .cta","role=link name=\"Clear filters\"","class churn","0.95","0.6 s","accepted","2026-06-24 15:24"],
+    ["HEA-9018","notifications.email.preview.spec","iframe.preview","region name=\"Email preview\"","class removed","0.87","1.5 s","needs-review","2026-06-24 15:48"],
+  ],
+  mono: [true,true,true,true,false,false,false,false,false],
+  pill: [false,false,false,false,false,false,false,true,false],
+  wrap: [false,false,true,true,true,false,false,false,false],
+};
+
+const HOME_POPUPS = { bugs: HOME_BUGS, flaky: HOME_FLAKY, heal: HOME_HEAL };
+
+function escHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
+
+// Lightweight inline sparkline for stat tiles — lower-last-value reads as
+// improving (green), higher-last-value as worsening (red); flat is neutral.
+function sparklineSvg(points){
+  const w=56,h=20,pad=2;
+  const min=Math.min(...points), max=Math.max(...points);
+  const range=(max-min)||1;
+  const stepX=points.length>1?(w-pad*2)/(points.length-1):0;
+  const coords=points.map((p,i)=>[pad+i*stepX, pad+(1-(p-min)/range)*(h-pad*2)]);
+  const path=coords.map((c,i)=>(i===0?"M":"L")+c[0].toFixed(1)+","+c[1].toFixed(1)).join(" ");
+  const first=points[0], last=points[points.length-1];
+  const color = last<first ? "var(--pass)" : (last>first ? "var(--fail)" : "var(--ink-3)");
+  const [lx,ly]=coords[coords.length-1];
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`+
+    `<path d="${path}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`+
+    `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="1.8" fill="${color}"/>`+
+  `</svg>`;
+}
+function statTileHtml(s){
+  if(!s.trend) return `<div class="dcm-stat"><div class="k">${escHtml(s.k)}</div><div class="v">${escHtml(s.v)}</div></div>`;
+  return `<div class="dcm-stat"><div class="k">${escHtml(s.k)}</div>`+
+    `<div class="stat-row"><div class="v">${escHtml(s.v)}</div><div class="spark-wrap">${sparklineSvg(s.trend)}</div></div></div>`;
+}
+
+function openDashboardCardModal(kind){
+  const d = HOME_POPUPS[kind]; if(!d) return;
+  const statsHtml =
+    `<div class="dcm-stats">`+
+      d.stats.map(statTileHtml).join("")+
+    `</div>`+
+    `<div class="dcm-simtag">· simulated</div>`;
+  const thead = `<tr>${d.columns.map(c=>`<th>${escHtml(c)}</th>`).join("")}</tr>`;
+  const tbody = d.records.map(row =>
+    `<tr>${row.map((cell,i)=>{
+      const txt = escHtml(cell);
+      let inner = txt;
+      if(d.mono[i])       inner = `<span class="mono">${inner}</span>`;
+      else if(d.pill[i])  inner = `<span class="dcm-pill">${inner}</span>`;
+      const cls = d.wrap[i] ? ' class="wrap"' : '';
+      return `<td${cls}>${inner}</td>`;
+    }).join("")}</tr>`
+  ).join("");
+  const bodyHtml =
+    `<div class="dcm-sub">${escHtml(d.subtitle)}</div>`+
+    statsHtml+
+    `<div class="dcm-tablewrap"><table><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
+  const footHtml = `<div class="spacer"></div><button class="btn btn-primary" data-act="cancel">Close</button>`;
+  openModal({
+    title: d.title,
+    bodyHtml,
+    footHtml,
+    onMount: m => {
+      document.getElementById('modal').classList.add('wide');
+      m.querySelector('[data-act="cancel"]').addEventListener("click", closeModal);
+    }
+  });
+}
+
+/* ---- Reports › Self-heal / Flakiness / Defects Deflection — full-page
+   version of the dashboard-card pop-ups, with search/status filters and a
+   mock export action. Same underlying HOME_POPUPS data, so the numbers stay
+   consistent between Home's pop-ups and these report pages. ---- */
+function reportPageEl(kind){
+  const d = HOME_POPUPS[kind]; if(!d) return el("div");
+  const pillCol = d.pill.indexOf(true);
+  const statusOptions = pillCol>=0 ? Array.from(new Set(d.records.map(r=>r[pillCol]))) : [];
+
+  const wrap=el("div","report-page");
+  wrap.innerHTML=
+    `<div class="allrel-head"><h2>${escHtml(d.title)}</h2><p>${escHtml(d.subtitle)}</p></div>`+
+    `<div class="dcm-stats" style="margin-top:16px;">`+
+      d.stats.map(statTileHtml).join("")+
+    `</div>`+
+    `<div class="dcm-simtag">· simulated</div>`+
+    `<div class="tabletools report-tools">`+
+      `<input type="text" class="ctr-input report-search" id="reportSearch" placeholder="Search ${d.columns.length} columns…" style="max-width:260px;">`+
+      (statusOptions.length
+        ? `<select class="ctr-input report-status" id="reportStatus" style="max-width:180px;">`+
+            `<option value="">All statuses</option>`+
+            statusOptions.map(o=>`<option value="${escHtml(o)}">${escHtml(o)}</option>`).join("")+
+          `</select>`
+        : "")+
+      `<div class="spacer"></div>`+
+      `<span class="report-count" id="reportCount"></span>`+
+      `<button class="btn" id="reportExport">⭳ Export</button>`+
+    `</div>`+
+    `<div class="dcm-tablewrap" style="max-height:none;"><table><thead><tr>${d.columns.map(c=>`<th>${escHtml(c)}</th>`).join("")}</tr></thead><tbody id="reportTbody"></tbody></table></div>`;
+
+  const search = wrap.querySelector("#reportSearch");
+  const status = wrap.querySelector("#reportStatus");
+  const tbody = wrap.querySelector("#reportTbody");
+  const count = wrap.querySelector("#reportCount");
+
+  function renderRows(){
+    const q = (search.value||"").trim().toLowerCase();
+    const st = status ? status.value : "";
+    const rows = d.records.filter(row=>{
+      if(st && row[pillCol]!==st) return false;
+      if(!q) return true;
+      return row.some(cell=>String(cell).toLowerCase().includes(q));
+    });
+    tbody.innerHTML = rows.map(row=>
+      `<tr>${row.map((cell,i)=>{
+        const txt = escHtml(cell);
+        let inner = txt;
+        if(d.mono[i])       inner = `<span class="mono">${inner}</span>`;
+        else if(d.pill[i])  inner = `<span class="dcm-pill">${inner}</span>`;
+        const cls = d.wrap[i] ? ' class="wrap"' : '';
+        return `<td${cls}>${inner}</td>`;
+      }).join("")}</tr>`
+    ).join("");
+    count.textContent = `${rows.length} of ${d.records.length}`;
+  }
+  search.addEventListener("input", renderRows);
+  if(status) status.addEventListener("change", renderRows);
+  wrap.querySelector("#reportExport").addEventListener("click", ()=>{
+    toast(`Exported ${count.textContent.split(" ")[0]} rows to CSV (mock)`);
+  });
+  renderRows();
+  return wrap;
+}
+
+function homeDashboardEl(){
+  const w = el("div","qi-home");
+  w.innerHTML =
+    `<div class="qh-head">`+
+      `<div class="qh-title">Welcome 👋</div>`+
+      `<div class="qh-filter" id="qhFilter">`+
+        `<button class="active" data-range="week">Week</button>`+
+        `<button data-range="month">Month</button>`+
+      `</div>`+
+    `</div>`+
+
+    // === KPI grid (6 cards) — copied from qi-dashboard.html §1; rows swapped
+    // (Automation/Self-healing/Flakiness first) and per-card trend/threshold
+    // footnotes removed per feedback. ===
+    `<div class="cards">
+      <div class="card">
+        <div class="k">Automation coverage</div>
+        <div class="v">74<span class="unit">% of approved tests</span></div>
+        <div class="sub"><b>417 of 563</b> tests automated · <b>+18</b> since v4.1</div>
+        <div class="sub" style="margin-top:4px;">Automated tests pass consistently <b>91%</b> of the time · est. <b>340 manual hours saved</b> this month <span class="info" title="Estimated from average manual execution time × automated runs. Directional, not exact.">i</span></div>
+      </div>
+
+      <div class="card clickable" data-popup="heal">
+        <div class="k">Self-healing</div>
+        <div class="v">96<span class="unit">% heal success</span></div>
+        <div class="sub"><b>340 heals</b> absorbed automatically this release · only <b>12</b> needed a human fix</div>
+        <div class="strip"><span style="height:60%"></span><span style="height:70%"></span><span style="height:82%"></span><span class="now" style="height:96%"></span></div>
+      </div>
+
+      <div class="card clickable" data-popup="flaky">
+        <div class="k">Flakiness · dropping</div>
+        <div class="v">2.5<span class="unit">% flake rate</span></div>
+        <div class="sub"><b>Down from 4.2%</b> four releases ago. Industry bar: below 5%.</div>
+        <div class="strip drop">
+          <span style="height:84%"></span>
+          <span style="height:74%"></span>
+          <span style="height:62%"></span>
+          <span class="now" style="height:50%"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Defect Removal Efficiency</div>
+        <div class="v">94<span class="unit">%</span></div>
+        <div class="sub">Of bugs found, <b>94% were caught before ship</b>. 3 escaped to customers last release.</div>
+      </div>
+
+      <div class="card clickable" data-popup="bugs">
+        <div class="k">Where bugs were caught</div>
+        <div class="v">75<span class="unit">bugs · last release</span></div>
+        <div class="stack" title="Bugs caught by SDLC phase">
+          <span class="s-unit" style="width:16%"></span>
+          <span class="s-int"  style="width:24%"></span>
+          <span class="s-qa"   style="width:45%"></span>
+          <span class="s-stg"  style="width:11%"></span>
+          <span class="s-prod" style="width:4%"></span>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:#B8C7BA"></span>Unit 12</span>
+          <span><span class="sw" style="background:#8FAA93"></span>Integration 18</span>
+          <span><span class="sw" style="background:#38513B"></span>QA 34</span>
+          <span><span class="sw" style="background:#D4A75B"></span>Staging 8</span>
+          <span><span class="sw" style="background:#9A3B2B"></span>Prod 3</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="k">Open bugs · how old are they?</div>
+        <div class="v">15<span class="unit">open</span></div>
+        <div class="ages">
+          <div class="age"><div class="n">8</div><div class="l">0–7 days</div></div>
+          <div class="age warn"><div class="n">5</div><div class="l">7–30 days</div></div>
+          <div class="age crit"><div class="n">2</div><div class="l">30+ days</div></div>
+        </div>
+      </div>
+    </div>`+
+
+    // === Two-up: Next regression + Upcoming sprints ===
+    `<div class="twoup">
+      <div>
+        <div class="k">Next regression due</div>
+        <div class="headline">Run by <em>Jul 12</em> — Payments + Refunds</div>
+        <div class="why">Based on: <b>12 merges to Payments</b> since last regression · <b>3 modules unregressed &gt; 21 days</b> · Refund flow has open P0.</div>
+      </div>
+      <div>
+        <div class="k">Upcoming sprints to kick off</div>
+        <div class="headline">Sprint 24 · <em>starts Monday</em></div>
+        <ul>
+          <li><b>12 stories drafted</b> · 0 test plans generated. Kick off test planning.</li>
+          <li><b>3 pending gaps</b> from Sprint 22 still open — close first.</li>
+        </ul>
+      </div>
+    </div>`+
+
+    // === Last 5 releases — track record ===
+    `<h3 class="qh-sec">Last 5 releases — gate trust &amp; track record</h3>`+
+    `<p class="qh-sec-sub">If the gate said <em>GO</em> and bugs leaked anyway, the gate needs re-calibration.</p>`+
+    `<div class="trk" role="table" aria-label="Last 5 releases">
+      <div class="h" role="columnheader">Release</div>
+      <div class="h" role="columnheader">Confidence</div>
+      <div class="h" role="columnheader">Gate verdict</div>
+      <div class="h" role="columnheader">Escaped bugs</div>
+      <div class="h" role="columnheader">Shipped</div>
+
+      <div class="rel">v3.8</div>
+      <div>78</div>
+      <div><span class="go">GO</span></div>
+      <div>4 <span style="color:#5A5850; font-size:12px;">(1 P1)</span></div>
+      <div>May 20</div>
+
+      <div class="rel">v3.9</div>
+      <div>71</div>
+      <div><span class="cond">CONDITIONAL</span></div>
+      <div>2</div>
+      <div>Jun 3</div>
+
+      <div class="rel">v4.0</div>
+      <div>82</div>
+      <div><span class="go">GO</span></div>
+      <div>2 <span style="color:#5A5850; font-size:12px;">(1 P1)</span></div>
+      <div>Jun 17</div>
+
+      <div class="rel">v4.1</div>
+      <div>74</div>
+      <div><span class="cond">CONDITIONAL</span></div>
+      <div>3</div>
+      <div>Jul 1</div>
+
+      <div class="rel now">v4.2</div>
+      <div class="now">67</div>
+      <div class="now"><span class="nogo">NO-GO</span></div>
+      <div class="now">—</div>
+      <div class="now">target Jul 9</div>
+    </div>
+    <p class="foot">Of 3 releases that shipped <em>GO</em>, 2 leaked a P1. Gate calibration flagged for the next quarterly review.</p>`;
+  // Week/Month filter — visual toggle only, mock has one snapshot of data
+  w.querySelector("#qhFilter").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    w.querySelectorAll("#qhFilter button").forEach(x=>x.classList.toggle("active",x===b));
+  });
+  return w;
 }
 
 /* ---- Releases > Insights landing page (computed from RELEASES/CASES mock data) ---- */
@@ -2917,7 +4503,7 @@ function openModal({title, bodyHtml, footHtml, onMount}){
   m.querySelector(".m-close").addEventListener("click",closeModal);
   if(onMount) onMount(m);
 }
-function closeModal(){ $("#modalBackdrop").classList.remove("show"); }
+function closeModal(){ $("#modalBackdrop").classList.remove("show"); const m=document.getElementById('modal'); if(m) m.classList.remove("wide"); }
 $("#modalBackdrop").addEventListener("click",e=>{ if(e.target.id==="modalBackdrop") closeModal(); });
 
 function openConfirmModal({title, body, accept="Apply", onAccept}){
@@ -2929,6 +4515,174 @@ function openConfirmModal({title, body, accept="Apply", onAccept}){
     onMount:m=>{
       m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
       m.querySelector('[data-act="accept"]').addEventListener("click",()=>{closeModal(); if(onAccept) onAccept();});
+    }
+  });
+}
+
+/* ---- Add Release — minimal fields; new release starts with no runs and no
+   quality gate (gate cell reads "—" until a run is added). ---- */
+function openAddReleaseModal(){
+  const nextNum = RELEASES.length+1;
+  openModal({
+    title:"Add Release",
+    bodyHtml:
+      `<div class="m-section"><div class="m-lbl">Release ID <span class="ctr-req">*</span></div>`+
+        `<input class="ctr-input" id="arlId" type="text" value="REL-FHR-1.${nextNum+3}">`+
+      `</div>`+
+      `<div class="m-section"><div class="m-lbl">Milestone <span class="ctr-req">*</span></div>`+
+        `<input class="ctr-input" id="arlMilestone" type="text" placeholder="e.g. Sprint 25 smoke">`+
+      `</div>`+
+      `<div class="m-section ctr-machine" style="grid-template-columns:1fr 1fr;">`+
+        `<div class="ctr-field"><div class="m-lbl">Target ship</div>`+
+          `<input class="ctr-input" id="arlShip" type="text" placeholder="YYYY-MM-DD">`+
+        `</div>`+
+        `<div class="ctr-field"><div class="m-lbl">Surface</div>`+
+          `<input class="ctr-input" id="arlSurface" type="text" placeholder="e.g. Financial Health Review · iPOS+ · web">`+
+        `</div>`+
+      `</div>`,
+    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
+      `<button class="btn" data-act="cancel">Cancel</button>`+
+      `<button class="btn btn-primary" data-act="accept">Add Release</button>`,
+    onMount:m=>{
+      m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
+      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{
+        const id=m.querySelector("#arlId").value.trim();
+        const milestone=m.querySelector("#arlMilestone").value.trim();
+        if(!id || !milestone){ toast("Release ID and milestone are required"); return; }
+        if(RELEASES.some(r=>r.id===id)){ toast(`${id} already exists`); return; }
+        const ship=m.querySelector("#arlShip").value.trim()||"—";
+        const surface=m.querySelector("#arlSurface").value.trim()||"Financial Health Review · iPOS+";
+        RELEASES.push({
+          id, name:`${id} — ${milestone}`, targetShip:ship,
+          businessContext:{surface, release:`${id} — target ship ${ship}`, scope:"—", plansGenerated:"—", topmostExecuted:"No runs yet", owningTeam:"—"},
+          runs:[],
+        });
+        closeModal();
+        renderApp();
+        toast(`${id} added (mock) — add a run to generate a quality gate`);
+      });
+    }
+  });
+}
+
+/* ---- Add Run — attaches a new (empty-result) run to an existing release;
+   results start at "notrun" for every case in scope, same shape as a run
+   that hasn't executed yet. ---- */
+function openAddRunModal(){
+  if(!RELEASES.length){ toast("Add a release first"); return; }
+  const relOptions = RELEASES.map(r=>`<option value="${escapeHtml(r.id)}">${escapeHtml(r.id)}</option>`).join("");
+  openModal({
+    title:"Add Run",
+    bodyHtml:
+      `<div class="m-section"><div class="m-lbl">Release <span class="ctr-req">*</span></div>`+
+        `<select class="ctr-input" id="arnRelease">${relOptions}</select>`+
+      `</div>`+
+      `<div class="m-section"><div class="m-lbl">Run name <span class="ctr-req">*</span></div>`+
+        `<input class="ctr-input" id="arnName" type="text" placeholder="e.g. Smoke Test">`+
+      `</div>`+
+      `<div class="m-section"><div class="m-lbl">Suite</div>`+
+        `<input class="ctr-input" id="arnSuite" type="text" placeholder="e.g. Critical-path check">`+
+      `</div>`+
+      `<div class="m-section ctr-machine" style="grid-template-columns:1fr 1fr;">`+
+        `<div class="ctr-field"><div class="m-lbl">Platform</div>`+
+          `<select class="ctr-input" id="arnPlatform"><option value="web">web</option><option value="mobile">mobile</option><option value="api">api</option></select></div>`+
+        `<div class="ctr-field"><div class="m-lbl">Executed by</div>`+
+          `<input class="ctr-input" id="arnExecutor" type="text" placeholder="e.g. R. Menon"></div>`+
+      `</div>`,
+    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
+      `<button class="btn" data-act="cancel">Cancel</button>`+
+      `<button class="btn btn-primary" data-act="accept">Add Run</button>`,
+    onMount:m=>{
+      m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
+      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{
+        const relId=m.querySelector("#arnRelease").value;
+        const name=m.querySelector("#arnName").value.trim();
+        if(!name){ toast("Run name is required"); return; }
+        const rel=relById(relId); if(!rel) return;
+        const suite=m.querySelector("#arnSuite").value.trim()||name;
+        const platform=m.querySelector("#arnPlatform").value;
+        const executedBy=m.querySelector("#arnExecutor").value.trim()||"Unassigned";
+        const seq=rel.runs.length+1;
+        rel.runs.push({
+          id:`RUN-${relId.replace(/[^A-Z0-9]/gi,"")}-${1000+seq}`,
+          name, suite, platform, env:"Staging", build:"—", executedBy,
+          lastRun:new Date().toISOString().slice(0,16).replace("T"," "),
+          results:[],
+        });
+        closeModal();
+        renderApp();
+        toast(`${name} added to ${relId} (mock) — 0 results until cases are assigned`);
+      });
+    }
+  });
+}
+
+function openCreateTestRunModal(count){
+  let lab = "testsigma";
+  openModal({
+    title:"Create Test Run",
+    bodyHtml:
+      `<div class="m-section"><div class="m-lbl">Name <span class="ctr-req">*</span></div>`+
+        `<input class="ctr-input" id="ctrName" type="text" value="Run_${count}_case${count>1?"s":""}_${new Date().toISOString().slice(0,10)}">`+
+      `</div>`+
+      `<div class="m-section"><div class="m-lbl">Test Lab <span class="ctr-req">*</span></div>`+
+        `<div class="ctr-seg" id="ctrLab">`+
+          `<button type="button" class="active" data-lab="testsigma">⚙ Testsigma Lab</button>`+
+          `<button type="button" data-lab="local">💻 Local Devices</button>`+
+        `</div>`+
+      `</div>`+
+      `<div class="m-section"><div class="m-lbl">Test Machine <span class="ctr-req">*</span></div>`+
+        `<div class="ctr-machine">`+
+          `<div class="ctr-field"><div class="m-lbl">OS &amp; Version</div>`+
+            `<select class="ctr-input" id="ctrOs">`+
+              `<optgroup label="Web">`+
+                `<option value="web-latest">Any OS — Web</option>`+
+              `</optgroup>`+
+              `<optgroup label="Android">`+
+                `<option value="android-17">Android 17</option>`+
+                `<option value="android-16">Android 16</option>`+
+                `<option value="android-15">Android 15</option>`+
+                `<option value="android-9" selected>Android 9</option>`+
+              `</optgroup>`+
+              `<optgroup label="iOS">`+
+                `<option value="ios-18">iOS 18</option>`+
+                `<option value="ios-17">iOS 17</option>`+
+                `<option value="ios-16">iOS 16</option>`+
+              `</optgroup>`+
+            `</select>`+
+          `</div>`+
+          `<div class="ctr-field"><div class="m-lbl">Device</div>`+
+            `<select class="ctr-input" id="ctrDevice">`+
+              `<option>Any Samsung Mobile</option>`+
+              `<option>Any Google Pixel</option>`+
+              `<option>Any Apple iPhone</option>`+
+              `<option>Any device</option>`+
+            `</select>`+
+          `</div>`+
+          `<div class="ctr-field"><div class="m-lbl">Browser</div>`+
+            `<select class="ctr-input" id="ctrBrowser">`+
+              `<option>Chrome</option>`+
+              `<option>Safari</option>`+
+              `<option>Firefox</option>`+
+              `<option>N/A (native app)</option>`+
+            `</select>`+
+          `</div>`+
+        `</div>`+
+      `</div>`,
+    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
+      `<button class="btn" data-act="cancel">Cancel</button>`+
+      `<button class="btn btn-primary" data-act="accept">Create Test Run</button>`,
+    onMount:m=>{
+      m.querySelectorAll('#ctrLab button').forEach(b=>b.addEventListener("click",()=>{
+        m.querySelectorAll('#ctrLab button').forEach(x=>x.classList.remove("active"));
+        b.classList.add("active"); lab=b.dataset.lab;
+      }));
+      m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
+      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{
+        const name=m.querySelector("#ctrName").value.trim()||"Untitled run";
+        closeModal();
+        toast(`"${name}" created with ${count} case${count>1?"s":""} on ${m.querySelector("#ctrOs")?.value||"—"} (mock)`);
+      });
     }
   });
 }
@@ -3022,6 +4776,98 @@ function openAutoAssignModal(rel, run){
   });
 }
 
+/* ---- Add Test Case — same metadata fields as the case-detail card (steps +
+   test data), so the new case renders identically once added. ---- */
+const ADD_TC_CATEGORIES = ["positive","alt-valid","boundary","edge","negative","property","regulatory","state"];
+function openAddTestCaseModal(scen){
+  let steps=[{a:"",e:""}], data=[{k:"",v:""}];
+  const catOptions = ADD_TC_CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join("");
+  openModal({
+    title:`Add Test Case · ${scen.name}`,
+    bodyHtml:
+      `<div class="m-section"><div class="m-lbl">Title <span class="ctr-req">*</span></div>`+
+        `<input class="ctr-input" id="atcTitle" type="text" placeholder="e.g. Reject sum below minimum for TPD coverage">`+
+      `</div>`+
+      `<div class="m-section ctr-machine" style="grid-template-columns:1fr 1fr 1fr;">`+
+        `<div class="ctr-field"><div class="m-lbl">Category</div>`+
+          `<select class="ctr-input" id="atcCategory">${catOptions}</select></div>`+
+        `<div class="ctr-field"><div class="m-lbl">Manual / Auto</div>`+
+          `<select class="ctr-input" id="atcExec"><option value="auto">Auto</option><option value="manual">Manual</option></select></div>`+
+        `<div class="ctr-field"><div class="m-lbl">Priority</div>`+
+          `<select class="ctr-input" id="atcPriority"><option>P1</option><option selected>P2</option><option>P3</option></select></div>`+
+      `</div>`+
+      `<div class="m-section"><div class="m-lbl">Steps &amp; expected</div><div id="atcSteps"></div>`+
+        `<button class="btn" type="button" id="atcAddStep" style="margin-top:6px;font-size:11.5px;padding:4px 10px;">+ Add step</button></div>`+
+      `<div class="m-section"><div class="m-lbl">Test data</div><div id="atcData"></div>`+
+        `<button class="btn" type="button" id="atcAddData" style="margin-top:6px;font-size:11.5px;padding:4px 10px;">+ Add data field</button></div>`,
+    footHtml:`<span class="audit">✎ audit</span><div class="spacer"></div>`+
+      `<button class="btn" data-act="cancel">Cancel</button>`+
+      `<button class="btn btn-primary" data-act="accept">Add Test Case</button>`,
+    onMount:m=>{
+      const stepsBox=m.querySelector("#atcSteps"), dataBox=m.querySelector("#atcData");
+      function renderSteps(){
+        stepsBox.innerHTML = steps.map((st,i)=>
+          `<div class="atc-row" data-i="${i}" style="display:flex;gap:6px;margin-bottom:6px;">`+
+            `<input class="ctr-input atc-step-a" placeholder="Action" value="${escapeHtml(st.a)}" style="flex:1;">`+
+            `<input class="ctr-input atc-step-e" placeholder="Expected" value="${escapeHtml(st.e)}" style="flex:1;">`+
+            (steps.length>1?`<button class="btn atc-rm" type="button" style="padding:4px 9px;">✕</button>`:'')+
+          `</div>`
+        ).join("");
+        stepsBox.querySelectorAll(".atc-row").forEach(row=>{
+          const i=+row.dataset.i;
+          row.querySelector(".atc-step-a").addEventListener("input",e=>steps[i].a=e.target.value);
+          row.querySelector(".atc-step-e").addEventListener("input",e=>steps[i].e=e.target.value);
+          const rm=row.querySelector(".atc-rm");
+          if(rm) rm.addEventListener("click",()=>{steps.splice(i,1);renderSteps();});
+        });
+      }
+      function renderData(){
+        dataBox.innerHTML = data.map((d,i)=>
+          `<div class="atc-row" data-i="${i}" style="display:flex;gap:6px;margin-bottom:6px;">`+
+            `<input class="ctr-input atc-data-k" placeholder="Field" value="${escapeHtml(d.k)}" style="width:140px;">`+
+            `<input class="ctr-input atc-data-v" placeholder="Value" value="${escapeHtml(d.v)}" style="flex:1;">`+
+            (data.length>1?`<button class="btn atc-rm" type="button" style="padding:4px 9px;">✕</button>`:'')+
+          `</div>`
+        ).join("");
+        dataBox.querySelectorAll(".atc-row").forEach(row=>{
+          const i=+row.dataset.i;
+          row.querySelector(".atc-data-k").addEventListener("input",e=>data[i].k=e.target.value);
+          row.querySelector(".atc-data-v").addEventListener("input",e=>data[i].v=e.target.value);
+          const rm=row.querySelector(".atc-rm");
+          if(rm) rm.addEventListener("click",()=>{data.splice(i,1);renderData();});
+        });
+      }
+      renderSteps(); renderData();
+      m.querySelector("#atcAddStep").addEventListener("click",()=>{steps.push({a:"",e:""});renderSteps();});
+      m.querySelector("#atcAddData").addEventListener("click",()=>{data.push({k:"",v:""});renderData();});
+      m.querySelector('[data-act="cancel"]').addEventListener("click",closeModal);
+      m.querySelector('[data-act="accept"]').addEventListener("click",()=>{
+        const title=m.querySelector("#atcTitle").value.trim();
+        if(!title){ toast("Title is required"); return; }
+        const category=m.querySelector("#atcCategory").value;
+        const exec=m.querySelector("#atcExec").value;
+        const priority=m.querySelector("#atcPriority").value;
+        const cleanSteps=steps.filter(s=>s.a.trim()||s.e.trim());
+        const cleanData=data.filter(d=>d.k.trim()||d.v.trim());
+        const seq=Object.keys(CASES).length+1;
+        const key="NEW"+seq;
+        CASES[key]={
+          id:"TC-NEW"+seq, title, category, technique:"manual-entry", exec,
+          assignee:"Unassigned", author:"You", priority, req:"—",
+          updated:new Date().toISOString().slice(0,10), lifecycle:"active",
+          dv:"—", oracle:"—", traces:[],
+          steps: cleanSteps.length?cleanSteps:[{a:"—",e:"—"}],
+          data: cleanData.length?cleanData:[],
+        };
+        scen.cases.push(key);
+        closeModal();
+        render();
+        toast(`Added ${CASES[key].id} to ${scen.name} (mock)`);
+      });
+    }
+  });
+}
+
 function openSuggestEdgeCasesModal(scen){
   const suggestions = [
     {title:"Whitespace-only input", cat:"negative", conf:"●●●○", prov:"measured", why:"Common oversight in similar boundary sets."},
@@ -3070,6 +4916,39 @@ function openActivityModal(){
 }
 
 // -------------- Row menu (⋯ on failed rows) --------------
+function openChatMenu(triggerEl, chat){
+  document.querySelectorAll(".rowmenu").forEach(x=>x.remove());
+  triggerEl.classList.add("open");
+  const rect=triggerEl.getBoundingClientRect();
+  const menu=el("div","rowmenu");
+  const mk=(lbl,fn)=>{const b=el("button",null,lbl);b.addEventListener("click",e=>{e.stopPropagation();close();fn();});return b;};
+  function close(){ menu.remove(); triggerEl.classList.remove("open"); document.removeEventListener("click",off); }
+  menu.appendChild(mk("Rename",()=>{
+    const name=prompt("Rename chat", chat.title);
+    if(name && name.trim()){ chat.title=name.trim(); renderChatList(); }
+  }));
+  menu.appendChild(mk("Archive",()=>{
+    ATTO_CHATS=ATTO_CHATS.filter(c=>c.id!==chat.id);
+    if(STATE.activeChat===chat.id) STATE.activeChat=null;
+    renderApp();
+    toast(`"${chat.title}" archived (mock)`);
+  }));
+  menu.appendChild(mk("Delete",()=>openConfirmModal({
+    title:`Delete chat`,
+    body:`Delete <b>${escapeHtml(chat.title)}</b>? This can't be undone.`,
+    accept:"Delete", onAccept:()=>{
+      ATTO_CHATS=ATTO_CHATS.filter(c=>c.id!==chat.id);
+      if(STATE.activeChat===chat.id) STATE.activeChat=null;
+      renderApp();
+    }
+  })));
+  menu.style.left=Math.round(rect.right-130)+"px";
+  menu.style.top=Math.round(rect.bottom+4)+"px";
+  document.body.appendChild(menu);
+  const off=(ev)=>{ if(!menu.contains(ev.target)){ close(); } };
+  setTimeout(()=>document.addEventListener("click",off),0);
+}
+
 function openRowMenu(triggerEl, caseId, runId){
   document.querySelectorAll(".rowmenu").forEach(x=>x.remove());
   const rect=triggerEl.getBoundingClientRect();
@@ -3117,7 +4996,7 @@ function initCbar(){
   });
   $("#cbarSubmit").addEventListener("click",submitCbar);
   $("#cbarInput").addEventListener("keydown",e=>{
-    if(e.key==="Enter"){ e.preventDefault(); submitCbar(); }
+    if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); submitCbar(); }
     if(e.key==="Escape"){ clearCbar(); }
   });
   // "/" focuses the bar when not typing in a field
@@ -3300,10 +5179,176 @@ document.addEventListener("keydown",e=>{
   }
 });
 
+/* ---------- Testcraft authoring view ---------- */
+function renderTestcraftView(){
+  const root = document.createElement("div");
+  root.className = "tc-view";
+  root.id = "tcRoot";
+  root.innerHTML = `
+    <div class="app" id="tcApp" data-view="step1">
+      <div class="rail">
+        <button class="tc-back" id="tcBack" title="Back to Atto AI">← Back</button>
+        <div class="brand">Testcraft<span class="dot">.</span><span class="brand-sub">Authoring agent</span></div>
+        <div class="rail-spacer"></div>
+        <div class="stepper" role="tablist" aria-label="Authoring step">
+          <button class="step" id="tcBtnStep1" aria-current="step" data-tcstep="step1"><span class="n">1</span> Scope</button>
+          <span class="arrow">→</span>
+          <button class="step" id="tcBtnStep2" data-tcstep="step2"><span class="n">2</span> Draft</button>
+          <span class="arrow">→</span>
+          <button class="step disabled" id="tcBtnStep3" title="Coming after approval"><span class="n">3</span> Test run</button>
+        </div>
+        <div class="rail-spacer"></div>
+      </div>
+      <div class="panes">
+        <aside class="chat">
+          <div class="chat-head">
+            <div class="title"><i data-lucide="bot" style="width:15px;height:15px;vertical-align:-2px;margin-right:2px;"></i> Test Authoring Agent</div>
+          </div>
+          <div class="chat-scroll">
+            <div class="msg user"><div class="who">P</div><div class="body"><div class="bubble">Author tests for the new instant-transfer feature.</div></div></div>
+            <div class="msg agent"><div class="who">TC</div><div class="body"><span class="stage-chip"><span class="dot"></span> Intake</span><p>Skimmed the PRD and staging. Three things to confirm before I build a strategy — see the right panel.</p></div></div>
+            <div class="msg user"><div class="who">P</div><div class="body"><div class="bubble">Web only. Sandbox available. Limit is server-side.</div></div></div>
+            <div class="msg agent"><div class="who">TC</div><div class="body"><span class="stage-chip"><span class="dot"></span> Risk register</span><p>Classified as fintech / money-movement. 8 risks ranked by severity. Ready for strategy?</p></div></div>
+            <div class="msg user"><div class="who">P</div><div class="body"><div class="bubble">Proceed.</div></div></div>
+            <div class="msg agent"><div class="who">TC</div><div class="body"><span class="stage-chip"><span class="dot"></span> Strategy</span><p>34 scenarios drafted, 3 abstained for missing oracle. Opening the review table.</p></div></div>
+          </div>
+          <div class="chat-input"><div class="box"><span>Reply, ask, or steer the agent…</span><span class="kbd">⌘ ↵</span></div></div>
+        </aside>
+        <section class="work">
+          <div class="work-head view-step1">
+            <div><div class="eyebrow">Step 1 · Scope</div><h1>What <em>exactly</em> are we testing?</h1></div>
+            <div class="head-meta"><span class="pill warn">3 open questions</span></div>
+          </div>
+          <div class="work-head view-step2">
+            <div><div class="eyebrow">Step 2 · Draft</div><h1>34 scenarios, <em>ready to review</em></h1></div>
+          </div>
+          <div class="work-body">
+            <div class="view-step1 intake">
+              <div class="card">
+                <div class="label">Understood so far</div>
+                <h2>Instant Transfer — peer-to-peer, same currency</h2>
+                <div class="badge-grid">
+                  <div class="badge"><span class="k">Domain</span><span class="v">Fintech · money-movement</span></div>
+                  <div class="badge"><span class="k">Actors</span><span class="v">Sender · Recipient · Fraud reviewer</span></div>
+                  <div class="badge"><span class="k">Platforms in repo</span><span class="v">Web · iOS bundle detected</span></div>
+                  <div class="badge"><span class="k">Compliance</span><span class="v">PII · KYC gate · daily limit</span></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="label">Before I proceed</div>
+                <div class="q"><div class="num">1</div><div class="qbody"><p class="qtext">Which platforms are in-scope?</p><div class="chips"><span class="chip selected">Web only</span><span class="chip">Web + iOS</span><span class="chip">Your call</span></div></div></div>
+                <div class="q"><div class="num">2</div><div class="qbody"><p class="qtext">Sandbox payment credentials available in staging?</p><div class="chips"><span class="chip selected">Yes</span><span class="chip">Reads only</span><span class="chip abstain">No → abstain 6</span></div></div></div>
+                <div class="q"><div class="num">3</div><div class="qbody"><p class="qtext">Where is the daily limit enforced?</p><div class="chips"><span class="chip">Client-side</span><span class="chip selected">Server-side</span><span class="chip">Both</span></div></div></div>
+                <div class="actions-row"><button class="btn primary" id="tcToStep2">Continue to strategy →</button></div>
+              </div>
+            </div>
+            <div class="view-step2">
+              <div class="bulkbar">
+                <div class="left"><span class="chk-box on"></span><span>7 selected</span></div>
+                <div class="actions"><button class="btn good">Approve</button><button class="btn ghost">Edit</button><button class="btn ghost">Reject</button></div>
+              </div>
+              <div class="table-wrap"><div class="tbl-scroll"><table class="tbl">
+                <thead><tr><th></th><th>ID</th><th>Risk</th><th>Scenario</th><th>Technique</th><th>Platform</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr class="grouphdr"><td colspan="7">R1 · Double-spend on retry</td></tr>
+                  <tr><td class="chk"><span class="chk-box on"></span></td><td class="id">TC-014</td><td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td><td class="title-cell"><div class="t">Retrying after a 5xx must not debit twice</div></td><td><span class="tag">idempotence</span></td><td>web · api</td><td><span class="status draft"><span class="dot"></span>Draft</span></td></tr>
+                  <tr><td class="chk"><span class="chk-box on"></span></td><td class="id">TC-015</td><td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td><td class="title-cell"><div class="t">Concurrent transfers on the same balance settle correctly</div></td><td><span class="tag">property</span></td><td>api</td><td><span class="status draft"><span class="dot"></span>Draft</span></td></tr>
+                  <tr><td class="chk"><span class="chk-box"></span></td><td class="id">TC-016</td><td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td><td class="title-cell"><div class="t">Webhook redelivery does not re-credit recipient</div></td><td><span class="tag">idempotence</span></td><td>api</td><td><span class="status draft"><span class="dot"></span>Draft</span></td></tr>
+                  <tr class="grouphdr"><td colspan="7">R2 · Daily-limit bypass</td></tr>
+                  <tr><td class="chk"><span class="chk-box on"></span></td><td class="id">TC-021</td><td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td><td class="title-cell"><div class="t">Server rejects a transfer that exceeds the daily limit</div></td><td><span class="tag">BVA</span></td><td>api</td><td><span class="status draft"><span class="dot"></span>Draft</span></td></tr>
+                  <tr><td class="chk"><span class="chk-box on"></span></td><td class="id">TC-022</td><td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td><td class="title-cell"><div class="t">Rapid-fire transfers under the limit don't compose to a bypass</div></td><td><span class="tag">property</span></td><td>api</td><td><span class="status draft"><span class="dot"></span>Draft</span></td></tr>
+                  <tr class="grouphdr"><td colspan="7">R2.5 · Fraud-hold interception</td></tr>
+                  <tr><td class="chk"><span class="chk-box"></span></td><td class="id">TC-027</td><td><span class="sev sev2"><span class="stripe"></span>SEV2</span></td><td class="title-cell"><div class="t">Held transfer reaches the fraud reviewer queue within SLA</div></td><td><span class="tag">state</span></td><td>web</td><td><span class="status draft"><span class="dot"></span>Draft</span></td></tr>
+                  <tr class="grouphdr"><td colspan="7">R3 · Stale balance display</td></tr>
+                  <tr><td class="chk"><span class="chk-box on"></span></td><td class="id">TC-031</td><td><span class="sev sev2"><span class="stripe"></span>SEV2</span></td><td class="title-cell"><div class="t">Sender's balance updates within 2s of a successful transfer</div></td><td><span class="tag">temporal</span></td><td>web</td><td><span class="status draft"><span class="dot"></span>Draft</span></td></tr>
+                  <tr class="grouphdr"><td colspan="7">R5 · Receipt i18n · abstain</td></tr>
+                  <tr><td class="chk"><span class="chk-box"></span></td><td class="id">TC-051</td><td><span class="sev"><span class="stripe"></span>SEV3</span></td><td class="title-cell"><div class="t">Receipt renders correctly across locales</div></td><td><span class="tag">data-variation</span></td><td>web</td><td><span class="status abstain"><span class="dot"></span>Abstain</span></td></tr>
+                </tbody>
+              </table></div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>`;
+  return root;
+}
+
+function tcInit(root){
+  const app = root.querySelector("#tcApp");
+  function tcSetView(v){
+    app.dataset.view = v;
+    root.querySelector("#tcBtnStep1").setAttribute("aria-current", v==="step1"?"step":"false");
+    root.querySelector("#tcBtnStep2").setAttribute("aria-current", v==="step2"?"step":"false");
+    const sc = root.querySelector(".work-body"); if(sc) sc.scrollTop=0;
+  }
+  root.querySelectorAll(".stepper .step[data-tcstep]").forEach(b=>{
+    b.addEventListener("click",()=>tcSetView(b.dataset.tcstep));
+  });
+  const toStep2 = root.querySelector("#tcToStep2");
+  if(toStep2) toStep2.addEventListener("click",()=>tcSetView("step2"));
+  root.querySelectorAll(".chips").forEach(group=>{
+    group.querySelectorAll(".chip").forEach(chip=>{
+      chip.addEventListener("click",()=>{
+        group.querySelectorAll(".chip").forEach(c=>c.classList.remove("selected"));
+        chip.classList.add("selected");
+      });
+    });
+  });
+  root.querySelectorAll(".tools").forEach(tools=>{
+    tools.querySelectorAll(".filter").forEach(f=>{
+      f.addEventListener("click",()=>{
+        tools.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));
+        f.classList.add("active");
+      });
+    });
+  });
+  root.querySelectorAll(".chk-box").forEach(cb=>{
+    cb.addEventListener("click",()=>cb.classList.toggle("on"));
+  });
+  const stStates=["draft","approved","abstain"];
+  const stLabels={draft:"Draft",approved:"Approved",abstain:"Abstain"};
+  root.querySelectorAll(".status").forEach(el=>{
+    el.addEventListener("click",()=>{
+      const cur=stStates.find(s=>el.classList.contains(s));
+      const nxt=stStates[(stStates.indexOf(cur)+1)%stStates.length];
+      el.classList.remove(cur); el.classList.add(nxt);
+      el.innerHTML='<span class="dot"></span>'+stLabels[nxt];
+    });
+  });
+  root.querySelector("#tcBack").addEventListener("click",()=>{
+    STATE.testcraft = false;
+    STATE.activeChat = null;
+    renderApp();
+  });
+}
+
+// -------------- Workspace switcher --------------
+function initWorkspaceSwitcher(){
+  const wsw=$("#wsSwitcher"), trigger=$("#wsTrigger");
+  trigger.addEventListener("click",e=>{ e.stopPropagation(); wsw.classList.toggle("open"); });
+  wsw.querySelectorAll(".wsw-item").forEach(item=>{
+    item.addEventListener("click",()=>{
+      wsw.querySelectorAll(".wsw-item").forEach(x=>x.classList.remove("active"));
+      item.classList.add("active");
+      $(".wsw-name").textContent = item.querySelector(".wsw-item-name").textContent;
+      $(".wsw-tier").textContent = item.querySelector(".wsw-item-tier").textContent;
+      wsw.classList.remove("open");
+      toast(`Switched to ${item.querySelector(".wsw-item-name").textContent} (mock)`);
+    });
+  });
+  wsw.querySelector(".wsw-add").addEventListener("click",()=>{
+    wsw.classList.remove("open");
+    toast("Add workspace (mock)");
+  });
+  document.addEventListener("click",e=>{ if(!wsw.contains(e.target)) wsw.classList.remove("open"); });
+}
+
 // init
 STATE.modScenario={f:0,s:0};
 renderApp();
 initCbar();
+initWorkspaceSwitcher();
+if(window.lucide) lucide.createIcons();
 </script>
 </body>
 </html>

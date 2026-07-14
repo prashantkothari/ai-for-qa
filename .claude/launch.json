@@ -1,12 +1,12 @@
 {
   "version": "0.0.1",
-  "autoPort": true,
+  "autoPort": false,
   "configurations": [
     {
       "name": "static",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1", "--directory", "/Users/prashant.kothari/Documents/claude/.claude/worktrees/nostalgic-benz-2f7c3a"],
-      "port": 8765
+      "runtimeArgs": ["-m", "http.server", "8799", "--bind", "127.0.0.1", "--directory", "/Users/prashant.kothari/Documents/claude/.claude/worktrees/festive-almeida-f988bb"],
+      "port": 8799
     }
   ]
 }
