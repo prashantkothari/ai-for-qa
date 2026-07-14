@@ -1,0 +1,878 @@
+<title>Testcraft — Authoring Agent Mockup</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --cream: #EFEAE0;
+    --cream-2: #F5F1E8;
+    --ink: #1C1B18;
+    --ink-2: #55534C;
+    --muted: #918E82;
+    --line: #E4E0D5;
+    --line-2: #D6D1C2;
+    --olive: #4A473F;
+    --olive-soft: #EBE8E0;
+    --sage: #93A98A;
+    --terracotta: #B5502E;
+    --terracotta-soft: #F3E1D6;
+    --gold: #C08A2E;
+    --gold-soft: #F2E7CF;
+    --user-bg: #1C1B18;
+    --user-ink: #F5F1E8;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Georgia", ui-serif, serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sans { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .app {
+    display: grid;
+    grid-template-rows: 54px 1fr;
+    height: 100vh;
+    min-height: 640px;
+  }
+
+  /* ── top rail ─────────────────────────── */
+  .rail {
+    display: flex; align-items: center; gap: 18px;
+    padding: 0 22px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .brand {
+    display: flex; align-items: baseline; gap: 6px;
+    font-weight: 700; font-size: 15px;
+  }
+  .brand .dot { color: var(--terracotta); }
+  .brand-sub {
+    font-family: -apple-system, sans-serif;
+    color: var(--muted); font-weight: 500; font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .rail-spacer { flex: 1; }
+
+  .stepper {
+    display: inline-flex; align-items: center;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+  }
+  .stepper .step {
+    all: unset; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 12px; border-radius: 999px;
+    color: var(--muted);
+  }
+  .stepper .step:hover { background: var(--cream-2); color: var(--ink-2); }
+  .stepper .step .n {
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--cream); color: var(--ink-2);
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .stepper .step[aria-current="step"] {
+    background: var(--olive-soft); color: var(--olive);
+  }
+  .stepper .step[aria-current="step"] .n { background: var(--olive); color: #fff; }
+  .stepper .step.disabled { cursor: not-allowed; opacity: 0.55; }
+  .stepper .step.disabled:hover { background: transparent; }
+  .stepper .arrow { color: var(--line-2); margin: 0 2px; font-size: 11px; }
+
+  .rail-meta {
+    font-family: -apple-system, sans-serif;
+    color: var(--muted); font-size: 11.5px;
+  }
+  .rail-meta strong { color: var(--ink-2); font-weight: 600; }
+
+  /* ── panes ─────────────────────────── */
+  .panes {
+    display: grid;
+    grid-template-columns: 35% 65%;
+    min-height: 0;
+  }
+  .chat, .work {
+    min-height: 0;
+    display: flex; flex-direction: column;
+  }
+  .chat {
+    border-right: 1px solid var(--line);
+    background: var(--bg);
+  }
+
+  /* ── chat pane ─────────────────────────── */
+  .chat-head {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: -apple-system, sans-serif;
+  }
+  .chat-head .title { font-weight: 700; font-size: 13px; }
+  .chat-head .sub { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .chat-scroll {
+    flex: 1; overflow-y: auto;
+    padding: 16px 20px 8px;
+    display: flex; flex-direction: column; gap: 12px;
+    font-family: -apple-system, sans-serif;
+  }
+  .msg { display: flex; gap: 9px; }
+  .msg .who {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .msg.agent .who { background: var(--olive-soft); color: var(--olive); }
+  .msg.user  .who { background: var(--ink);        color: var(--user-ink); }
+  .msg .body { font-size: 12.5px; color: var(--ink); }
+  .msg .body p { margin: 0 0 4px; }
+  .msg .body p:last-child { margin-bottom: 0; }
+  .msg.user .bubble {
+    background: var(--cream); color: var(--ink);
+    padding: 7px 10px; border-radius: 9px;
+    display: inline-block; font-size: 12.5px;
+    cursor: default;
+  }
+  .msg.user .bubble:hover { background: var(--cream-2); }
+
+  .stage-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--olive-soft); color: var(--olive);
+    padding: 2px 8px; border-radius: 999px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.03em; text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .stage-chip .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--olive); }
+
+  .chat-input {
+    border-top: 1px solid var(--line);
+    padding: 12px 14px;
+    background: var(--bg);
+  }
+  .chat-input .box {
+    border: 1px solid var(--line-2);
+    background: var(--cream-2);
+    border-radius: 10px;
+    padding: 9px 12px;
+    color: var(--muted);
+    font-family: -apple-system, sans-serif;
+    font-size: 12.5px;
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: text;
+  }
+  .chat-input .box:hover { border-color: var(--olive); }
+  .chat-input .box .kbd {
+    font-family: ui-monospace, monospace; font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--line-2); border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  /* ── work pane ─────────────────────────── */
+  .work { background: var(--bg); }
+  .work-head {
+    padding: 18px 30px 16px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .work-head .eyebrow {
+    font-family: -apple-system, sans-serif;
+    color: var(--muted); font-size: 10.5px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .work-head h1 {
+    margin: 0; font-size: 24px; font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .work-head h1 em { color: var(--olive); font-style: italic; font-weight: 400; }
+  .head-meta {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    font-family: -apple-system, sans-serif;
+  }
+  .head-meta .pill {
+    background: var(--cream); border: 1px solid var(--line);
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; color: var(--ink-2); font-weight: 500;
+    cursor: default;
+  }
+  .head-meta .pill:hover { background: var(--cream-2); }
+  .head-meta .pill.warn { background: var(--gold-soft); color: var(--gold); border-color: transparent; }
+
+  .work-body {
+    flex: 1; overflow-y: auto;
+    padding: 26px 30px 44px;
+  }
+
+  /* ── STEP 1: intake ─────────────────────────── */
+  .intake {
+    max-width: 700px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .card {
+    background: var(--cream-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-family: -apple-system, sans-serif;
+  }
+  .card .label {
+    color: var(--muted); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .card h2 {
+    margin: 0 0 12px; font-size: 15px; font-weight: 600;
+    font-family: "Iowan Old Style", Georgia, serif;
+  }
+  .badge-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 20px;
+  }
+  .badge {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 9px 11px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    cursor: default;
+  }
+  .badge:hover { border-color: var(--line-2); }
+  .badge .k {
+    color: var(--muted); font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    font-weight: 600;
+  }
+  .badge .v { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+
+  .q {
+    display: flex; gap: 12px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    border-radius: 9px;
+    font-family: -apple-system, sans-serif;
+  }
+  .q + .q { margin-top: 8px; }
+  .q .num {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--olive-soft); color: var(--olive);
+    display: grid; place-items: center; flex-shrink: 0;
+    font-size: 10.5px; font-weight: 700;
+  }
+  .q .qbody { flex: 1; min-width: 0; }
+  .q .qtext { font-size: 13px; color: var(--ink); margin: 0 0 8px; font-weight: 600; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--line-2);
+    background: var(--bg);
+    color: var(--ink-2);
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .chip:hover { border-color: var(--olive); }
+  .chip.selected {
+    background: var(--olive); color: #fff;
+    border-color: var(--olive);
+  }
+  .chip.abstain { color: var(--gold); border-color: var(--gold-soft); background: var(--gold-soft); }
+
+  .actions-row {
+    display: flex; justify-content: flex-end; align-items: center;
+    margin-top: 2px;
+  }
+  .btn {
+    all: unset; cursor: pointer;
+    padding: 9px 16px; border-radius: 999px;
+    font-family: -apple-system, sans-serif;
+    font-size: 12.5px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid transparent;
+    transition: opacity 0.1s, background 0.1s;
+  }
+  .btn.primary { background: var(--olive); color: #fff; }
+  .btn.primary:hover { background: #38362F; }
+  .btn.ghost   { background: transparent; color: var(--ink-2); border-color: var(--line-2); }
+  .btn.ghost:hover { background: var(--cream-2); }
+  .btn.good    { background: var(--olive); color: #fff; }
+  .btn.good:hover { background: #38362F; }
+  .btn:disabled, .btn.disabled {
+    opacity: 0.4; cursor: not-allowed;
+  }
+  .btn:disabled:hover, .btn.disabled:hover { background: var(--olive); }
+  .btn.primary.disabled:hover { background: var(--olive); }
+
+  /* ── STEP 2: table ─────────────────────────── */
+  .tools {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    font-family: -apple-system, sans-serif;
+  }
+  .filter {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px;
+    background: var(--bg); border: 1px solid var(--line);
+    color: var(--ink-2); font-size: 11.5px; cursor: pointer;
+  }
+  .filter:hover { border-color: var(--olive); }
+  .filter.active { background: var(--olive); color: #fff; border-color: var(--olive); }
+  .filter .count {
+    background: var(--cream); color: var(--ink-2);
+    padding: 0 6px; border-radius: 999px;
+    font-family: ui-monospace, monospace; font-size: 10px;
+  }
+  .filter.active .count { background: rgba(255,255,255,0.2); color: #fff; }
+  .tools .spacer { flex: 1; }
+
+  .bulkbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px;
+    background: var(--olive-soft);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-family: -apple-system, sans-serif;
+    font-size: 12.5px;
+  }
+  .bulkbar .left { display: flex; align-items: center; gap: 9px; color: var(--olive); font-weight: 600; }
+  .bulkbar .actions { display: flex; gap: 6px; }
+  .bulkbar .actions .btn { padding: 5px 11px; font-size: 11.5px; }
+  .bulkbar .actions .btn.ghost { background: var(--bg); }
+
+  .table-wrap {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .tbl-scroll { overflow-x: auto; }
+  table.tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    min-width: 760px;
+  }
+  .tbl th {
+    text-align: left; font-weight: 700;
+    color: var(--muted);
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 10px 12px 8px;
+    border-bottom: 1px solid var(--line);
+    background: var(--cream-2);
+  }
+  .tbl td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    vertical-align: top;
+  }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl tbody tr:hover td { background: var(--cream-2); }
+  .tbl tr.grouphdr td {
+    background: var(--cream);
+    color: var(--ink-2); font-weight: 700;
+    font-size: 11px; letter-spacing: 0.02em;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tbl tr.grouphdr:hover td { background: var(--cream); }
+  .tbl td.chk { width: 30px; padding-right: 0; }
+  .tbl td.id  { font-family: ui-monospace, monospace; color: var(--ink-2); font-size: 11px; width: 66px; }
+  .tbl .title-cell { max-width: 340px; }
+  .tbl .title-cell .t { color: var(--ink); }
+
+  .chk-box {
+    width: 14px; height: 14px; border-radius: 4px;
+    border: 1.5px solid var(--line-2);
+    display: inline-block; vertical-align: middle;
+    background: var(--bg);
+    cursor: pointer;
+  }
+  .chk-box:hover { border-color: var(--olive); }
+  .chk-box.on {
+    background: var(--olive); border-color: var(--olive);
+    position: relative;
+  }
+  .chk-box.on::after {
+    content: "";
+    position: absolute; left: 3px; top: -1px;
+    width: 4px; height: 8px;
+    border: solid #fff;
+    border-width: 0 1.6px 1.6px 0;
+    transform: rotate(45deg);
+  }
+
+  .sev {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600;
+  }
+  .sev .stripe {
+    width: 3px; height: 11px; border-radius: 2px;
+    background: var(--muted);
+  }
+  .sev.sev1 .stripe { background: var(--terracotta); }
+  .sev.sev2 .stripe { background: var(--gold); }
+  .sev.sev1 { color: var(--terracotta); }
+  .sev.sev2 { color: var(--gold); }
+
+  .tag {
+    display: inline-block;
+    padding: 1px 7px; border-radius: 4px;
+    font-family: ui-monospace, monospace; font-size: 10px;
+    background: var(--cream); color: var(--ink-2);
+    border: 1px solid var(--line);
+  }
+  .status {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 9px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  .status.draft    { background: var(--cream); color: var(--ink-2); }
+  .status.approved { background: var(--olive-soft); color: var(--olive); }
+  .status.abstain  { background: var(--gold-soft); color: var(--gold); }
+  .status .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+  /* CTA chain */
+  .ctas {
+    margin-top: 16px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    background: var(--cream-2);
+    border-radius: 10px;
+    font-family: -apple-system, sans-serif;
+  }
+  .cta-step {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+  }
+  .cta-step .stepdot {
+    width: 17px; height: 17px; border-radius: 50%;
+    background: var(--line-2); color: var(--bg);
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 700;
+  }
+  .cta-step.current { color: var(--ink); background: var(--bg); }
+  .cta-step.current .stepdot { background: var(--olive); color: #fff; }
+  .cta-step.done { color: var(--olive); }
+  .cta-step.done .stepdot { background: var(--olive); color: #fff; }
+  .cta-arrow { color: var(--line-2); font-size: 11px; }
+  .ctas .spacer { flex: 1; }
+  .ctas .btn { padding: 9px 18px; }
+
+  /* view switching */
+  [data-view="step1"] .view-step2,
+  [data-view="step2"] .view-step1 { display: none !important; }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+
+<div class="app" id="app" data-view="step1">
+  <!-- ── top rail ─────────────────────────── -->
+  <div class="rail">
+    <div class="brand">
+      Testcraft<span class="dot">.</span>
+      <span class="brand-sub">Authoring agent</span>
+    </div>
+    <div class="rail-spacer"></div>
+
+    <div class="stepper" role="tablist" aria-label="Authoring step">
+      <button class="step" id="btn-step1" aria-current="step" onclick="setView('step1')">
+        <span class="n">1</span> Scope
+      </button>
+      <span class="arrow">→</span>
+      <button class="step" id="btn-step2" onclick="setView('step2')">
+        <span class="n">2</span> Draft
+      </button>
+      <span class="arrow">→</span>
+      <button class="step disabled" id="btn-step3" title="Coming after approval">
+        <span class="n">3</span> Test run
+      </button>
+    </div>
+
+    <div class="rail-spacer"></div>
+    <div class="rail-meta">
+      Instant Transfer <strong>· web</strong>
+    </div>
+  </div>
+
+  <!-- ── two panes ─────────────────────────── -->
+  <div class="panes">
+
+    <!-- ── chat (left, 35%) ─────────────────────────── -->
+    <aside class="chat">
+      <div class="chat-head">
+        <div class="title">Authoring conversation</div>
+        <div class="sub">Instant Transfer · staging</div>
+      </div>
+
+      <div class="chat-scroll">
+        <div class="msg user">
+          <div class="who">P</div>
+          <div class="body">
+            <div class="bubble">Author tests for the new instant-transfer feature.</div>
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="who">TC</div>
+          <div class="body">
+            <span class="stage-chip"><span class="dot"></span> Intake</span>
+            <p>Skimmed the PRD and staging. Three things to confirm before I build a strategy — see the right panel.</p>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="who">P</div>
+          <div class="body">
+            <div class="bubble">Web only. Sandbox available. Limit is server-side.</div>
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="who">TC</div>
+          <div class="body">
+            <span class="stage-chip"><span class="dot"></span> Risk register</span>
+            <p>Classified as fintech / money-movement. 8 risks ranked by severity. Ready for strategy?</p>
+          </div>
+        </div>
+
+        <div class="msg user">
+          <div class="who">P</div>
+          <div class="body">
+            <div class="bubble">Proceed.</div>
+          </div>
+        </div>
+
+        <div class="msg agent">
+          <div class="who">TC</div>
+          <div class="body">
+            <span class="stage-chip"><span class="dot"></span> Strategy</span>
+            <p>34 scenarios drafted, 3 abstained for missing oracle. Opening the review table.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input">
+        <div class="box">
+          <span>Reply, ask, or steer the agent…</span>
+          <span class="kbd">⌘ ↵</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── work pane (right, 65%) ─────────────────────────── -->
+    <section class="work">
+      <!-- ── STEP 1 header ─────────────────────────── -->
+      <div class="work-head view-step1">
+        <div>
+          <div class="eyebrow">Step 1 · Scope</div>
+          <h1>What <em>exactly</em> are we testing?</h1>
+        </div>
+        <div class="head-meta">
+          <span class="pill warn">3 open questions</span>
+        </div>
+      </div>
+
+      <!-- ── STEP 2 header ─────────────────────────── -->
+      <div class="work-head view-step2">
+        <div>
+          <div class="eyebrow">Step 2 · Draft</div>
+          <h1>34 scenarios, <em>ready to review</em></h1>
+        </div>
+        <div class="head-meta">
+          <span class="pill">8 risks</span>
+          <span class="pill warn">3 abstained</span>
+        </div>
+      </div>
+
+      <div class="work-body">
+
+        <!-- ── STEP 1 body ─────────────────────────── -->
+        <div class="view-step1 intake">
+
+          <div class="card">
+            <div class="label">Understood so far</div>
+            <h2>Instant Transfer — peer-to-peer, same currency</h2>
+            <div class="badge-grid">
+              <div class="badge">
+                <span class="k">Domain</span>
+                <span class="v">Fintech · money-movement</span>
+              </div>
+              <div class="badge">
+                <span class="k">Actors</span>
+                <span class="v">Sender · Recipient · Fraud reviewer</span>
+              </div>
+              <div class="badge">
+                <span class="k">Platforms in repo</span>
+                <span class="v">Web · iOS bundle detected</span>
+              </div>
+              <div class="badge">
+                <span class="k">Compliance</span>
+                <span class="v">PII · KYC gate · daily limit</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="label">Before I proceed</div>
+
+            <div class="q">
+              <div class="num">1</div>
+              <div class="qbody">
+                <p class="qtext">Which platforms are in-scope?</p>
+                <div class="chips">
+                  <span class="chip selected" onclick="pick(this)">Web only</span>
+                  <span class="chip" onclick="pick(this)">Web + iOS</span>
+                  <span class="chip" onclick="pick(this)">Your call</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="q">
+              <div class="num">2</div>
+              <div class="qbody">
+                <p class="qtext">Sandbox payment credentials available in staging?</p>
+                <div class="chips">
+                  <span class="chip selected" onclick="pick(this)">Yes</span>
+                  <span class="chip" onclick="pick(this)">Reads only</span>
+                  <span class="chip abstain" onclick="pick(this)">No → abstain 6</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="q">
+              <div class="num">3</div>
+              <div class="qbody">
+                <p class="qtext">Where is the daily limit enforced?</p>
+                <div class="chips">
+                  <span class="chip" onclick="pick(this)">Client-side</span>
+                  <span class="chip selected" onclick="pick(this)">Server-side</span>
+                  <span class="chip" onclick="pick(this)">Both</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="actions-row">
+              <button class="btn primary" onclick="setView('step2')">
+                Continue to strategy →
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── STEP 2 body ─────────────────────────── -->
+        <div class="view-step2">
+          <div class="tools">
+            <span class="filter active" onclick="filt(this)">All <span class="count">34</span></span>
+            <span class="filter" onclick="filt(this)">By risk <span class="count">8</span></span>
+            <span class="filter" onclick="filt(this)">Abstained <span class="count">3</span></span>
+          </div>
+
+          <div class="bulkbar">
+            <div class="left">
+              <span class="chk-box on" onclick="this.classList.toggle('on')"></span>
+              <span>7 selected</span>
+            </div>
+            <div class="actions">
+              <button class="btn good">Approve</button>
+              <button class="btn ghost">Edit</button>
+              <button class="btn ghost">Reject</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="tbl-scroll">
+              <table class="tbl">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>ID</th>
+                    <th>Risk</th>
+                    <th>Scenario</th>
+                    <th>Technique</th>
+                    <th>Platform</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <tr class="grouphdr"><td colspan="7">R1 · Double-spend on retry</td></tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box on" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-014</td>
+                    <td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td>
+                    <td class="title-cell">
+                      <div class="t">Retrying after a 5xx must not debit twice</div>
+                    </td>
+                    <td><span class="tag">idempotence</span></td>
+                    <td>web · api</td>
+                    <td><span class="status draft" onclick="cycle(this)"><span class="dot"></span>Draft</span></td>
+                  </tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box on" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-015</td>
+                    <td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td>
+                    <td class="title-cell">
+                      <div class="t">Concurrent transfers on the same balance settle correctly</div>
+                    </td>
+                    <td><span class="tag">property</span></td>
+                    <td>api</td>
+                    <td><span class="status draft" onclick="cycle(this)"><span class="dot"></span>Draft</span></td>
+                  </tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-016</td>
+                    <td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td>
+                    <td class="title-cell">
+                      <div class="t">Webhook redelivery does not re-credit recipient</div>
+                    </td>
+                    <td><span class="tag">idempotence</span></td>
+                    <td>api</td>
+                    <td><span class="status draft" onclick="cycle(this)"><span class="dot"></span>Draft</span></td>
+                  </tr>
+
+                  <tr class="grouphdr"><td colspan="7">R2 · Daily-limit bypass</td></tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box on" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-021</td>
+                    <td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td>
+                    <td class="title-cell">
+                      <div class="t">Server rejects a transfer that exceeds the daily limit</div>
+                    </td>
+                    <td><span class="tag">BVA</span></td>
+                    <td>api</td>
+                    <td><span class="status draft" onclick="cycle(this)"><span class="dot"></span>Draft</span></td>
+                  </tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box on" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-022</td>
+                    <td><span class="sev sev1"><span class="stripe"></span>SEV1</span></td>
+                    <td class="title-cell">
+                      <div class="t">Rapid-fire transfers under the limit don't compose to a bypass</div>
+                    </td>
+                    <td><span class="tag">property</span></td>
+                    <td>api</td>
+                    <td><span class="status draft" onclick="cycle(this)"><span class="dot"></span>Draft</span></td>
+                  </tr>
+
+                  <tr class="grouphdr"><td colspan="7">R2.5 · Fraud-hold interception</td></tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-027</td>
+                    <td><span class="sev sev2"><span class="stripe"></span>SEV2</span></td>
+                    <td class="title-cell">
+                      <div class="t">Held transfer reaches the fraud reviewer queue within SLA</div>
+                    </td>
+                    <td><span class="tag">state</span></td>
+                    <td>web</td>
+                    <td><span class="status draft" onclick="cycle(this)"><span class="dot"></span>Draft</span></td>
+                  </tr>
+
+                  <tr class="grouphdr"><td colspan="7">R3 · Stale balance display</td></tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box on" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-031</td>
+                    <td><span class="sev sev2"><span class="stripe"></span>SEV2</span></td>
+                    <td class="title-cell">
+                      <div class="t">Sender's balance updates within 2s of a successful transfer</div>
+                    </td>
+                    <td><span class="tag">temporal</span></td>
+                    <td>web</td>
+                    <td><span class="status draft" onclick="cycle(this)"><span class="dot"></span>Draft</span></td>
+                  </tr>
+
+                  <tr class="grouphdr"><td colspan="7">R5 · Receipt i18n · abstain</td></tr>
+
+                  <tr>
+                    <td class="chk"><span class="chk-box" onclick="this.classList.toggle('on')"></span></td>
+                    <td class="id">TC-051</td>
+                    <td><span class="sev"><span class="stripe"></span>SEV3</span></td>
+                    <td class="title-cell">
+                      <div class="t">Receipt renders correctly across locales</div>
+                    </td>
+                    <td><span class="tag">data-variation</span></td>
+                    <td>web</td>
+                    <td><span class="status abstain" onclick="cycle(this)"><span class="dot"></span>Abstain</span></td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="ctas">
+            <div class="cta-step done"><span class="stepdot">✓</span> Draft</div>
+            <span class="cta-arrow">→</span>
+            <div class="cta-step current"><span class="stepdot">2</span> Approve</div>
+            <span class="cta-arrow">→</span>
+            <div class="cta-step"><span class="stepdot">3</span> Save to Library</div>
+            <div class="spacer"></div>
+            <button class="btn ghost">Reject all</button>
+            <button class="btn good">Approve selected (7)</button>
+            <button class="btn primary disabled">Save to Library →</button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  function setView(v) {
+    const app = document.getElementById('app');
+    app.dataset.view = v;
+    document.getElementById('btn-step1').setAttribute('aria-current', v === 'step1' ? 'step' : 'false');
+    document.getElementById('btn-step2').setAttribute('aria-current', v === 'step2' ? 'step' : 'false');
+    const scroll = document.querySelector('.work-body');
+    if (scroll) scroll.scrollTop = 0;
+  }
+  function pick(el) {
+    el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  function filt(el) {
+    el.parentElement.querySelectorAll('.filter').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  }
+  function cycle(el) {
+    const states = ['draft', 'approved', 'abstain'];
+    const labels = { draft: 'Draft', approved: 'Approved', abstain: 'Abstain' };
+    let cur = states.find(s => el.classList.contains(s));
+    let next = states[(states.indexOf(cur) + 1) % states.length];
+    el.classList.remove(cur);
+    el.classList.add(next);
+    el.innerHTML = '<span class="dot"></span>' + labels[next];
+  }
+</script>
