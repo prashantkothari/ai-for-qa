@@ -116,16 +116,16 @@
     if (r.verdict !== 'heal' || !r.best) {
       const diag0 = (DG && DG.diagnoseFailure(r)) || { category: 'UNKNOWN' };
       if (diag0.category === 'REMOVAL' && TW && typeof TW.waitAndMatch === 'function') {
+        lever = 'temporal-wait';                        // mark TRIED before the call — a failed attempt is still an attempt
         const waited = await TW.waitAndMatch(doc, step._anchor, {});
         r = waited;                                    // adopt it either way — richer diagnosis on timeout too
-        if (waited.verdict === 'heal') lever = 'temporal-wait';
       }
       if (r.verdict !== 'heal' || !r.best) {
         const diag1 = (DG && DG.diagnoseFailure(r)) || diag0;
         if ((diag1.category === 'AMBIGUITY' || diag1.category === 'REMOVAL') && SP && typeof SP.searchAndPick === 'function') {
+          lever = 'search-and-pick';                    // supersedes temporal-wait: this is the lever that produced the FINAL result
           const widened = SP.searchAndPick(doc, step._anchor, {});
           r = widened;
-          if (widened.verdict === 'heal') lever = 'search-and-pick';
         }
       }
     }

@@ -25,17 +25,19 @@
     });
   }
   // shuffle sibling order within every repeating-row container (tbody/ul/ol) — simulates a re-sort.
-  // Deterministic given the seeded `rnd()` passed in (Fisher-Yates).
+  // Deterministic given the seeded `rnd()` passed in (Fisher-Yates on the plain array — no DOM
+  // interaction during the shuffle itself, so correctness doesn't depend on insertBefore semantics —
+  // then a single re-append pass realizes the exact computed permutation: appendChild on a node
+  // already in the document MOVES it, so appending in shuffled order reproduces that order in the DOM).
   function reorder(stageEl, rnd) {
     stageEl.querySelectorAll('tbody, ul, ol').forEach(parent => {
       const children = Array.from(parent.children);
       if (children.length < 2) return;
       for (let i = children.length - 1; i > 0; i--) {
         const j = Math.floor(rnd() * (i + 1));
-        if (j === i) continue;
-        parent.insertBefore(children[j], children[i]);
         const tmp = children[i]; children[i] = children[j]; children[j] = tmp;
       }
+      children.forEach(el => parent.appendChild(el));
     });
   }
   // clone a random interactive control as an adjacent, name-identical sibling — a genuine twin.
