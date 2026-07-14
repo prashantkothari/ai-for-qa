@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Atto — Test Detail (v3)</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --border-strong: #d6d3d1;
+    --text: #1c1917;
+    --text-muted: #78716c;
+    --text-quiet: #a8a29e;
+    --brand: #7c3aed;
+    --brand-soft: #f3efff;
+    --live: #10b981;
+    --live-soft: #ecfdf5;
+    --pass: #059669;
+    --fail: #dc2626;
+    --draft: #b45309;
+    --draft-soft: #fef3c7;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 1px 12px rgba(0,0,0,.03);
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Inter", "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--sans); }
+
+  /* ---- Top bar --------------------------------------------------------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 24px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .topbar h1 .path { color: var(--text-quiet); font-weight: 400; }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; font-size: 11px; font-weight: 600;
+    border-radius: 999px; letter-spacing: .04em; text-transform: uppercase;
+  }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status-pill.passed  { background: #ecfdf5; color: #047857; }
+  .status-pill.passed  .dot { background: #10b981; }
+  .status-pill.running { background: #ecfdf5; color: #047857; }
+  .status-pill.running .dot { background: #10b981; animation: pulse 1.4s ease-in-out infinite; }
+  .status-pill.draft   { background: var(--draft-soft); color: var(--draft); }
+  .status-pill.draft   .dot { background: var(--draft); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  .meta {
+    margin-left: auto; display: flex; gap: 18px; font-size: 12px; color: var(--text-muted);
+  }
+  .meta b { color: var(--text); font-weight: 500; }
+  .share-btn {
+    padding: 6px 12px; border: none; background: var(--brand); color: white;
+    border-radius: 6px; font-weight: 500; font-size: 12px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; margin-left: 12px;
+  }
+
+  /* ---- Sub-controls row (state + platform toggles) --------------------- */
+  .subrow {
+    display: flex; gap: 16px; align-items: center;
+    padding: 8px 24px; background: #f5f5f4;
+    border-bottom: 1px solid var(--border); font-size: 11px;
+  }
+  .subrow-label { color: var(--text-muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; font-size: 10px; }
+  .subrow .toggle {
+    display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  }
+  .subrow .toggle button {
+    padding: 4px 12px; border: none; background: transparent;
+    font-size: 11px; cursor: pointer; color: var(--text-muted);
+    font-family: var(--mono); border-right: 1px solid var(--border);
+  }
+  .subrow .toggle button:last-child { border-right: none; }
+  .subrow .toggle button.active { background: var(--text); color: white; }
+  .subrow .spacer { flex: 1; }
+
+  /* ---- Tabs ------------------------------------------------------------ */
+  .tabs {
+    display: flex; gap: 24px; padding: 0 24px; background: var(--surface);
+    border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .tabs a {
+    padding: 12px 2px; color: var(--text-muted); text-decoration: none;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tabs a.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+  /* ---- Layout ---------------------------------------------------------- */
+  /* Two schemes based on platform:
+     mobile → [device 340] [timeline 1fr] [detail 380]
+     web    → grid with device on top spanning [1fr], detail full-height right, timeline below device */
+
+  .layout {
+    display: grid;
+    gap: 0;
+    min-height: calc(100vh - 172px);
+    background: var(--bg);
+  }
+  .layout.mobile {
+    grid-template-columns: 360px 1fr 380px;
+    grid-template-rows: 1fr;
+    grid-template-areas: "device timeline detail";
+  }
+  /* v3 web layout — image-3 style: big browser center, compact timeline rail right, no separate detail pane */
+  .layout.web {
+    grid-template-columns: 1fr 380px;
+    grid-template-rows: 1fr;
+    grid-template-areas: "device timeline";
+  }
+  .device-pane   { grid-area: device;   border-right: 1px solid var(--border); background: var(--bg); }
+  .timeline-pane { grid-area: timeline; }
+  .detail-pane   { grid-area: detail;   background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; }
+
+  /* on web, detail pane is hidden — its content moves into the timeline as an accordion */
+  .layout.web .detail-pane { display: none; }
+  .layout.web .device-pane { padding: 20px 24px; align-items: stretch; }
+  .layout.web .timeline-pane { border-left: 1px solid var(--border); }
+
+  /* ---- Device — mobile phone frame ------------------------------------ */
+  .device-pane { padding: 28px 20px; display: flex; flex-direction: column; align-items: center; }
+  .device-caption {
+    margin-top: 12px; font-family: var(--mono); font-size: 10px;
+    color: var(--text-quiet); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .phone-frame {
+    width: 300px; border: 1px solid var(--border-strong); border-radius: 32px;
+    background: white; padding: 12px 10px; box-shadow: var(--shadow);
+    position: relative;
+  }
+  .phone-frame::before {
+    content: ''; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 22px; background: #1c1917; border-radius: 12px;
+  }
+  .phone-screen {
+    background: white; border-radius: 22px; overflow: hidden;
+    height: 540px; padding: 44px 20px 20px;
+    display: flex; flex-direction: column;
+  }
+
+  /* ---- Device — web browser frame -------------------------------------- */
+  .browser-frame {
+    width: 100%; max-width: 1100px;
+    border: 1px solid var(--border-strong); border-radius: 10px;
+    background: white; box-shadow: var(--shadow); overflow: hidden;
+    position: relative;
+  }
+  .layout.web .browser-frame { height: 100%; display: flex; flex-direction: column; }
+  .layout.web .browser-screen { flex: 1; }
+  .browser-chrome {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; background: #f5f5f4; border-bottom: 1px solid var(--border);
+  }
+  .live-badge {
+    position: absolute; top: 14px; right: 16px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; background: white; border: 1px solid var(--border);
+    border-radius: 999px; font-size: 10px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+    z-index: 2;
+  }
+  .live-badge .lb-dot { width: 6px; height: 6px; border-radius: 50%; background: #a8a29e; }
+  .live-badge.live { color: #dc2626; border-color: #fecaca; background: #fff5f5; }
+  .live-badge.live .lb-dot { background: #dc2626; animation: pulse 1.2s ease-in-out infinite; }
+  .live-badge.passed { color: var(--pass); border-color: #a7f3d0; background: #ecfdf5; }
+  .live-badge.passed .lb-dot { background: var(--pass); }
+  .live-badge.draft  { color: var(--draft); border-color: #fcd34d; background: var(--draft-soft); }
+  .live-badge.draft  .lb-dot { background: var(--draft); animation: pulse 1.4s ease-in-out infinite; }
+  .traffic { display: flex; gap: 6px; }
+  .traffic i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .traffic i:nth-child(1) { background: #ef4444; }
+  .traffic i:nth-child(2) { background: #f59e0b; }
+  .traffic i:nth-child(3) { background: #10b981; }
+  .url-bar {
+    flex: 1; padding: 5px 10px; background: white; border: 1px solid var(--border);
+    border-radius: 6px; font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+  }
+  .browser-screen { padding: 28px 40px 40px; min-height: 480px; }
+
+  /* Airbnb — mobile version */
+  .ab-logo {
+    color: #ff385c; font-weight: 700; font-size: 18px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ab-title { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .ab-sub   { font-size: 12px; color: var(--text-muted); margin: 0 0 20px; }
+  .ab-input {
+    width: 100%; padding: 12px; border: 1px solid var(--border-strong);
+    border-radius: 8px; font-size: 13px; margin-bottom: 10px; font-family: inherit;
+  }
+  .ab-btn {
+    width: 100%; padding: 12px; background: #ff385c; color: white; border: none;
+    border-radius: 8px; font-weight: 600; font-size: 13px; margin-top: 6px; cursor: pointer;
+  }
+  .ab-divider {
+    display: flex; align-items: center; gap: 8px; margin: 16px 0;
+    color: var(--text-quiet); font-size: 11px;
+  }
+  .ab-divider::before, .ab-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .ab-alt {
+    width: 100%; padding: 10px; background: white; border: 1px solid #1c1917;
+    border-radius: 8px; font-size: 12px; margin-bottom: 8px; text-align: center;
+  }
+
+  /* Airbnb — web version (login modal look) */
+  .ab-web-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 20px; margin-bottom: 40px; border-bottom: 1px solid var(--border);
+  }
+  .ab-web-nav .ab-logo { margin: 0; }
+  .ab-web-nav .nav-links { display: flex; gap: 20px; font-size: 13px; color: var(--text); }
+  .ab-web-card {
+    max-width: 400px; margin: 20px auto 0;
+    border: 1px solid var(--border-strong); border-radius: 12px;
+    background: white; overflow: hidden;
+  }
+  .ab-web-card-head {
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    text-align: center; font-size: 14px; font-weight: 600;
+  }
+  .ab-web-card-body { padding: 24px; }
+  .ab-web-card-body .ab-title { font-size: 22px; }
+
+  /* ---- Timeline pane --------------------------------------------------- */
+  .timeline-pane { padding: 20px 24px; overflow-y: auto; }
+  .layout.web .timeline-pane {
+    padding: 16px 16px; background: var(--surface);
+  }
+  .layout.web .timeline-head { padding: 0 4px; }
+
+  /* Web-mode compact rows + inline accordion --------------------------- */
+  .layout.web .step {
+    grid-template-columns: 22px 24px 1fr auto;
+    gap: 10px; padding: 10px 10px;
+    background: white; border: 1px solid var(--border);
+    border-radius: 6px; margin-bottom: 6px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.02);
+  }
+  .layout.web .step .drag {
+    color: var(--text-quiet); font-size: 12px; cursor: grab;
+    display: inline-flex; align-items: center;
+  }
+  .layout.web .step .drag::before { content: '⋮⋮'; letter-spacing: -2px; font-family: var(--mono); }
+  .layout.mobile .step .drag { display: none; }
+
+  .layout.web .step .num {
+    width: 22px; height: 22px; font-size: 10px;
+    background: transparent; border: none; color: var(--text-muted);
+  }
+  .layout.web .step.done   .num { background: transparent; border: none; color: var(--pass); }
+  .layout.web .step.active .num { background: transparent; border: none; color: var(--brand); }
+  .layout.web .step.draft  .num { background: transparent; border: none; color: var(--draft); }
+  .layout.web .step-body { display: flex; align-items: center; gap: 8px; overflow: hidden; }
+  .layout.web .step-body .kind { display: none; }
+  .layout.web .step-body .action-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; flex: none; color: var(--brand);
+  }
+  .layout.web .step.done .step-body .action-icon    { color: var(--pass); }
+  .layout.web .step.active .step-body .action-icon  { color: var(--brand); }
+  .layout.web .step.pending .step-body .action-icon { color: var(--text-quiet); }
+  .layout.web .step.draft .step-body .action-icon   { color: var(--draft); }
+  .layout.mobile .step-body .action-icon { display: none; }
+  .layout.web .step-body .text {
+    margin: 0; font-size: 12px; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; flex: 1;
+  }
+  .layout.web .step-body .live-note { display: none; }
+
+  /* Web accordion — details expand inline under selected step */
+  .step-accordion { display: none; }
+  .layout.web .step.selected + .step-accordion { display: block; }
+  .step-accordion {
+    background: white; border: 1px solid var(--border);
+    border-top: none; border-radius: 0 0 6px 6px;
+    margin-top: -6px; margin-bottom: 6px;
+    padding: 14px 16px;
+  }
+  .timeline-head {
+    display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px;
+  }
+  .timeline-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  .timeline-head .count { font-size: 12px; color: var(--text-muted); }
+
+  .step {
+    display: grid; grid-template-columns: 32px 1fr auto; gap: 14px;
+    padding: 12px 12px; border-radius: 8px; align-items: start;
+    cursor: pointer; border: 1px solid transparent; margin-bottom: 2px;
+  }
+  .step:hover { background: #f5f5f4; }
+  .step.selected { background: var(--brand-soft); border-color: #e9defc; }
+  .step .num {
+    width: 28px; height: 28px; border-radius: 50%; display: inline-flex;
+    align-items: center; justify-content: center; font-size: 11px; font-weight: 600;
+    background: white; border: 1px solid var(--border-strong); color: var(--text-muted);
+    font-family: var(--mono);
+  }
+  .step.done   .num { background: #ecfdf5; border-color: #a7f3d0; color: var(--pass); }
+  .step.active .num { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); animation: pulse 1.4s ease-in-out infinite; }
+  .step.pending .num { color: var(--text-quiet); }
+  .step.draft  .num { background: var(--draft-soft); border-color: #fcd34d; color: var(--draft); }
+
+  .step-body .kind {
+    font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--brand); font-family: var(--mono);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .step-body .kind.validation { color: var(--live); }
+  .step-body .kind.pending    { color: var(--text-quiet); }
+  .step-body .kind.draft      { color: var(--draft); }
+  .step-body .kind .kdot { width: 6px; height: 6px; border-radius: 2px; background: currentColor; }
+  .step-body .text { margin-top: 2px; font-size: 13px; color: var(--text); line-height: 1.45; }
+  .step-body .text .arg { font-family: var(--mono); background: #f5f5f4; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .step.pending .step-body .text { color: var(--text-quiet); }
+  .step-body .live-note {
+    margin-top: 6px; font-size: 11px; color: var(--live);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .step .dur { font-family: var(--mono); font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .step.active .dur::after { content: '…'; }
+
+  /* ---- Detail pane ----------------------------------------------------- */
+  .detail-pane { padding: 20px 24px; }
+  .detail-crumb {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .detail-eyebrow {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 6px; font-family: var(--mono);
+  }
+  .detail-status { color: var(--pass); font-weight: 600; display: inline-flex; gap: 4px; align-items: center; }
+  .detail-status.live { color: var(--live); }
+  .detail-verb { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .detail-desc { font-size: 13px; color: var(--text-muted); margin: 0 0 18px; line-height: 1.5; }
+  .detail-timing {
+    display: flex; gap: 8px; align-items: center; font-family: var(--mono);
+    font-size: 11px; color: var(--text-muted); margin-bottom: 22px;
+    padding-bottom: 18px; border-bottom: 1px solid var(--border);
+  }
+  .detail-timing b { color: var(--text); font-weight: 500; }
+  .detail-section-title {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0 0 8px; font-family: var(--mono);
+  }
+  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .kv {
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: #fafaf9;
+  }
+  .kv .k { font-size: 10px; color: var(--text-muted); font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+  .kv .v { font-size: 13px; color: var(--text); font-family: var(--mono); }
+  .component-preview {
+    border: 1px solid var(--border); border-radius: 8px; padding: 20px;
+    background: #fafaf9; margin-bottom: 22px; text-align: center;
+  }
+  .component-preview .thumb {
+    display: inline-block; padding: 10px 16px; background: white;
+    border: 1px solid var(--border-strong); border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+  }
+  .component-preview .lbl { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+  /* Reasoning — 3-block layout (What / Why / Signals) */
+  .reasoning-block {
+    border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px;
+    padding: 12px 14px; background: #fafaf9;
+  }
+  .reasoning-block .r-head {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-muted); font-family: var(--mono); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .reasoning-block .r-body {
+    font-size: 12px; color: var(--text); line-height: 1.55;
+  }
+  .reasoning-block .r-body strong { font-weight: 600; }
+  .reasoning-block.what .r-head { color: var(--brand); }
+  .reasoning-block.why  .r-head { color: var(--pass); }
+  .reasoning-block.why.live  .r-head { color: var(--live); }
+  .reasoning-block.why.draft .r-head { color: var(--draft); }
+  .reasoning-block.signals .r-head { color: var(--text-muted); }
+  .reasoning-block.signals .sig {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 3px 0; font-family: var(--mono); font-size: 11px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .reasoning-block.signals .sig:last-child { border-bottom: none; }
+  .reasoning-block.signals .sig .sv { color: var(--pass); font-weight: 500; }
+  .reasoning-block.signals .sig .sv.live { color: var(--live); }
+  .reasoning-block.signals .sig .sv.warn { color: var(--draft); }
+  .reasoning-block.signals .sig .sv.muted { color: var(--text-quiet); }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ------------ Version bar (across all mock versions) ------------------->
+<div style="display:flex;align-items:center;gap:14px;padding:8px 20px;background:#1c1917;color:#fafaf9;font-size:12px;border-bottom:1px solid #292524">
+  <span style="color:#a8a29e;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:10px">Design version</span>
+  <select id="__vsel" style="background:#292524;color:#fafaf9;border:1px solid #44403c;padding:4px 10px;border-radius:4px;font-family:var(--mono);font-size:12px;cursor:pointer">
+    <option value="test-detail-mockup-v3.html" selected>v3 — 2026-07-13</option>
+    <option value="test-detail-mockup-v2.html">v2 — 2026-07-13</option>
+    <option value="test-detail-mockup-v1.html">v1 — 2026-07-13</option>
+  </select>
+  <span style="color:#a8a29e;font-size:11px">v3 · web = Orchard-style: big browser center, compact timeline rail right, accordion detail</span>
+</div>
+<script>
+  document.getElementById('__vsel').addEventListener('change', e => { location.href = e.target.value; });
+</script>
+
+<!-- ------------ Top bar --------------------------------------------------->
+<header class="topbar">
+  <h1><span class="path">Tests / airbnb / </span><span id="test-name">airbnb-login-happy-path</span></h1>
+  <span id="status-pill-passed"  class="status-pill passed"><span class="dot"></span>Passed</span>
+  <span id="status-pill-running" class="status-pill running hidden"><span class="dot"></span>Running</span>
+  <span id="status-pill-draft"   class="status-pill draft hidden"><span class="dot"></span>Generating</span>
+
+  <div class="meta">
+    <span id="meta-exec"><b>Execution</b> · 07/13/26</span>
+    <span id="meta-dur"><b>Duration</b> · 42.8s</span>
+    <span><b>Env</b> · staging</span>
+  </div>
+  <button class="share-btn">↗ Share</button>
+</header>
+
+<!-- ------------ Sub-row: mock state + platform --------------------------->
+<div class="subrow">
+  <span class="subrow-label">Mock state</span>
+  <div class="toggle" id="state-toggle">
+    <button data-state="draft">Generating</button>
+    <button data-state="running">Running</button>
+    <button data-state="passed" class="active">Passed</button>
+  </div>
+
+  <span class="subrow-label" style="margin-left:12px">Platform</span>
+  <div class="toggle" id="platform-toggle">
+    <button data-platform="mobile" class="active">Mobile</button>
+    <button data-platform="web">Web</button>
+  </div>
+
+  <span class="spacer"></span>
+</div>
+
+<!-- ------------ Tabs ---------------------------------------------------->
+<nav class="tabs">
+  <a class="active" href="#">Timeline</a>
+  <a href="#">Summary</a>
+  <a href="#">Performance</a>
+  <a href="#">Info</a>
+</nav>
+
+<!-- ------------ Main layout -------------------------------------------->
+<main class="layout mobile" id="layout">
+
+  <!-- Device pane -->
+  <section class="device-pane">
+    <!-- Mobile frame -->
+    <div class="phone-frame" id="phone-frame">
+      <div class="phone-screen">
+        <div class="ab-logo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.5 2 4 5.5 4 10c0 5.5 6.5 11 8 12 1.5-1 8-6.5 8-12 0-4.5-3.5-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+          airbnb
+        </div>
+        <p class="ab-title">Log in or sign up</p>
+        <p class="ab-sub">Welcome to Airbnb</p>
+        <input class="ab-input" id="ab-email-mob"    placeholder="Email">
+        <input class="ab-input" id="ab-password-mob" type="password" placeholder="Password">
+        <button class="ab-btn">Continue</button>
+        <div class="ab-divider">or</div>
+        <button class="ab-alt">Continue with Google</button>
+        <button class="ab-alt">Continue with Apple</button>
+      </div>
+    </div>
+
+    <!-- Web/browser frame -->
+    <div class="browser-frame hidden" id="browser-frame">
+      <span class="live-badge" id="live-badge"><span class="lb-dot"></span><span id="live-badge-text">LIVE</span></span>
+      <div class="browser-chrome">
+        <div class="traffic"><i></i><i></i><i></i></div>
+        <div class="url-bar">https://www.airbnb.com/login</div>
+      </div>
+      <div class="browser-screen">
+        <div class="ab-web-nav">
+          <div class="ab-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.5 2 4 5.5 4 10c0 5.5 6.5 11 8 12 1.5-1 8-6.5 8-12 0-4.5-3.5-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+            airbnb
+          </div>
+          <div class="nav-links">
+            <span>Stays</span><span>Experiences</span><span>Online</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted)">Host your home</div>
+        </div>
+
+        <div class="ab-web-card">
+          <div class="ab-web-card-head">Log in or sign up</div>
+          <div class="ab-web-card-body">
+            <p class="ab-title" style="text-align:center">Welcome to Airbnb</p>
+            <input class="ab-input" id="ab-email-web"    placeholder="Email">
+            <input class="ab-input" id="ab-password-web" type="password" placeholder="Password">
+            <button class="ab-btn">Continue</button>
+            <div class="ab-divider">or</div>
+            <button class="ab-alt">Continue with Google</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="device-caption" id="device-caption">iPhone 16 Pro · iOS 18.5 · 393×852</div>
+  </section>
+
+  <!-- Timeline -->
+  <section class="timeline-pane">
+    <div class="timeline-head">
+      <h2>Timeline</h2>
+      <span class="count" id="timeline-count">6 steps · 42.8s total</span>
+    </div>
+    <div id="steps"></div>
+  </section>
+
+  <!-- Detail -->
+  <aside class="detail-pane" id="detail-pane"></aside>
+</main>
+
+<script>
+/* -------- Data -------------------------------------------------------- */
+const STEPS = [
+  { n:1, kind:'instruction', text:'Navigate to <span class="arg">airbnb.com/login</span>',
+    verb:'Navigate', desc:'Open the login page in a fresh session.',
+    target:'airbnb.com/login', position:'—', component:'login-page', dur:'2.1s', range:'0:00 → 0:02.1',
+    what: 'Loaded <strong>airbnb.com/login</strong> and waited for the DOM to become interactive.',
+    why:  'Page reached readyState <strong>complete</strong> within the 5s budget, no redirects fired, and no auth challenge was rendered.',
+    signals: [
+      { k:'DOMContentLoaded', v:'1.4s',    c:'live' },
+      { k:'Network idle',     v:'2.0s',    c:'live' },
+      { k:'Console errors',   v:'0',       c:'live' },
+      { k:'Redirects',        v:'none',    c:'muted' },
+    ]},
+
+  { n:2, kind:'validation', text:'Login form is visible with Email + Password fields',
+    verb:'Validate', desc:'Confirm the form and both inputs are present and visible.',
+    target:'form[data-testid="login-form"]', position:'—', component:'login-form', dur:'0.8s', range:'0:02.1 → 0:02.9',
+    what: 'Ran a visibility check on the login form and both inputs.',
+    why:  'All three descriptors resolved to a single visible node; each had non-zero bounding boxes and no aria-hidden ancestor.',
+    signals: [
+      { k:'form node',      v:'found',     c:'live' },
+      { k:'email input',    v:'visible',   c:'live' },
+      { k:'password input', v:'visible',   c:'live' },
+      { k:'candidates',     v:'1 / 1 / 1', c:'muted' },
+    ]},
+
+  { n:3, kind:'instruction', text:'Type <span class="arg">demo@testsigma.com</span> into the Email field',
+    verb:'Type', desc:'Fill the email input with the seeded test credential.',
+    target:'input[name="email"]', position:'(148, 232)', component:'email-input', dur:'0.6s', range:'0:02.9 → 0:03.5',
+    what: 'Focused the email input and typed the value character-by-character.',
+    why:  'Input reflected the full expected value after the final keyup; no validation warning was rendered inline.',
+    signals: [
+      { k:'focus event',      v:'fired',      c:'live' },
+      { k:'chars typed',      v:'19 / 19',    c:'live' },
+      { k:'input.value',      v:'matches',    c:'live' },
+      { k:'inline error',     v:'none',       c:'muted' },
+    ]},
+
+  { n:4, kind:'instruction', text:'Type <span class="arg">••••••••••</span> into the Password field',
+    verb:'Type', desc:'Fill the password input with the seeded credential.',
+    target:'input[name="password"]', position:'(148, 288)', component:'password-input', dur:'0.7s', range:'0:03.5 → 0:04.2',
+    what: 'Focused the password input, typed 10 characters, kept masked.',
+    why:  'The masked value length matched the expected credential; visibility toggle stayed off.',
+    signals: [
+      { k:'focus event',      v:'fired',      c:'live' },
+      { k:'chars typed',      v:'10 / 10',    c:'live' },
+      { k:'mask state',       v:'hidden',     c:'live' },
+      { k:'inline error',     v:'none',       c:'muted' },
+    ]},
+
+  { n:5, kind:'instruction', text:'Tap the <span class="arg">Continue</span> button',
+    verb:'Tap', desc:'Submit the login form by tapping the Continue button.',
+    target:"'Continue' button", position:'(148, 356)', component:'submit-button', dur:'0.9s', range:'0:04.2 → 0:05.1',
+    what: 'Tapped the Continue button; the form submitted and navigated to the account dashboard.',
+    why:  'The AFTER screenshot shows the dashboard shell with the seeded user\'s avatar — matches the step\'s expected outcome.',
+    signals: [
+      { k:'click delivered',  v:'yes',        c:'live' },
+      { k:'nav within 2s',    v:'1.3s',       c:'live' },
+      { k:'URL after',        v:'/account',   c:'live' },
+      { k:'HTTP status',      v:'200',        c:'live' },
+    ]},
+
+  { n:6, kind:'validation', text:'Account dashboard is visible with user avatar',
+    verb:'Validate', desc:'Confirm login succeeded and the dashboard rendered.',
+    target:'[data-testid="account-dashboard"]', position:'—', component:'dashboard-shell', dur:'1.2s', range:'0:05.1 → 0:06.3',
+    what: 'Checked that the dashboard shell and user avatar rendered.',
+    why:  'Both descriptors resolved on first attempt; no loading skeleton was still visible.',
+    signals: [
+      { k:'dashboard node',   v:'found',      c:'live' },
+      { k:'avatar node',      v:'found',      c:'live' },
+      { k:'skeleton',         v:'gone',       c:'live' },
+      { k:'a11y role',        v:'main',       c:'muted' },
+    ]},
+];
+
+/* -------- State ------------------------------------------------------- */
+let state = 'passed';
+let platform = 'mobile';
+let selected = 5;
+
+/* -------- Helpers ----------------------------------------------------- */
+function stepStatus(n) {
+  if (state === 'passed')  return 'done';
+  if (state === 'draft')   return 'draft';
+  if (n < 5)  return 'done';
+  if (n === 5) return 'active';
+  return 'pending';
+}
+
+const ACTION_ICONS = {
+  Navigate: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2L7 9M14 2H8M14 2v6M6 4H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3"/></svg>',
+  Type:     '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h10M8 4v9M5.5 13h5"/></svg>',
+  Tap:      '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6M6 6l4 4M8 8l5 2-2 5-2-3-1 1"/></svg>',
+  Validate: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3 3 7-7"/></svg>',
+};
+
+function renderSteps() {
+  const host = document.getElementById('steps');
+  host.innerHTML = STEPS.map(s => {
+    const st = stepStatus(s.n);
+    const kindLabel = s.kind === 'validation' ? 'Validation' : 'Instruction';
+    const kindClass = st === 'pending' ? 'pending' :
+                      st === 'draft'   ? 'draft'   :
+                      (s.kind === 'validation' ? 'validation' : '');
+    const durTxt = st === 'pending' ? '—'
+                 : st === 'active'  ? '0.4s'
+                 : st === 'draft'   ? '~' + s.dur
+                 : s.dur;
+    const liveNote = st === 'active'
+      ? '<div class="live-note">● Executing — AFTER screenshot pending</div>' : '';
+    const icon = ACTION_ICONS[s.verb] || '';
+    // Compact one-line label for web accordion rows
+    const webLabel = s.verb + ' ' + (
+        s.component === 'submit-button'   ? '"Continue"' :
+        s.component === 'email-input'     ? 'email field' :
+        s.component === 'password-input'  ? 'password field' :
+        s.component === 'login-page'      ? 'airbnb.com/login' :
+        s.component);
+    const accordion = (selected === s.n && platform === 'web') ? renderAccordion(s, st) : '';
+    return `
+      <div class="step ${st} ${selected===s.n?'selected':''}" data-n="${s.n}">
+        <div class="drag"></div>
+        <div class="num">${s.n}</div>
+        <div class="step-body">
+          <span class="action-icon">${icon}</span>
+          <div class="kind ${kindClass}"><span class="kdot"></span>${kindLabel}</div>
+          <div class="text" data-mobile="${escapeHtml(s.text)}" data-web="${escapeHtml(webLabel)}">${platform==='web' ? webLabel : s.text}</div>
+          ${liveNote}
+        </div>
+        <div class="dur">${durTxt}</div>
+      </div>
+      ${accordion}`;
+  }).join('');
+  host.querySelectorAll('.step').forEach(el => {
+    el.addEventListener('click', () => {
+      selected = +el.dataset.n;
+      renderSteps();
+      renderDetail();
+    });
+  });
+}
+
+function escapeHtml(s) { return String(s).replace(/"/g, '&quot;'); }
+
+function renderAccordion(s, st) {
+  const isLive = st === 'active', isDraft = st === 'draft', isPending = st === 'pending';
+  const whatBody = isPending
+      ? 'Not yet executed. This step is queued.'
+      : isDraft
+        ? `The authoring agent will attempt <strong>${s.verb}</strong> on <strong>${s.component}</strong>.`
+        : s.what;
+  const whyHead  = isLive ? 'Why it is passing so far'
+                 : isDraft ? 'Why this step exists'
+                 : isPending ? 'Expected outcome'
+                 : 'Why it passed';
+  const whyBody  = isPending
+      ? 'When run, the agent expects: ' + s.why
+      : isDraft
+        ? `Matches the "login submit" archetype in the risk register. Deterministic locator available; expected outcome is a navigation event within 2s.`
+        : s.why;
+  const whyClass = 'reasoning-block why' + (isLive ? ' live' : isDraft ? ' draft' : '');
+  const signalsHtml = (isPending || isDraft)
+      ? '<div class="r-body" style="color:var(--text-muted)">Signals will populate after the first run.</div>'
+      : s.signals.map(sig =>
+          `<div class="sig"><span>${sig.k}</span><span class="sv ${sig.c}">${sig.v}</span></div>`
+        ).join('');
+  return `
+    <div class="step-accordion">
+      <div class="kv-grid" style="margin-bottom:12px">
+        <div class="kv"><div class="k">Target</div><div class="v">${s.target}</div></div>
+        <div class="kv"><div class="k">Position</div><div class="v">${s.position}</div></div>
+      </div>
+      <div class="reasoning-block what">
+        <div class="r-head">● What happened</div>
+        <div class="r-body">${whatBody}</div>
+      </div>
+      <div class="${whyClass}">
+        <div class="r-head">● ${whyHead}</div>
+        <div class="r-body">${whyBody}</div>
+      </div>
+      <div class="reasoning-block signals">
+        <div class="r-head">● Signals</div>
+        ${signalsHtml}
+      </div>
+    </div>`;
+}
+
+function renderDetail() {
+  const s = STEPS.find(x => x.n === selected);
+  const st = stepStatus(s.n);
+  const isLive = st === 'active', isDraft = st === 'draft', isPending = st === 'pending';
+
+  const statusEl =
+      isLive     ? '<span class="detail-status live">● Executing</span>' :
+      isDraft    ? '<span class="detail-status" style="color:var(--draft)">● Drafting</span>' :
+      isPending  ? '<span class="detail-status" style="color:var(--text-quiet)">○ Pending</span>' :
+                   '<span class="detail-status">✓ Step Completed</span>';
+
+  const whatBody = isPending
+      ? 'Not yet executed. This step is queued.'
+      : isDraft
+        ? `The authoring agent will attempt <strong>${s.verb}</strong> on <strong>${s.component}</strong>.`
+        : s.what;
+  const whyHead  = isLive ? 'Why it is passing so far'
+                 : isDraft ? 'Why this step exists'
+                 : isPending ? 'Expected outcome'
+                 : 'Why it passed';
+  const whyBody  = isPending
+      ? 'When run, the agent expects: ' + s.why
+      : isDraft
+        ? `Matches the "login submit" archetype in the risk register. Deterministic locator available; expected outcome is a navigation event within 2s. Labelled <strong>asserted</strong> until the first run confirms.`
+        : s.why;
+  const whyClass = 'reasoning-block why' + (isLive ? ' live' : isDraft ? ' draft' : '');
+
+  const signalsHtml = (isPending || isDraft)
+      ? '<div class="r-body" style="color:var(--text-muted)">Signals will populate after the first run.</div>'
+      : s.signals.map(sig =>
+          `<div class="sig"><span>${sig.k}</span><span class="sv ${sig.c}">${sig.v}</span></div>`
+        ).join('');
+
+  document.getElementById('detail-pane').innerHTML = `
+    <div class="detail-crumb">← Step ${s.n}: ${s.kind === 'validation' ? 'Validation' : 'Instruction'}</div>
+    <div class="detail-eyebrow"><span>Action ${s.n}</span>${statusEl}</div>
+    <h3 class="detail-verb">${s.verb}</h3>
+    <p class="detail-desc">${s.desc}</p>
+    <div class="detail-timing">
+      <span>⏱</span>
+      <b>${isPending ? '—' : (isDraft ? '~' + s.dur : s.dur)}</b>
+      <span>·</span>
+      <span>${isPending || isDraft ? '—' : s.range}</span>
+    </div>
+
+    <div class="detail-section-title">Details</div>
+    <div class="kv-grid">
+      <div class="kv"><div class="k">Target</div><div class="v">${s.target}</div></div>
+      <div class="kv"><div class="k">Position</div><div class="v">${s.position}</div></div>
+    </div>
+
+    <div class="detail-section-title">Component</div>
+    <div class="component-preview">
+      <div class="thumb">${
+        s.component === 'submit-button' ? 'Continue' :
+        s.component === 'email-input'    ? 'demo@testsigma.com' :
+        s.component === 'password-input' ? '••••••••••' : s.component}</div>
+      <div class="lbl">${s.component}</div>
+    </div>
+
+    <div class="reasoning-block what">
+      <div class="r-head">● What happened</div>
+      <div class="r-body">${whatBody}</div>
+    </div>
+    <div class="${whyClass}">
+      <div class="r-head">● ${whyHead}</div>
+      <div class="r-body">${whyBody}</div>
+    </div>
+    <div class="reasoning-block signals">
+      <div class="r-head">● Signals</div>
+      ${signalsHtml}
+    </div>
+  `;
+}
+
+/* -------- State machine ----------------------------------------------- */
+function setState(next) {
+  state = next;
+  document.getElementById('status-pill-passed' ).classList.toggle('hidden', state !== 'passed');
+  document.getElementById('status-pill-running').classList.toggle('hidden', state !== 'running');
+  document.getElementById('status-pill-draft'  ).classList.toggle('hidden', state !== 'draft');
+
+  const metaExec = document.getElementById('meta-exec');
+  const metaDur  = document.getElementById('meta-dur');
+  if (state === 'passed')  { metaExec.innerHTML = '<b>Execution</b> · 07/13/26'; metaDur.innerHTML = '<b>Duration</b> · 42.8s'; }
+  if (state === 'running') { metaExec.innerHTML = '<b>Started</b> · 4s ago';     metaDur.innerHTML = '<b>Elapsed</b> · 4.2s'; }
+  if (state === 'draft')   { metaExec.innerHTML = '<b>Drafting</b> · just now';  metaDur.innerHTML = '<b>Est. duration</b> · ~40s'; }
+
+  const cnt = document.getElementById('timeline-count');
+  if (state === 'passed')  cnt.textContent = STEPS.length + ' steps · 42.8s total';
+  if (state === 'running') cnt.textContent = '4 of ' + STEPS.length + ' steps · 4.2s elapsed';
+  if (state === 'draft')   cnt.textContent = STEPS.length + ' steps drafted · not yet run';
+
+  selected = 5;
+
+  const inputs = [
+    ['ab-email-mob',    'ab-password-mob'],
+    ['ab-email-web',    'ab-password-web'],
+  ];
+  inputs.forEach(([e, p]) => {
+    const ee = document.getElementById(e), pp = document.getElementById(p);
+    if (state === 'draft') { ee.value = ''; pp.value = ''; }
+    else                   { ee.value = 'demo@testsigma.com'; pp.value = '••••••••••'; }
+  });
+
+  document.querySelectorAll('#state-toggle button').forEach(b =>
+    b.classList.toggle('active', b.dataset.state === state));
+
+  syncLiveBadge();
+  renderSteps();
+  renderDetail();
+}
+
+function syncLiveBadge() {
+  const badge = document.getElementById('live-badge');
+  const txt   = document.getElementById('live-badge-text');
+  if (!badge) return;
+  badge.classList.remove('live', 'passed', 'draft');
+  if (state === 'running') { badge.classList.add('live');   txt.textContent = 'LIVE'; }
+  else if (state === 'passed')  { badge.classList.add('passed'); txt.textContent = 'PASSED'; }
+  else                          { badge.classList.add('draft');  txt.textContent = 'DRAFT'; }
+}
+
+function setPlatform(next) {
+  platform = next;
+  const layout = document.getElementById('layout');
+  layout.classList.toggle('mobile', platform === 'mobile');
+  layout.classList.toggle('web',    platform === 'web');
+  document.getElementById('phone-frame'  ).classList.toggle('hidden', platform !== 'mobile');
+  document.getElementById('browser-frame').classList.toggle('hidden', platform !== 'web');
+  document.getElementById('device-caption').textContent =
+    platform === 'mobile'
+      ? 'iPhone 16 Pro · iOS 18.5 · 393×852'
+      : 'Chrome 128 · macOS · 1440×900';
+  renderSteps();
+  syncLiveBadge();
+  document.querySelectorAll('#platform-toggle button').forEach(b =>
+    b.classList.toggle('active', b.dataset.platform === platform));
+}
+
+document.querySelectorAll('#state-toggle button').forEach(b =>
+  b.addEventListener('click', () => setState(b.dataset.state)));
+document.querySelectorAll('#platform-toggle button').forEach(b =>
+  b.addEventListener('click', () => setPlatform(b.dataset.platform)));
+
+setPlatform('mobile');
+setState('passed');
+</script>
+</body>
+</html>
