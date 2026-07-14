@@ -1,0 +1,143 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Coverage schemas + taxonomies — validator gate</title>
+<style>
+  body{font:13px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif;margin:16px;color:#111}
+  h1{font-size:16px}h2{font-size:13px;margin:14px 0 4px;border-bottom:2px solid #eee;padding-bottom:3px}
+  .ok{color:#137333;font-weight:700}.bad{color:#c5221f;font-weight:700}.warn{color:#b06000}
+  .row{font-family:ui-monospace,Menlo,monospace;font-size:11px;margin:2px 0}
+  .PASS{color:#137333}.FAIL{color:#c5221f}
+  pre{background:#f6f6f6;padding:8px;white-space:pre-wrap;max-height:34vh;overflow:auto;font-size:11px}
+  table{border-collapse:collapse;margin:8px 0;font-size:12px}
+  td,th{border:1px solid #ddd;padding:4px 8px;text-align:left}
+  th{background:#f6f6f6}
+  .banner{background:#e8f5e9;border:1px solid #81c784;border-radius:6px;padding:6px 10px;margin:6px 0;font-size:12px}
+  .banner.warn{background:#fff8e1;border-color:#ffe082}
+</style></head>
+<body>
+<h1>Coverage schemas + taxonomies — validator gate</h1>
+<p><small>Corpus rows for the AUTHORING coverage layer (self-heal/docs/AUTHORING-MOCK-EXPERIMENT.md):
+element registry, screen transitions, service edges, statements, coverage-grid cells, refusals,
+steps, tests, and test goals. Every row is labelled ACCEPT/REJECT; a row is PASS when the validator
+matches the expected outcome. The TEST row is the doc's Airbnb T-427 example (abbreviated), so the
+schema is checked against a real worked case, not only synthetic minima.</small></p>
+<div id="out"></div>
+
+<script src="coverage-taxonomies.js"></script>
+<script src="coverage-model.schema.js"></script>
+<script src="validator.js"></script>
+<script>
+(function () {
+  const out = document.getElementById('out');
+  const V = window.SELFHEAL_VALIDATOR;
+  const C = window.SELFHEAL_SCHEMA_COVERAGE;
+
+  // ---- element registry ----
+  const validRegistry = {
+    screen: 'listing_page',
+    elements: [
+      { symbol: 'reserve_button', type: 'button', role: null, name_hint: 'Reserve', match: null, hidden: null },
+      { symbol: 'check_in_field', type: 'input', role: 'textbox', name_hint: 'Check in', match: null, hidden: null }
+    ]
+  };
+  const badRegistryBadType = {
+    screen: 'listing_page',
+    elements: [{ symbol: 'x', type: 'widget', role: null, name_hint: null, match: null, hidden: null }]
+  };
+  const badRegistryEmpty = { screen: 'listing_page', elements: [] };
+
+  // ---- transition edge ----
+  const validEdge = { from: 'listing_page', action: 'click', to: 'checkout_page', condition: null };
+  const badEdgeBadAction = { from: 'listing_page', action: 'teleport', to: 'checkout_page', condition: null };
+
+  // ---- service edge ----
+  const validServiceEdge = { from_service: 'pricing-service', to_service: 'booking-service', tag: 'supporting' };
+  const badServiceEdgeBadTag = { from_service: 'pricing-service', to_service: 'booking-service', tag: 'vip' };
+
+  // ---- statement ----
+  const validStatement = {
+    id: 'S-4', text: 'Payment supports card, PayPal, Apple Pay', source: 'BRD §4.1 line 62',
+    screens: ['checkout_page'], criticality: 'critical'
+  };
+  const badStatementNoSource = { id: 'S-4', text: 'x', screens: ['checkout_page'], criticality: null };
+
+  // ---- cell ----
+  const validCellCovered = { statement_id: 'S-4', platform: 'web-desktop', locale: 'en-US', network: null, authState: null, data_class: 'valid', screen_state: null, covered: true, gap_type: null };
+  const validCellGap = { statement_id: 'S-4', platform: 'web-mobile', locale: 'ja-JP', network: null, authState: null, data_class: 'valid', screen_state: null, covered: false, gap_type: 'missing-locale' };
+  const badCellGapMissing = { statement_id: 'S-4', platform: 'web-mobile', locale: 'ja-JP', network: null, authState: null, data_class: 'valid', screen_state: null, covered: false, gap_type: null };   // covered=false MUST name a gap_type
+
+  // ---- refusal ----
+  const validRefusal = { id: 'R-1', reason: 'ambiguous-spec', statement_id: 'S-3', note: "Spec doesn't define how far in advance a host can block dates." };
+  const badRefusalNoNote = { id: 'R-1', reason: 'ambiguous-spec', statement_id: 'S-3', note: '' };
+
+  // ---- test (abbreviated Airbnb T-427 from the doc) ----
+  const validTest = {
+    id: 'T-427',
+    goal: 'Guest pays with a declined card; the retry attempt succeeds without a duplicate charge.',
+    statement: 'S-4',
+    cells_covered: ['S-4/negative/declined-retry/en-US/web-desktop'],
+    screens: ['listing_page', 'checkout_page', 'confirmation_page'],
+    steps: [
+      { id: 'T-427-01', condition: null, action: 'navigate', target: 'listing_page', value: null, value_class: null, produces: null, consumes: null, expectation: 'presence(reserve_button)', note: null },
+      { id: 'T-427-06', condition: null, action: 'click', target: 'checkout_page.pay_button', value: null, value_class: 'adversarial', produces: null, consumes: null, expectation: 'presence(checkout_page.error_banner) AND unset(reservation_id)', note: 'declined test card' },
+      { id: 'T-427-08', condition: null, action: 'click', target: 'checkout_page.pay_button', value: null, value_class: 'valid', produces: null, consumes: null, expectation: 'presence(confirmation_page.reservation_id) AND count-equals(payment_provider.charge_events, 1)', note: null }
+    ],
+    traceability: { spec_line: 'BRD §4.3 line 78', statement: 'S-4', evidence_bundle: 'E-427' }
+  };
+  const badTestNoCells = { ...validTest, cells_covered: [] };   // minItems:1 must reject an empty grid claim
+
+  // ---- test goal ----
+  const validTestGoal = {
+    id: 'G-427a', focus: 'Payments under bad network, mobile ja-JP, declined-then-retry',
+    target_cells: ['S-4/negative/declined-retry/slow-3G'], duration_minutes: 45,
+    capture: ['dom', 'network-log', 'screenshot']
+  };
+  const badTestGoalNoCapture = { ...validTestGoal, capture: [] };
+
+  const corpus = [
+    ['registry:valid',                 C.ELEMENT_REGISTRY, validRegistry,        true ],
+    ['registry:bad-element-type-enum', C.ELEMENT_REGISTRY, badRegistryBadType,   false],
+    ['registry:empty-elements',        C.ELEMENT_REGISTRY, badRegistryEmpty,     false],
+    ['transition-edge:valid',          C.TRANSITION_EDGE,  validEdge,            true ],
+    ['transition-edge:bad-action-enum',C.TRANSITION_EDGE,  badEdgeBadAction,     false],
+    ['service-edge:valid',             C.SERVICE_EDGE,     validServiceEdge,     true ],
+    ['service-edge:bad-tag-enum',      C.SERVICE_EDGE,     badServiceEdgeBadTag, false],
+    ['statement:valid',                C.STATEMENT,        validStatement,       true ],
+    ['statement:missing-source',       C.STATEMENT,        badStatementNoSource, false],
+    ['cell:valid-covered',             C.CELL,             validCellCovered,     true ],
+    ['cell:valid-gap-with-reason',     C.CELL,             validCellGap,         true ],
+    ['cell:gap-missing-reason',        C.CELL,             badCellGapMissing,    false],   // no-silent-gap rule
+    ['refusal:valid',                  C.REFUSAL,          validRefusal,         true ],
+    ['refusal:empty-note',             C.REFUSAL,          badRefusalNoNote,     false],
+    ['test:valid-airbnb-T427',         C.TEST,             validTest,            true ],
+    ['test:no-cells-covered',          C.TEST,             badTestNoCells,       false],
+    ['test-goal:valid',                C.TEST_GOAL,        validTestGoal,        true ],
+    ['test-goal:empty-capture',        C.TEST_GOAL,        badTestGoalNoCapture, false]
+  ];
+
+  const rows = corpus.map(([label, schema, obj, expectAccept]) => {
+    const r = V.validate(schema, obj);
+    const passed = (r.ok === expectAccept);
+    return { label, expect: expectAccept ? 'ACCEPT' : 'REJECT',
+             got: r.ok ? 'ACCEPT' : 'REJECT', passed, errCount: r.errors.length,
+             firstErr: r.errors[0] ? (r.errors[0].path + ' — ' + r.errors[0].msg) : '' };
+  });
+  const pass = rows.filter(r => r.passed).length, fail = rows.length - pass;
+
+  let h = '';
+  h += '<div class="banner">Coverage gate: <b>' + pass + '/' + rows.length + ' corpus rows</b> passed '
+     + (fail === 0 ? '<span class="ok">GO</span>' : '<span class="bad">FAIL (' + fail + ')</span>')
+     + '</div>';
+  h += '<h2>Corpus (expected accept vs reject)</h2>';
+  h += '<table><tr><th>#</th><th>label</th><th>expect</th><th>got</th><th>result</th><th>first error (if any)</th></tr>';
+  rows.forEach((r, i) => {
+    h += '<tr><td>' + (i + 1) + '</td><td>' + r.label + '</td><td>' + r.expect + '</td><td>' + r.got + '</td>'
+      +  '<td class="' + (r.passed ? 'PASS' : 'FAIL') + '">' + (r.passed ? 'PASS' : 'FAIL') + '</td>'
+      +  '<td>' + (r.firstErr ? r.firstErr : '—') + '</td></tr>';
+  });
+  h += '</table>';
+
+  window.__COVERAGE_TESTS = { rows, pass, fail };
+  out.innerHTML = h;
+})();
+</script>
+</body></html>
