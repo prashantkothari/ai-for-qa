@@ -1,0 +1,662 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
+<title>Block 2 — Data flow, entity map, agentic loop</title>
+<style>
+:root{
+  --bg:#ffffff; --ink:#25292b; --muted:#5d6569; --line:#e3e3dd; --soft:#f7f7f4;
+  --accent:#256d46; --accent-soft:#e7f2ea;
+  --ours:#7a5ca8; --ours-bg:#f0eaf8; --ours-line:#c8b5e6;
+  --warn:#a06a00; --warn-bg:#faf1d9;
+  --code:#38464d; --code-bg:#f2f1ec;
+  --src:#4a6fa5; --src-bg:#e6ecf5;
+  --graph:#2e7a7a; --graph-bg:#e0f0f0;
+  --loop:#b04a3a; --loop-bg:#f7e5e0;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif;margin:0;padding:0 20px 72px}
+.wrap{max-width:1120px;margin:0 auto}
+header{padding:36px 0 14px;border-bottom:2px solid var(--ink);margin-bottom:6px}
+.eyebrow{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(24px,3.6vw,32px);line-height:1.15;margin:8px 0 8px;font-weight:800}
+.sub{color:var(--muted);max-width:74ch;margin:0}
+h2{font-size:20px;margin:44px 0 8px;font-weight:800}
+h2 .no{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:8px}
+.h2sub{color:var(--muted);margin:0 0 14px;max-width:76ch}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);color:var(--code);padding:10px 14px;border-radius:8px;font-size:12.5px;line-height:1.55;overflow-x:auto;margin:6px 0 0}
+.vpick,.spick{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+#ver,#scn{font:inherit;font-size:12.5px;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink)}
+.step{display:grid;grid-template-columns:44px 1fr;gap:14px;margin:12px 0}
+.stepnum{background:var(--accent);color:#fff;border-radius:22px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;margin-top:2px}
+.stepbody{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 15px 13px}
+.stepbody .t{font-weight:700;font-size:14.5px}
+.stepbody .n{color:var(--muted);font-size:12.5px;margin-top:2px}
+.stepbody.moat{border-color:var(--ours-line);background:var(--ours-bg)}
+.stepbody.warn{border-color:var(--warn);background:var(--warn-bg)}
+.stepbody.moat .t::after,.stepbody.warn .t::after{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:#fff;border-radius:4px;padding:1px 6px;margin-left:8px;vertical-align:2px}
+.stepbody.moat .t::after{content:"moat";color:var(--ours)}
+.stepbody.warn .t::after{content:"contradiction";color:var(--warn)}
+.arrow{grid-column:1/2;justify-self:center;color:var(--muted);font-size:16px;line-height:1;margin:-6px 0}
+.tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+.tag.llm{color:var(--warn);background:var(--warn-bg)}
+.tag.det{color:var(--accent);background:var(--accent-soft)}
+.tag.opt{color:var(--muted);background:var(--line)}
+figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto}
+figcaption{color:var(--muted);font-size:12.5px;margin-top:8px}
+svg{display:block;max-width:100%;height:auto}
+.pillow{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:12px 16px;color:var(--muted);font-size:13px;margin-top:14px}
+.pillow b{color:var(--ink)}
+.scnbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.scnbar .l{font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+.scnbar .desc{color:var(--muted);font-size:13px;margin-left:10px}
+/* version + scenario hide/show */
+body.v1 .v2only{display:none}
+body.v2 .v1only{display:none}
+body:not(.sA) .sA, body:not(.sB) .sB, body:not(.sC) .sC, body:not(.sD) .sD{display:none}
+/* command table */
+table.cmds{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+table.cmds th,table.cmds td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+table.cmds th{color:var(--muted);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--soft)}
+table.cmds td code{background:var(--code-bg);padding:1px 6px;border-radius:4px;color:var(--code);font-size:12.5px}
+.callout{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:6px;margin:12px 0;font-size:13px}
+.callout.warn{border-color:var(--warn);background:var(--warn-bg)}
+.callout.loop{border-color:var(--loop);background:var(--loop-bg)}
+.callout b{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-right:6px}
+.callout.warn b{color:var(--warn)}
+.callout.loop b{color:var(--loop)}
+.callout b:first-child{color:var(--accent)}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow"><span>Block 2 · Spike C · Option B</span>
+    <span class="vpick"><label for="ver">Version</label><select id="ver">
+      <option value="v2" selected>v2 — scenarios, agentic loop, chat surface (2026-07-21)</option>
+      <option value="v1">v1 — baseline flow + entity map (2026-07-21)</option>
+    </select></span>
+  </div>
+  <h1>Data flow, entity map, agentic loop</h1>
+  <p class="sub">Verifies that Spike C holds under different scenarios (constraint change, contradiction, new capability, multi-turn chat), maps how the tools connect, and shows the control loop that observes each step and the chat surface that drives it.</p>
+</header>
+
+<h2><span class="no">01</span>Data flow — worked scenarios</h2>
+<p class="h2sub">Pick a scenario. Same pipeline; the differences expose where the design actually earns its keep — the contradiction path (B), the multi-source case (C), and the streaming-conversation case (D).</p>
+
+<div class="scnbar">
+  <span class="l">Scenario</span>
+  <span class="spick"><select id="scn">
+    <option value="sA" selected>A · Jira: reduce a constraint (baseline)</option>
+    <option value="sB">B · Contradictory Jira — reducer refuses</option>
+    <option value="sC">C · Figma: new capability added</option>
+    <option value="sD">D · Intake chat: multi-turn, commit on save</option>
+  </select></span>
+  <span class="desc sA">JIRA-9012 · "Reduce daily P2P limit $5000→$3000, add warning banner."</span>
+  <span class="desc sB">JIRA-9214 · "Raise P2P limit to $10000" — <b>but spec_v37 says $3000 for regulatory reasons.</b></span>
+  <span class="desc sC">Figma frame · new component "Transaction receipt PDF" attached to Confirmation screen.</span>
+  <span class="desc sD">PM chat · 4-turn conversation about "recurring payments, monthly cap $500." Committed on <code>/save</code>.</span>
+</div>
+
+<!-- ================= Scenario A: baseline ================= -->
+<div class="sA">
+<div class="step"><div class="stepnum">1</div><div class="stepbody"><div class="t">Jira webhook fires <span class="tag det">det</span></div><div class="n">Ticket update → adapter.</div>
+<pre>POST /webhook/jira
+{ key:"JIRA-9012", summary:"Reduce daily P2P limit to $3000",
+  description:"Reduce daily P2P transfer limit from $5000 to $3000...",
+  labels:["payments","limits"] }</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">2</div><div class="stepbody"><div class="t">Adapter normalizes → <code>intake-event/v1</code> <span class="tag det">det</span></div>
+<pre>{ source:"jira", source_id:"JIRA-9012", ts:"2026-07-21T10:15Z",
+  text:"Reduce daily P2P transfer limit from $5000 to $3000...",
+  raw_pointer:"s3://intake-raw/jira/9012.json", confidence:"measured" }</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">3</div><div class="stepbody"><div class="t">CocoIndex + Instructor extract <span class="tag llm">LLM · once</span></div><div class="n">Schema-enforced. Cached by <code>event_id + extractor_version</code> for idempotency.</div>
+<pre>[ {type:"constraint_modified", entity:"P2P.daily_limit",
+    from:{value:5000,ccy:"USD"}, to:{value:3000,ccy:"USD"},
+    effective:"next_release", source:"JIRA-9012"},
+  {type:"oracle_added", entity:"P2P",
+    rule:"amount > daily_limit ⟹ warning_banner visible",
+    source:"JIRA-9012"} ]</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">4</div><div class="stepbody moat"><div class="t">Delta log append (SOURCE OF TRUTH)</div>
+<pre>INSERT delta_log VALUES (4471,...,'constraint_modified',...),
+                        (4472,...,'oracle_added',...);</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">5</div><div class="stepbody moat"><div class="t">Reducer checks against <code>spec_v36</code> — OK</div>
+<pre>check(4471, v36): 3000 ∈ [0, current_max=5000] ✓  no contradiction
+check(4472, v36): no conflicting oracle ✓
+emit SQL migration → Dolt</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">6</div><div class="stepbody moat"><div class="t">Dolt commits <code>spec_v37</code> (MATERIALIZED VIEW)</div>
+<pre>dolt diff v36 v37
+~ constraints.P2P.daily_limit: 5000 → 3000
++ oracles.P2P: "amount > daily_limit ⟹ warning_banner"</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">7</div><div class="stepbody"><div class="t">Downstream fan-out</div>
+<pre>CocoIndex.refresh_incremental(['P2P.daily_limit','oracles.P2P'])
+Authoring.notify(v37, touched=['P2P'])</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">8</div><div class="stepbody"><div class="t">Authoring queries Dolt + Kuzu → test plan → Runtime → Kuzu learns warning_banner#456</div>
+<pre>plan: BVA @ 2999/3000/3001, oracle:warning_banner, x-layer:ui=sent=stored</pre></div></div>
+</div>
+
+<!-- ================= Scenario B: contradiction ================= -->
+<div class="sB">
+<div class="step"><div class="stepnum">1–3</div><div class="stepbody"><div class="t">Same adapter → CocoIndex → Instructor <span class="tag llm">LLM · once</span></div><div class="n">Later ticket, extracted identically.</div>
+<pre>event: {source:"jira", source_id:"JIRA-9214", text:"Raise P2P daily limit to $10000, effective immediately."}
+extract → [{type:"constraint_modified", entity:"P2P.daily_limit",
+            from:{value:3000}, to:{value:10000}, effective:"immediate", source:"JIRA-9214"}]</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">4</div><div class="stepbody moat"><div class="t">Delta log appends (log accepts everything)</div>
+<pre>INSERT delta_log VALUES (4488,...,'constraint_modified', {from:3000,to:10000,...});
+  # note: the log records the CLAIM, even if it will be refused downstream</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">5</div><div class="stepbody warn"><div class="t">Reducer REFUSES against <code>spec_v37</code></div><div class="n">Contradiction rules fire: regulatory-flagged constraint has a hard ceiling; delta violates monotone-with-override policy.</div>
+<pre>check(4488, v37):
+  spec_v37.constraints.P2P.daily_limit = {value:3000, flag:"regulatory", set_by:"JIRA-9012"}
+  → 10000 exceeds regulatory ceiling (3000)
+  → status: REFUSED
+  → emit finding, do NOT project to Dolt</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">6</div><div class="stepbody warn"><div class="t">Contradiction finding routed out</div>
+<pre>findings.emit({
+  kind:"requirements_bug",
+  delta_id:4488, conflicts_with:[4471 /* JIRA-9012 */],
+  reason:"regulatory ceiling exceeded",
+  route_to:["#payments-pm","#compliance"]
+})</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">7</div><div class="stepbody"><div class="t">Dolt spec UNCHANGED — no commit</div><div class="n">The refusal is the deliverable: Block 2 caught a requirements bug before code was written. This is the "no vendor has this" claim in the assembly artifact, made concrete.</div>
+<pre>dolt log --oneline HEAD~1..HEAD  # empty — no new commit</pre></div></div>
+<div class="callout warn"><b>What earns its keep</b> Scenario B is why the reducer exists. In Spike A (v3 plan), same-shape logic lived inside a hand-rolled reducer; here it lives in the reducer against Dolt's typed schema, and the refusal is auditable via a delta_log row that never made it to a spec commit.</div>
+</div>
+
+<!-- ================= Scenario C: new capability from Figma ================= -->
+<div class="sC">
+<div class="step"><div class="stepnum">1</div><div class="stepbody"><div class="t">Figma webhook: frame updated <span class="tag det">det</span></div>
+<pre>{ file:"payments-v3", frame:"Confirmation/txn_receipt_pdf",
+  components:[{name:"DownloadReceiptBtn", type:"button"},
+              {name:"ReceiptPreview", type:"iframe"}] }</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">2</div><div class="stepbody"><div class="t">Figma adapter → intake-event <span class="tag det">det</span></div>
+<pre>{ source:"figma", source_id:"payments-v3#Confirmation/txn_receipt_pdf", ...,
+  text:"New frame: Transaction receipt PDF. Components: DownloadReceiptBtn, ReceiptPreview.",
+  raw_pointer:"figma://file/payments-v3/frame/txn_receipt_pdf",
+  confidence:"asserted"  # design intent, not committed behavior yet }</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">3</div><div class="stepbody"><div class="t">Extract → typed deltas <span class="tag llm">LLM · once</span></div>
+<pre>[ {type:"capability_added", entity:"P2P.transaction_receipt",
+    shape:{surface:"pdf", trigger:"post-confirmation",
+           elements:["DownloadReceiptBtn","ReceiptPreview"]},
+    confidence:"asserted", source:"figma:..."},
+  {type:"screen_added", screen:"Confirmation", contains:["DownloadReceiptBtn","ReceiptPreview"],
+    source:"figma:..."} ]</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">4–6</div><div class="stepbody moat"><div class="t">Log → reducer → Dolt <code>spec_v38</code></div><div class="n">No contradiction — this is additive. But the reducer stamps <code>confidence:"asserted"</code>: the authoring agent will note the capability isn't yet buildable, only design-intended.</div>
+<pre>dolt diff v37 v38
++ capabilities.P2P.transaction_receipt: {surface:"pdf", confidence:"asserted"}
++ screens.Confirmation.contains: [+DownloadReceiptBtn, +ReceiptPreview]</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">7</div><div class="stepbody"><div class="t">Kuzu does <b>not</b> update yet</div><div class="n">Kuzu is fed by real runs. Until the runtime encounters the receipt PDF flow, these elements are only in the spec — a deliberate gap that the authoring agent surfaces to the human ("design says X, runtime hasn't seen X").</div></div></div>
+<div class="callout"><b>What earns its keep</b> Confidence flags flow end-to-end (<code>asserted</code> at extract → asserted in Dolt → asserted in test plan). Design-intent and observed-behavior stay distinguishable — one of the "verification is a first-class primitive" claims made real.</div>
+</div>
+
+<!-- ================= Scenario D: multi-turn chat ================= -->
+<div class="sD">
+<div class="step"><div class="stepnum">0</div><div class="stepbody"><div class="t">Session opens — nothing writes yet <span class="tag det">det</span></div>
+<pre>session_id=ck_9f7d, actor=alex@acme, product=payments
+buffer: []  # scratchpad, not the log</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">1</div><div class="stepbody"><div class="t">Turn 1 — PM: "we're adding recurring payments"</div><div class="n">Agent proposes a candidate delta but <b>does not commit</b>. Presented in the chat for confirmation.</div>
+<pre>candidate: {type:"capability_added", entity:"recurring_payments", confidence:"proposed"}</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">2</div><div class="stepbody"><div class="t">Turn 2 — PM: "monthly cap $500 per user, per merchant separately"</div>
+<pre>candidates (updated in buffer):
+  {type:"capability_added", entity:"recurring_payments"}
+  {type:"constraint_added", entity:"recurring_payments.monthly_cap",
+   value:{amount:500,ccy:"USD"}, scope:["user","merchant"]}</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">3</div><div class="stepbody"><div class="t">Turn 3 — Agent: "does the cap reset calendar-month or rolling 30-day?" · PM: "calendar month"</div><div class="n">The 8-category intake framework is what generates this clarifier — the confidence rises from <code>proposed</code> to <code>confirmed</code> once ambiguity is resolved.</div>
+<pre>candidate updated: constraint.reset_period="calendar_month"</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">4</div><div class="stepbody"><div class="t">Turn 4 — PM: <code>/save</code></div><div class="n">Only now does anything hit the log. Session becomes one atomic write.</div>
+<pre>INSERT delta_log VALUES
+ (4501, ..., 'capability_added', {...}, source:"chat:ck_9f7d/t1"),
+ (4502, ..., 'constraint_added',  {...}, source:"chat:ck_9f7d/t2+t3");
+# note the multi-turn provenance</pre></div></div>
+<div class="arrow">▼</div>
+
+<div class="step"><div class="stepnum">5–7</div><div class="stepbody moat"><div class="t">Reducer + Dolt as usual → <code>spec_v39</code></div></div></div>
+<div class="callout"><b>What earns its keep</b> The <b>session buffer vs delta log</b> distinction — chat is not append-per-turn but atomic-per-<code>/save</code>. Prevents half-baked candidates polluting the immutable log; preserves multi-turn provenance in the source field. This is the answer to the grill's "chat is a session, not an event" gap.</div>
+</div>
+
+<div class="pillow"><b>Cross-scenario invariants:</b> the LLM is called exactly once per intake event in every scenario · the delta log is the only source-of-truth writer for spec state · the reducer is the only place that can refuse a delta · Kuzu is only written by the runtime, never by intake · confidence flags (<code>measured / asserted / extracted / proposed / confirmed</code>) flow end-to-end so downstream agents can distinguish design-intent from observed behavior.</div>
+
+<!-- ============================================================ -->
+<h2><span class="no">02</span>Entity map — how the tools connect</h2>
+<p class="h2sub v1only">Blocks and arrows. Purple = moat / state layer. Green = ingest &amp; extraction. Teal = graph / retrieval. Blue = external sources. Grey = downstream. Solid = always-on; dashed = optional.</p>
+<p class="h2sub v2only">v2 view: layered container diagram (C4-style). Each layer owns different concerns; arrows only cross layers, not within them. Read top→bottom. This is what "no new backend infra" actually looks like when drawn honestly.</p>
+
+<!-- v1 original entity map -->
+<figure class="v1only">
+<svg viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="v1 entity map">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6569"/></marker>
+    <marker id="arrp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7a5ca8"/></marker>
+    <style>
+      .box{fill:#fff;stroke:#e3e3dd;stroke-width:1.2}
+      .box.src{fill:#e6ecf5;stroke:#4a6fa5}
+      .box.ing{fill:#e7f2ea;stroke:#256d46}
+      .box.moat{fill:#f0eaf8;stroke:#7a5ca8;stroke-width:2}
+      .box.graph{fill:#e0f0f0;stroke:#2e7a7a}
+      .box.cons{fill:#f7f7f4;stroke:#5d6569}
+      .lbl{font:600 12.5px ui-sans-serif;fill:#25292b}
+      .lbl.small{font-size:11px;font-weight:500;fill:#5d6569}
+      .band{font:700 10.5px ui-sans-serif;letter-spacing:.14em;fill:#5d6569}
+      .edge{stroke:#5d6569;stroke-width:1.3;fill:none;marker-end:url(#arr)}
+      .edge.moat{stroke:#7a5ca8;stroke-width:1.8;marker-end:url(#arrp)}
+      .edge.opt{stroke-dasharray:4 3;stroke:#8a6d1f}
+      .elbl{font:500 10.5px ui-sans-serif;fill:#5d6569}
+    </style>
+  </defs>
+  <text x="12" y="24" class="band">SOURCES</text>
+  <rect x="20"  y="34" width="130" height="42" rx="7" class="box src"/><text x="85"  y="52" class="lbl" text-anchor="middle">Jira / Linear</text><text x="85"  y="67" class="lbl small" text-anchor="middle">tickets</text>
+  <rect x="165" y="34" width="130" height="42" rx="7" class="box src"/><text x="230" y="52" class="lbl" text-anchor="middle">GitHub PRs</text><text x="230" y="67" class="lbl small" text-anchor="middle">diffs</text>
+  <rect x="310" y="34" width="130" height="42" rx="7" class="box src"/><text x="375" y="52" class="lbl" text-anchor="middle">Figma</text><text x="375" y="67" class="lbl small" text-anchor="middle">frames</text>
+  <rect x="455" y="34" width="150" height="42" rx="7" class="box src"/><text x="530" y="52" class="lbl" text-anchor="middle">Confluence · PDFs</text>
+  <rect x="620" y="34" width="130" height="42" rx="7" class="box src"/><text x="685" y="52" class="lbl" text-anchor="middle">Intake chat</text>
+  <rect x="765" y="34" width="150" height="42" rx="7" class="box src"/><text x="840" y="52" class="lbl" text-anchor="middle">Video · Screens</text>
+
+  <text x="12" y="115" class="band">INGEST &amp; EXTRACTION</text>
+  <rect x="60"  y="128" width="260" height="46" rx="7" class="box ing"/><text x="190" y="147" class="lbl" text-anchor="middle">Source adapters</text><text x="190" y="163" class="lbl small" text-anchor="middle">emit intake-event/v1</text>
+  <rect x="360" y="128" width="230" height="46" rx="7" class="box ing"/><text x="475" y="147" class="lbl" text-anchor="middle">Docling / Unstructured</text>
+  <rect x="630" y="128" width="260" height="46" rx="7" class="box ing"/><text x="760" y="147" class="lbl" text-anchor="middle">CocoIndex</text><text x="760" y="163" class="lbl small" text-anchor="middle">orchestration · lineage · index</text>
+  <rect x="330" y="200" width="340" height="48" rx="8" class="box ing"/><text x="500" y="220" class="lbl" text-anchor="middle">Instructor + LLM</text><text x="500" y="236" class="lbl small" text-anchor="middle">ONE schema-enforced call</text>
+
+  <path class="edge" d="M85 76 L 130 128"/><path class="edge" d="M230 76 L 175 128"/><path class="edge" d="M375 76 L 220 128"/><path class="edge" d="M530 76 L 475 128"/><path class="edge" d="M685 76 L 300 128"/><path class="edge" d="M840 76 L 800 128"/>
+  <path class="edge" d="M320 151 L 630 151"/><path class="edge" d="M590 151 L 630 151"/>
+  <path class="edge" d="M760 174 C 760 190, 620 190, 620 200"/>
+
+  <text x="12" y="292" class="band" fill="#7a5ca8">STATE LAYER — MOAT</text>
+  <rect x="120" y="308" width="230" height="60" rx="9" class="box moat"/><text x="235" y="329" class="lbl" text-anchor="middle">Delta log (typed)</text><text x="235" y="360" class="lbl small" text-anchor="middle">SOURCE OF TRUTH</text>
+  <rect x="385" y="308" width="230" height="60" rx="9" class="box moat"/><text x="500" y="329" class="lbl" text-anchor="middle">Reducer</text><text x="500" y="360" class="lbl small" text-anchor="middle">flags contradictions</text>
+  <rect x="650" y="308" width="230" height="60" rx="9" class="box moat"/><text x="765" y="329" class="lbl" text-anchor="middle">Dolt spec</text><text x="765" y="360" class="lbl small" text-anchor="middle">MATERIALIZED VIEW</text>
+  <path class="edge moat" d="M500 248 C 500 275, 235 275, 235 308"/>
+  <path class="edge moat" d="M350 338 L 385 338"/><path class="edge moat" d="M615 338 L 650 338"/>
+
+  <text x="12" y="470" class="band">GRAPH &amp; RETRIEVAL</text>
+  <rect x="120" y="484" width="230" height="60" rx="9" class="box graph"/><text x="235" y="505" class="lbl" text-anchor="middle">Kuzu</text><text x="235" y="536" class="lbl small" text-anchor="middle">written by RUNTIME</text>
+  <rect x="650" y="484" width="230" height="60" rx="9" class="box graph"/><text x="765" y="505" class="lbl" text-anchor="middle">Graphiti (opt)</text>
+  <path class="edge opt" d="M765 368 L 765 484"/>
+
+  <text x="12" y="590" class="band">DOWNSTREAM</text>
+  <rect x="60"  y="604" width="220" height="52" rx="8" class="box cons"/><text x="170" y="624" class="lbl" text-anchor="middle">Authoring agent</text>
+  <rect x="310" y="604" width="200" height="52" rx="8" class="box cons"/><text x="410" y="624" class="lbl" text-anchor="middle">Runtime</text>
+  <rect x="540" y="604" width="200" height="52" rx="8" class="box cons"/><text x="640" y="624" class="lbl" text-anchor="middle">Cross-layer trace</text>
+  <rect x="770" y="604" width="180" height="52" rx="8" class="box cons"/><text x="860" y="624" class="lbl" text-anchor="middle">Flywheel</text>
+</svg>
+<figcaption>v1 baseline. Feedback: too crowded, arrows cross, hard to see the actual architecture. v2 fixes this.</figcaption>
+</figure>
+
+<!-- v2 revised: C4-style container view -->
+<figure class="v2only">
+<svg viewBox="0 0 1080 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="v2 layered container diagram">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6569"/></marker>
+    <marker id="arr2p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7a5ca8"/></marker>
+    <style>
+      .layer{fill:#fafaf7;stroke:#e3e3dd;stroke-width:1}
+      .layer-title{font:800 10.5px ui-sans-serif;letter-spacing:.12em;fill:#5d6569}
+      .layer-side{font:600 10.5px ui-sans-serif;fill:#5d6569}
+      .b{fill:#fff;stroke:#e3e3dd;stroke-width:1.2}
+      .b.blue{fill:#e6ecf5;stroke:#4a6fa5}
+      .b.green{fill:#e7f2ea;stroke:#256d46}
+      .b.moat{fill:#f0eaf8;stroke:#7a5ca8;stroke-width:2}
+      .b.teal{fill:#e0f0f0;stroke:#2e7a7a}
+      .b.grey{fill:#f7f7f4;stroke:#5d6569}
+      .n{font:700 12.5px ui-sans-serif;fill:#25292b}
+      .m{font:500 11px ui-sans-serif;fill:#5d6569}
+      .tech{font:600 10px ui-mono,ui-monospace,monospace;fill:#38464d}
+      .e{stroke:#5d6569;stroke-width:1.3;fill:none;marker-end:url(#arr2)}
+      .e.moat{stroke:#7a5ca8;stroke-width:1.8;marker-end:url(#arr2p)}
+      .e.opt{stroke-dasharray:4 3;stroke:#8a6d1f}
+      .el{font:500 10.5px ui-sans-serif;fill:#5d6569}
+    </style>
+  </defs>
+
+  <!-- L1: Sources (external) -->
+  <rect x="20" y="20" width="1040" height="70" rx="8" class="layer"/>
+  <text x="30" y="38" class="layer-title">L1 · SOURCES  (external, out of our control)</text>
+  <rect x="90"  y="46" width="130" height="34" rx="6" class="b blue"/><text x="155" y="67" class="n" text-anchor="middle">Jira · GitHub</text>
+  <rect x="235" y="46" width="130" height="34" rx="6" class="b blue"/><text x="300" y="67" class="n" text-anchor="middle">Figma</text>
+  <rect x="380" y="46" width="180" height="34" rx="6" class="b blue"/><text x="470" y="67" class="n" text-anchor="middle">Confluence · PDFs</text>
+  <rect x="575" y="46" width="150" height="34" rx="6" class="b blue"/><text x="650" y="67" class="n" text-anchor="middle">Intake chat</text>
+  <rect x="740" y="46" width="230" height="34" rx="6" class="b blue"/><text x="855" y="67" class="n" text-anchor="middle">Video · Screenshots</text>
+
+  <!-- L2: Ingest -->
+  <rect x="20" y="110" width="1040" height="90" rx="8" class="layer"/>
+  <text x="30" y="128" class="layer-title">L2 · INGEST &amp; EXTRACTION  (Python worker)</text>
+  <text x="1050" y="128" class="layer-side" text-anchor="end">tech: CocoIndex · Docling · Instructor</text>
+  <rect x="60"  y="140" width="240" height="46" rx="6" class="b green"/><text x="180" y="160" class="n" text-anchor="middle">Adapters</text><text x="180" y="176" class="m" text-anchor="middle">Jira/GH/Figma/chat/webhooks</text>
+  <rect x="325" y="140" width="220" height="46" rx="6" class="b green"/><text x="435" y="160" class="n" text-anchor="middle">Docling</text><text x="435" y="176" class="m" text-anchor="middle">docs → structured</text>
+  <rect x="570" y="140" width="220" height="46" rx="6" class="b green"/><text x="680" y="160" class="n" text-anchor="middle">CocoIndex</text><text x="680" y="176" class="m" text-anchor="middle">orchestrate · lineage</text>
+  <rect x="815" y="140" width="220" height="46" rx="6" class="b green"/><text x="925" y="160" class="n" text-anchor="middle">Instructor + LLM</text><text x="925" y="176" class="m" text-anchor="middle">ONE schema-enforced call</text>
+
+  <!-- L1→L2 arrows (single collector) -->
+  <path class="e" d="M155 80 L 180 140"/><path class="e" d="M300 80 L 250 140"/><path class="e" d="M470 80 L 435 140"/><path class="e" d="M650 80 L 300 140"/><path class="e" d="M855 80 L 400 140"/>
+  <!-- adapters → cocoindex, docling → cocoindex, cocoindex → instructor -->
+  <path class="e" d="M300 163 L 570 163"/><path class="e" d="M545 163 L 570 163"/><path class="e" d="M790 163 L 815 163"/>
+
+  <!-- L3: State (moat) -->
+  <rect x="20" y="220" width="1040" height="100" rx="8" class="layer" style="fill:#faf6ff;stroke:#c8b5e6"/>
+  <text x="30" y="238" class="layer-title" fill="#7a5ca8">L3 · STATE  (the moat — deterministic, no LLM in this path)</text>
+  <text x="1050" y="238" class="layer-side" text-anchor="end" fill="#7a5ca8">tech: SQLite/DuckDB · Dolt</text>
+  <rect x="60"  y="252" width="300" height="56" rx="6" class="b moat"/><text x="210" y="272" class="n" text-anchor="middle">Delta log</text><text x="210" y="290" class="m" text-anchor="middle">typed · append-only · SOURCE OF TRUTH</text>
+  <rect x="390" y="252" width="300" height="56" rx="6" class="b moat"/><text x="540" y="272" class="n" text-anchor="middle">Reducer</text><text x="540" y="290" class="m" text-anchor="middle">deterministic · refuses contradictions</text>
+  <rect x="720" y="252" width="300" height="56" rx="6" class="b moat"/><text x="870" y="272" class="n" text-anchor="middle">Dolt spec</text><text x="870" y="290" class="m" text-anchor="middle">versioned SQL · MATERIALIZED VIEW</text>
+  <!-- L2 → L3 into delta log only (single entry point) -->
+  <path class="e moat" d="M925 186 C 925 220, 210 220, 210 252"/><text x="450" y="216" class="el">typed deltas</text>
+  <!-- L3 internal -->
+  <path class="e moat" d="M360 280 L 390 280"/><path class="e moat" d="M690 280 L 720 280"/>
+  <!-- Findings out (side channel) -->
+  <path class="e" d="M540 308 L 540 342" stroke="#a06a00" style="marker-end:url(#arr2)"/>
+  <rect x="450" y="342" width="180" height="26" rx="4" class="b" style="fill:#faf1d9;stroke:#a06a00"/><text x="540" y="360" class="n" text-anchor="middle" fill="#a06a00">Contradiction findings</text>
+
+  <!-- L4: Graph & retrieval -->
+  <rect x="20" y="390" width="1040" height="90" rx="8" class="layer"/>
+  <text x="30" y="408" class="layer-title">L4 · GRAPH &amp; RETRIEVAL  (embedded, no server)</text>
+  <text x="1050" y="408" class="layer-side" text-anchor="end">tech: Kuzu · Graphiti (opt)</text>
+  <rect x="80" y="420" width="380" height="50" rx="6" class="b teal"/><text x="270" y="440" class="n" text-anchor="middle">Kuzu — element/screen/context graph</text><text x="270" y="458" class="m" text-anchor="middle">written by L5 runtime, not L2 intake</text>
+  <rect x="620" y="420" width="380" height="50" rx="6" class="b teal"/><text x="810" y="440" class="n" text-anchor="middle">Graphiti (optional)</text><text x="810" y="458" class="m" text-anchor="middle">bi-temporal retrieval for the authoring agent</text>
+  <!-- Dolt → Graphiti optional projection -->
+  <path class="e opt" d="M870 308 C 870 360, 810 380, 810 420"/><text x="875" y="365" class="el" fill="#8a6d1f">opt projection</text>
+
+  <!-- L5: Consumers -->
+  <rect x="20" y="500" width="1040" height="100" rx="8" class="layer"/>
+  <text x="30" y="518" class="layer-title">L5 · CONSUMERS  (read from L3 &amp; L4; write to L4 only)</text>
+  <text x="1050" y="518" class="layer-side" text-anchor="end">tech: Playwright · Chrome MCP</text>
+  <rect x="60"  y="530" width="220" height="52" rx="6" class="b grey"/><text x="170" y="550" class="n" text-anchor="middle">Authoring agent</text><text x="170" y="568" class="m" text-anchor="middle">reads L3+L4, emits test-plan</text>
+  <rect x="305" y="530" width="200" height="52" rx="6" class="b grey"/><text x="405" y="550" class="n" text-anchor="middle">Runtime</text><text x="405" y="568" class="m" text-anchor="middle">writes Kuzu on discovery</text>
+  <rect x="530" y="530" width="220" height="52" rx="6" class="b grey"/><text x="640" y="550" class="n" text-anchor="middle">Cross-layer trace store</text><text x="640" y="568" class="m" text-anchor="middle">block 7 · trace_id keyed</text>
+  <rect x="775" y="530" width="220" height="52" rx="6" class="b grey"/><text x="885" y="550" class="n" text-anchor="middle">Flywheel</text><text x="885" y="568" class="m" text-anchor="middle">verified outcomes only</text>
+  <!-- L3+L4 → L5 queries -->
+  <path class="e" d="M170 530 C 170 498, 210 486, 210 308"/><text x="152" y="500" class="el">query</text>
+  <path class="e" d="M170 530 C 170 500, 270 480, 270 470"/>
+  <path class="e opt" d="M170 530 C 170 500, 810 480, 810 470"/>
+  <!-- authoring → runtime → trace/flywheel -->
+  <path class="e" d="M280 556 L 305 556"/><path class="e" d="M505 556 L 530 556"/><path class="e" d="M750 556 L 775 556"/>
+  <!-- runtime writes kuzu -->
+  <path class="e" d="M320 530 C 300 500, 270 490, 270 470"/><text x="252" y="500" class="el">writes</text>
+</svg>
+<figcaption>Five layers. Arrows only cross layers (never within). Every layer names its owned tech in the side note. The moat (L3) is the only layer with strict guarantees — deterministic, single-writer-per-store, no LLM in path. L4 is deliberately downstream of L3 to make Kuzu "learn from runs" architecturally impossible to bypass. Findings exit L3 as a side channel to the human, not as a downstream data dependency.</figcaption>
+</figure>
+
+<!-- ============================================================ -->
+<h2 class="v2only"><span class="no">03</span>Agentic control loop</h2>
+<p class="h2sub v2only">A learning/reflection layer sits above the deterministic flow, observing each step and adjusting thresholds, retraining extractors, and escalating to humans. <b>Not one big LLM agent</b> — a small set of scoped observers, each with a defined input signal, quality metric, and action space. LLMs only in observers where genuine judgment helps (extractor accuracy sampling, contradiction triage explanation).</p>
+
+<figure class="v2only">
+<svg viewBox="0 0 1080 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agentic control loop">
+  <defs>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6569"/></marker>
+    <marker id="a3r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b04a3a"/></marker>
+    <style>
+      .lyr{fill:#fafaf7;stroke:#e3e3dd}
+      .stg{fill:#fff;stroke:#256d46;stroke-width:1.5}
+      .obs{fill:#f7e5e0;stroke:#b04a3a;stroke-width:1.5}
+      .ctl{fill:#f2ecfd;stroke:#7a5ca8;stroke-width:1.5}
+      .n2{font:700 12px ui-sans-serif;fill:#25292b}
+      .m2{font:500 10.5px ui-sans-serif;fill:#5d6569}
+      .h2t{font:800 10.5px ui-sans-serif;letter-spacing:.12em;fill:#5d6569}
+      .h2r{font:800 10.5px ui-sans-serif;letter-spacing:.12em;fill:#b04a3a}
+      .h2p{font:800 10.5px ui-sans-serif;letter-spacing:.12em;fill:#7a5ca8}
+      .e2{stroke:#5d6569;stroke-width:1.2;fill:none;marker-end:url(#a3)}
+      .e2r{stroke:#b04a3a;stroke-width:1.4;fill:none;marker-end:url(#a3r);stroke-dasharray:4 3}
+      .lab{font:500 10px ui-sans-serif;fill:#5d6569}
+    </style>
+  </defs>
+
+  <!-- Data plane (top row) -->
+  <rect x="20" y="20" width="1040" height="110" rx="8" class="lyr"/>
+  <text x="30" y="40" class="h2t">DATA PLANE — the deterministic flow (5 stages)</text>
+  <rect x="40"  y="55"  width="180" height="60" rx="7" class="stg"/><text x="130" y="80" class="n2" text-anchor="middle">Adapter</text><text x="130" y="97" class="m2" text-anchor="middle">normalize event</text>
+  <rect x="240" y="55"  width="180" height="60" rx="7" class="stg"/><text x="330" y="80" class="n2" text-anchor="middle">Extractor</text><text x="330" y="97" class="m2" text-anchor="middle">Instructor + LLM</text>
+  <rect x="440" y="55"  width="180" height="60" rx="7" class="stg"/><text x="530" y="80" class="n2" text-anchor="middle">Reducer</text><text x="530" y="97" class="m2" text-anchor="middle">refuse / project</text>
+  <rect x="640" y="55"  width="180" height="60" rx="7" class="stg"/><text x="730" y="80" class="n2" text-anchor="middle">Authoring</text><text x="730" y="97" class="m2" text-anchor="middle">plan generation</text>
+  <rect x="840" y="55"  width="180" height="60" rx="7" class="stg"/><text x="930" y="80" class="n2" text-anchor="middle">Runtime</text><text x="930" y="97" class="m2" text-anchor="middle">execute + verify</text>
+  <path class="e2" d="M220 85 L 240 85"/><path class="e2" d="M420 85 L 440 85"/><path class="e2" d="M620 85 L 640 85"/><path class="e2" d="M820 85 L 840 85"/>
+
+  <!-- Observer plane (middle row) -->
+  <rect x="20" y="150" width="1040" height="150" rx="8" class="lyr" style="fill:#fef7f5;stroke:#e5c8c0"/>
+  <text x="30" y="170" class="h2r">OBSERVER PLANE — per-stage quality gates (write to flywheel)</text>
+  <rect x="40"  y="185" width="180" height="105" rx="7" class="obs"/><text x="130" y="205" class="n2" text-anchor="middle">Coverage observer</text><text x="130" y="222" class="m2" text-anchor="middle">source coverage %</text><text x="130" y="238" class="m2" text-anchor="middle">dropped events</text><text x="130" y="254" class="m2" text-anchor="middle">latency p95</text><text x="130" y="278" class="lab" text-anchor="middle" fill="#b04a3a">rule-based</text>
+  <rect x="240" y="185" width="180" height="105" rx="7" class="obs"/><text x="330" y="205" class="n2" text-anchor="middle">Extract-eval observer</text><text x="330" y="222" class="m2" text-anchor="middle">sample rate 5%</text><text x="330" y="238" class="m2" text-anchor="middle">HITL agreement</text><text x="330" y="254" class="m2" text-anchor="middle">schema-fail rate</text><text x="330" y="278" class="lab" text-anchor="middle" fill="#b04a3a">LLM-judge + HITL</text>
+  <rect x="440" y="185" width="180" height="105" rx="7" class="obs"/><text x="530" y="205" class="n2" text-anchor="middle">Contradiction observer</text><text x="530" y="222" class="m2" text-anchor="middle">refusal rate by rule</text><text x="530" y="238" class="m2" text-anchor="middle">FP/FN vs HITL</text><text x="530" y="254" class="m2" text-anchor="middle">time-to-triage</text><text x="530" y="278" class="lab" text-anchor="middle" fill="#b04a3a">rule-based</text>
+  <rect x="640" y="185" width="180" height="105" rx="7" class="obs"/><text x="730" y="205" class="n2" text-anchor="middle">Plan-quality observer</text><text x="730" y="222" class="m2" text-anchor="middle">rulebook pass</text><text x="730" y="238" class="m2" text-anchor="middle">blind-eval agreement</text><text x="730" y="254" class="m2" text-anchor="middle">human edit distance</text><text x="730" y="278" class="lab" text-anchor="middle" fill="#b04a3a">rule + LLM-judge</text>
+  <rect x="840" y="185" width="180" height="105" rx="7" class="obs"/><text x="930" y="205" class="n2" text-anchor="middle">Verdict observer</text><text x="930" y="222" class="m2" text-anchor="middle">false-heal count</text><text x="930" y="238" class="m2" text-anchor="middle">x-layer agreement</text><text x="930" y="254" class="m2" text-anchor="middle">flake signature</text><text x="930" y="278" class="lab" text-anchor="middle" fill="#b04a3a">rule-based</text>
+  <!-- Stage → Observer taps -->
+  <path class="e2r" d="M130 115 L 130 185"/><path class="e2r" d="M330 115 L 330 185"/><path class="e2r" d="M530 115 L 530 185"/><path class="e2r" d="M730 115 L 730 185"/><path class="e2r" d="M930 115 L 930 185"/>
+
+  <!-- Control plane (bottom row) -->
+  <rect x="20" y="320" width="1040" height="200" rx="8" class="lyr" style="fill:#f7f2ff;stroke:#c8b5e6"/>
+  <text x="30" y="340" class="h2p">CONTROL PLANE — reflection &amp; adjustment (weekly, or on threshold breach)</text>
+  <rect x="60"  y="355" width="220" height="140" rx="7" class="ctl"/><text x="170" y="376" class="n2" text-anchor="middle">Aggregator</text><text x="170" y="392" class="m2" text-anchor="middle">flywheel rollup</text><text x="170" y="408" class="m2" text-anchor="middle">measured only</text><text x="170" y="424" class="m2" text-anchor="middle">per stage, per rule</text>
+  <rect x="310" y="355" width="220" height="140" rx="7" class="ctl"/><text x="420" y="376" class="n2" text-anchor="middle">Reflector</text><text x="420" y="392" class="m2" text-anchor="middle">compare vs targets</text><text x="420" y="408" class="m2" text-anchor="middle">detect drift</text><text x="420" y="424" class="m2" text-anchor="middle">produce diagnoses</text><text x="420" y="452" class="lab" text-anchor="middle" fill="#7a5ca8">LLM-judge · optional</text>
+  <rect x="560" y="355" width="220" height="140" rx="7" class="ctl"/><text x="670" y="376" class="n2" text-anchor="middle">Policy</text><text x="670" y="392" class="m2" text-anchor="middle">tune thresholds</text><text x="670" y="408" class="m2" text-anchor="middle">retire dead rules</text><text x="670" y="424" class="m2" text-anchor="middle">route to HITL</text><text x="670" y="452" class="lab" text-anchor="middle" fill="#7a5ca8">rule-based</text>
+  <rect x="810" y="355" width="220" height="140" rx="7" class="ctl"/><text x="920" y="376" class="n2" text-anchor="middle">Change agent</text><text x="920" y="392" class="m2" text-anchor="middle">emit config PR</text><text x="920" y="408" class="m2" text-anchor="middle">extractor prompt bumps</text><text x="920" y="424" class="m2" text-anchor="middle">flag stage for retrain</text><text x="920" y="452" class="lab" text-anchor="middle" fill="#7a5ca8">human review</text>
+  <path class="e2" d="M280 425 L 310 425"/><path class="e2" d="M530 425 L 560 425"/><path class="e2" d="M780 425 L 810 425"/>
+
+  <!-- Observers → Aggregator -->
+  <path class="e2r" d="M130 290 C 130 340, 170 340, 170 355"/>
+  <path class="e2r" d="M330 290 C 330 340, 170 350, 170 355"/>
+  <path class="e2r" d="M530 290 C 530 340, 170 350, 170 355"/>
+  <path class="e2r" d="M730 290 C 730 340, 170 350, 170 355"/>
+  <path class="e2r" d="M930 290 C 930 340, 170 350, 170 355"/>
+  <!-- Change agent loops back to stages -->
+  <path class="e2r" d="M920 355 C 920 320, 130 320, 130 115"/>
+  <path class="e2r" d="M920 355 C 920 320, 330 320, 330 115"/>
+  <path class="e2r" d="M920 355 C 920 320, 530 320, 530 115"/>
+  <path class="e2r" d="M920 355 C 920 320, 730 320, 730 115"/>
+  <path class="e2r" d="M920 355 C 920 320, 930 320, 930 115"/>
+  <text x="600" y="540" class="lab" text-anchor="middle">closed loop: observer → aggregator → reflector → policy → change agent → stages (dashed red)</text>
+</svg>
+<figcaption>Data plane is deterministic. Observer plane taps each stage with a small, scoped agent — most are rule-based; only extract-eval and plan-quality need a judgement model, and even then behind sampling not on the hot path. Control plane runs on a cadence (weekly or on threshold breach), not on every event. Change agent outputs config PRs / prompt updates that a human reviews — the loop never edits production silently.</figcaption>
+</figure>
+
+<div class="callout loop v2only"><b>Why not one big LLM agent</b> A monolithic "agent that watches everything" is expensive, non-deterministic, and unauditable. The observer + control split gives you: (i) most observers are cheap and rule-based; (ii) LLMs appear only where they add value (extractor sampling, reflection diagnoses); (iii) every adjustment is a config PR a human signs off, not a runtime mutation. That preserves the false-heal=0 gate — self-learning does not mean self-mutating.</div>
+
+<!-- ============================================================ -->
+<h2 class="v2only"><span class="no">04</span>Conversational surface</h2>
+<p class="h2sub v2only">The whole stack, driven by chat. Not free-form — a small set of accepted intents mapped to underlying commands. NL router matches user prompts to intents; ambiguity triggers a clarifier, not a guess. Same 8-category intake framework governs the conversation.</p>
+
+<figure class="v2only">
+<svg viewBox="0 0 1080 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Conversational surface">
+  <defs>
+    <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6569"/></marker>
+    <style>
+      .box4{fill:#fff;stroke:#e3e3dd;stroke-width:1.3}
+      .box4.chat{fill:#e6ecf5;stroke:#4a6fa5}
+      .box4.rout{fill:#e7f2ea;stroke:#256d46}
+      .box4.orch{fill:#f0eaf8;stroke:#7a5ca8}
+      .box4.stk{fill:#f7f7f4;stroke:#5d6569}
+      .n4{font:700 13px ui-sans-serif;fill:#25292b}
+      .m4{font:500 11px ui-sans-serif;fill:#5d6569}
+      .h4{font:800 10.5px ui-sans-serif;letter-spacing:.12em;fill:#5d6569}
+      .e4{stroke:#5d6569;stroke-width:1.3;fill:none;marker-end:url(#a4)}
+      .l4{font:500 10.5px ui-sans-serif;fill:#5d6569}
+    </style>
+  </defs>
+  <rect x="30" y="30" width="220" height="80" rx="8" class="box4 chat"/><text x="140" y="58" class="n4" text-anchor="middle">User (chat)</text><text x="140" y="76" class="m4" text-anchor="middle">"add a monthly cap of $500"</text><text x="140" y="93" class="m4" text-anchor="middle">"/save"    "/plan for P2P"</text>
+
+  <rect x="310" y="30" width="220" height="80" rx="8" class="box4 rout"/><text x="420" y="54" class="n4" text-anchor="middle">Intent router</text><text x="420" y="72" class="m4" text-anchor="middle">NL → one of N intents</text><text x="420" y="88" class="m4" text-anchor="middle">unmatched → clarifier</text><text x="420" y="102" class="m4" text-anchor="middle" fill="#7a5ca8">closed intent set</text>
+
+  <rect x="590" y="30" width="240" height="80" rx="8" class="box4 orch"/><text x="710" y="54" class="n4" text-anchor="middle">Orchestrator</text><text x="710" y="72" class="m4" text-anchor="middle">dispatch to stage(s)</text><text x="710" y="88" class="m4" text-anchor="middle">stream progress back</text><text x="710" y="104" class="m4" text-anchor="middle">enforce commit gates</text>
+
+  <rect x="880" y="30" width="170" height="80" rx="8" class="box4 stk"/><text x="965" y="60" class="n4" text-anchor="middle">Underlying stack</text><text x="965" y="78" class="m4" text-anchor="middle">§01 flow, §02 layers</text><text x="965" y="96" class="m4" text-anchor="middle">§03 observers</text>
+
+  <path class="e4" d="M250 70 L 310 70"/><text x="280" y="60" class="l4" text-anchor="middle">NL turn</text>
+  <path class="e4" d="M530 70 L 590 70"/><text x="560" y="60" class="l4" text-anchor="middle">intent</text>
+  <path class="e4" d="M830 70 L 880 70"/><text x="855" y="60" class="l4" text-anchor="middle">commands</text>
+  <path class="e4" d="M880 90 C 830 130, 250 130, 250 100"/><text x="565" y="150" class="l4" text-anchor="middle">stream: diffs · findings · confirm-me prompts</text>
+
+  <!-- Guardrail note -->
+  <text x="30" y="200" class="h4">GUARDRAILS  (why this can be run by a PM without breaking things)</text>
+  <rect x="30" y="215" width="330" height="140" rx="7" class="box4"/><text x="45" y="238" class="n4">1. Closed intent set</text><text x="45" y="256" class="m4">NL matches one of ~12 named intents.</text><text x="45" y="272" class="m4">Nothing runs on a "guess" — router asks.</text><text x="45" y="298" class="n4">2. Two-phase writes</text><text x="45" y="316" class="m4">Chat proposes → user runs <tspan font-family="ui-monospace" fill="#38464d">/save</tspan> →</text><text x="45" y="332" class="m4">only then does the delta log write.</text>
+
+  <rect x="380" y="215" width="330" height="140" rx="7" class="box4"/><text x="395" y="238" class="n4">3. Every irreversible action asks</text><text x="395" y="256" class="m4">Merges, deletions, prod branches — always</text><text x="395" y="272" class="m4">a confirm prompt with the diff shown.</text><text x="395" y="298" class="n4">4. Clarifier over inference</text><text x="395" y="316" class="m4">Ambiguity (reset period? scope?) becomes a</text><text x="395" y="332" class="m4">question, not an assumed value.</text>
+
+  <rect x="730" y="215" width="320" height="140" rx="7" class="box4"/><text x="745" y="238" class="n4">5. Findings surfaced in-chat</text><text x="745" y="256" class="m4">Contradictions become inline messages —</text><text x="745" y="272" class="m4">PM sees the requirements bug immediately.</text><text x="745" y="298" class="n4">6. Audit trail = the log itself</text><text x="745" y="316" class="m4">Every chat-initiated write is a delta_log row</text><text x="745" y="332" class="m4">with <tspan font-family="ui-monospace" fill="#38464d">source:"chat:ck_9f7d/turn_N"</tspan>.</text>
+</svg>
+</figure>
+
+<h3 class="v2only" style="font-size:14.5px;margin:24px 0 8px">Accepted intents (initial set)</h3>
+<table class="cmds v2only">
+<thead><tr><th>Intent</th><th>Example NL</th><th>Underlying command</th><th>Confirm?</th></tr></thead>
+<tbody>
+<tr><td>propose_delta</td><td>"add monthly cap $500 to recurring payments"</td><td><code>propose {type:"constraint_added", ...}</code></td><td>buffer only</td></tr>
+<tr><td>save_session</td><td>"/save" · "commit"</td><td><code>log_append(buffer)</code></td><td>yes — shows diff</td></tr>
+<tr><td>show_spec</td><td>"what's the current P2P limit?"</td><td><code>dolt SELECT WHERE entity='P2P%'</code></td><td>no</td></tr>
+<tr><td>diff_versions</td><td>"what changed since v36?"</td><td><code>dolt diff v36 HEAD</code></td><td>no</td></tr>
+<tr><td>plan_for</td><td>"/plan for P2P.daily_limit"</td><td>authoring agent → test-plan/v1</td><td>no</td></tr>
+<tr><td>run_plan</td><td>"/run last plan"</td><td>runtime executes; streams verdict</td><td>yes — env target</td></tr>
+<tr><td>why_failed</td><td>"why did case B fail?"</td><td>diagnosis over trace + x-layer store</td><td>no</td></tr>
+<tr><td>coverage_of</td><td>"coverage of recurring_payments?"</td><td>rulebook + blind eval over spec + kuzu</td><td>no</td></tr>
+<tr><td>list_findings</td><td>"any contradictions this week?"</td><td>findings.list(since=7d)</td><td>no</td></tr>
+<tr><td>retract_delta</td><td>"undo the last change"</td><td><code>log_append(retracts=delta_id)</code></td><td>yes — shows scope</td></tr>
+<tr><td>escalate</td><td>"send this to compliance"</td><td>notify to routed channel</td><td>yes</td></tr>
+<tr style="background:#f7e5e0"><td><b>heal_element</b> <span style="font-size:10px;color:#b04a3a;font-weight:700">healing</span></td><td>"this button is broken, fix it" + screenshot / element pointer</td><td>routes to Block 6 healing pipeline with user anchor as ground truth</td><td>yes — shows the heal-diff</td></tr>
+<tr style="background:#f7e5e0"><td><b>mark_flake</b> <span style="font-size:10px;color:#b04a3a;font-weight:700">healing</span></td><td>"this fails randomly, ignore for now"</td><td>tags test case, routes to flake classifier, does not touch spec</td><td>yes</td></tr>
+<tr style="background:#f7e5e0"><td><b>mark_broken</b> <span style="font-size:10px;color:#b04a3a;font-weight:700">healing</span></td><td>"this element no longer exists"</td><td>writes retirement edge to Kuzu, opens finding for authoring</td><td>yes</td></tr>
+<tr><td>help</td><td>"what can I say?"</td><td>list of intents</td><td>no</td></tr>
+</tbody>
+</table>
+
+<div class="callout loop v2only"><b>How this maps to the entity map (§02)</b> The chat surface sits <i>above</i> L5 (consumers) in §02 — it's not a new layer; it's a new way to trigger the same intents. Every chat action is one of the existing writes (delta_log, authoring, runtime). No new tools, no new storage, no new trust surface — just a router with a closed intent vocabulary in front of the stack.</div>
+
+<h3 class="v2only" style="font-size:14.5px;margin:28px 0 6px">Screenshot-repair sub-flow — the highest-leverage healing intent</h3>
+<p class="h2sub v2only">The moment a user says "this button is broken, here's the screenshot" is the moment the healing pipeline gets a <b>human-confirmed anchor</b> for free. That label is worth more than 100 synthetic drift-torture rows. This sub-flow shows how the intent turns triage into training data.</p>
+
+<figure class="v2only">
+<svg viewBox="0 0 1080 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Screenshot-repair sub-flow">
+  <defs>
+    <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6569"/></marker>
+    <marker id="a5g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#256d46"/></marker>
+    <style>
+      .b5{fill:#fff;stroke:#e3e3dd;stroke-width:1.3}
+      .b5.usr{fill:#e6ecf5;stroke:#4a6fa5}
+      .b5.rt{fill:#e7f2ea;stroke:#256d46}
+      .b5.heal{fill:#f7e5e0;stroke:#b04a3a;stroke-width:1.6}
+      .b5.moat{fill:#f0eaf8;stroke:#7a5ca8}
+      .b5.teal{fill:#e0f0f0;stroke:#2e7a7a}
+      .n5{font:700 12.5px ui-sans-serif;fill:#25292b}
+      .m5{font:500 10.5px ui-sans-serif;fill:#5d6569}
+      .h5{font:800 10.5px ui-sans-serif;letter-spacing:.12em;fill:#5d6569}
+      .e5{stroke:#5d6569;stroke-width:1.3;fill:none;marker-end:url(#a5)}
+      .e5g{stroke:#256d46;stroke-width:1.6;fill:none;marker-end:url(#a5g)}
+      .l5{font:500 10px ui-sans-serif;fill:#5d6569}
+      .lbl{font:800 9.5px ui-sans-serif;letter-spacing:.06em;fill:#b04a3a}
+    </style>
+  </defs>
+
+  <!-- Row 1: user input -->
+  <text x="20" y="30" class="h5">1 · USER INPUT</text>
+  <rect x="20" y="42" width="260" height="90" rx="8" class="b5 usr"/>
+  <text x="150" y="64" class="n5" text-anchor="middle">Chat message</text>
+  <text x="150" y="82" class="m5" text-anchor="middle">"this Save button doesn't work"</text>
+  <text x="150" y="98" class="m5" text-anchor="middle">📎 screenshot.png (optional)</text>
+  <text x="150" y="114" class="m5" text-anchor="middle">🎯 click-to-point (optional)</text>
+  <text x="150" y="128" class="m5" text-anchor="middle" fill="#b04a3a">at least one anchor required</text>
+
+  <!-- Row 2: router → orchestrator -->
+  <path class="e5" d="M280 87 L 320 87"/>
+  <rect x="320" y="42" width="240" height="90" rx="8" class="b5 rt"/>
+  <text x="440" y="64" class="n5" text-anchor="middle">Intent: heal_element</text>
+  <text x="440" y="82" class="m5" text-anchor="middle">router matches "broken / fix / doesn't"</text>
+  <text x="440" y="98" class="m5" text-anchor="middle">enrich: which test failed here?</text>
+  <text x="440" y="114" class="m5" text-anchor="middle">which trace_id / element_id?</text>
+
+  <path class="e5" d="M560 87 L 600 87"/>
+  <rect x="600" y="42" width="240" height="90" rx="8" class="b5 rt"/>
+  <text x="720" y="64" class="n5" text-anchor="middle">Anchor resolver</text>
+  <text x="720" y="82" class="m5" text-anchor="middle">screenshot → visual grounding</text>
+  <text x="720" y="98" class="m5" text-anchor="middle">(off-the-shelf UI-TARS · not fine-tuned yet)</text>
+  <text x="720" y="114" class="m5" text-anchor="middle">→ candidate element in current DOM</text>
+
+  <!-- Row 3: confirm with user -->
+  <path class="e5" d="M720 132 L 720 160"/>
+  <rect x="600" y="160" width="240" height="80" rx="8" class="b5 usr"/>
+  <text x="720" y="182" class="n5" text-anchor="middle">Confirm-me prompt</text>
+  <text x="720" y="200" class="m5" text-anchor="middle">"I see: Save button on Checkout screen"</text>
+  <text x="720" y="216" class="m5" text-anchor="middle">"is this the element?" · yes / no / retry</text>
+  <text x="720" y="230" class="lbl" text-anchor="middle">HIGH-CONFIDENCE LABEL ORIGIN</text>
+
+  <!-- Row 4: healing pipeline -->
+  <path class="e5g" d="M720 240 L 720 275"/>
+  <text x="740" y="260" class="l5" fill="#256d46">confirmed anchor + broken descriptor</text>
+  <rect x="380" y="275" width="680" height="80" rx="8" class="b5 heal"/>
+  <text x="720" y="298" class="n5" text-anchor="middle">Block 6 · Healing pipeline (selfheal-core + ladder)</text>
+  <text x="500" y="318" class="m5" text-anchor="start">1. take current DOM at trace_id / current live page</text>
+  <text x="500" y="334" class="m5" text-anchor="start">2. re-run similarity descriptors against the CONFIRMED anchor as ground truth</text>
+  <text x="500" y="350" class="m5" text-anchor="start">3. emit heal-diff: old descriptor → new descriptor; verify-gated (false-heal=0 preserved)</text>
+
+  <!-- Row 5: writes back -->
+  <text x="20" y="390" class="h5">4 · WRITES (all high-confidence)</text>
+  <rect x="20" y="402" width="240" height="50" rx="6" class="b5 teal"/>
+  <text x="140" y="422" class="n5" text-anchor="middle">Kuzu</text>
+  <text x="140" y="438" class="m5" text-anchor="middle">update descriptor; add repair edge</text>
+  <rect x="280" y="402" width="240" height="50" rx="6" class="b5 heal"/>
+  <text x="400" y="422" class="n5" text-anchor="middle">Flywheel · labelled row</text>
+  <text x="400" y="438" class="m5" text-anchor="middle">confidence: user_confirmed (highest)</text>
+  <rect x="540" y="402" width="240" height="50" rx="6" class="b5 rt"/>
+  <text x="660" y="422" class="n5" text-anchor="middle">Test case</text>
+  <text x="660" y="438" class="m5" text-anchor="middle">step schema patched inline</text>
+  <rect x="800" y="402" width="260" height="50" rx="6" class="b5 usr"/>
+  <text x="930" y="422" class="n5" text-anchor="middle">Chat response</text>
+  <text x="930" y="438" class="m5" text-anchor="middle">heal-diff shown; "run again?"</text>
+
+  <path class="e5g" d="M550 355 L 140 402"/>
+  <path class="e5g" d="M660 355 L 400 402"/>
+  <path class="e5g" d="M780 355 L 660 402"/>
+  <path class="e5g" d="M900 355 L 930 402"/>
+</svg>
+<figcaption>User anchor (screenshot / click-to-point) enters the healing pipeline as <b>ground truth</b>, not as a candidate to score. The similarity matcher runs against a known-correct target, so what it produces is a <i>corrected descriptor</i> with a <i>human-confirmed</i> label — the highest-confidence row the flywheel ever sees. Every downstream store (Kuzu, flywheel, test case) is written in the same transaction; a "run again?" prompt closes the loop in-chat.</figcaption>
+</figure>
+
+<div class="callout loop v2only"><b>Why this is worth more than synthetic drift data</b> Drift-torture generates <i>candidate</i> failures; the healing ladder has to guess which candidate is correct. A user pointing at a screenshot removes the guess — the anchor is confirmed at the moment of user friction. One <code>heal_element</code> row is worth 100+ drift-torture rows because it's a <b>real production locator drift, labelled by the human closest to the truth.</b> Feeds directly into the Verdict observer (§3), which is where thresholds and future locator model fine-tunes come from.</div>
+
+<div class="callout warn v2only"><b>Guardrails specific to this intent</b> (i) User must confirm the resolver's element pick before any write — a wrong anchor writes a wrong label forever. (ii) The heal-diff is displayed before commit — false-heal=0 gate still applies even with a human in the loop. (iii) The label is tagged <code>confidence:user_confirmed</code> so downstream models can weight it appropriately. (iv) If the resolver can't find a matching element with reasonable margin, it escalates rather than guessing — the intent falls through to <code>mark_broken</code>.</div>
+
+<div class="pillow v2only"><b>Open questions the red-team surfaced</b> These are grill topics for the next round, not answered here: (i) idempotency of Instructor across retries; (ii) reducer test discipline (property tests + golden datasets); (iii) PII in the immutable log vs right-to-erasure; (iv) cold-start / one-time backfill; (v) multi-tenant Dolt shape; (vi) spec-version ↔ test-version binding; (vii) delta-schema versioning as spec shape evolves.</div>
+
+<script>
+(function(){
+  var v=document.getElementById('ver'), s=document.getElementById('scn'), b=document.body;
+  function apply(){
+    b.classList.remove('v1','v2','sA','sB','sC','sD');
+    b.classList.add(v.value);
+    b.classList.add(s.value);
+  }
+  v.addEventListener('change',apply); s.addEventListener('change',apply); apply();
+})();
+</script>
+
+</div>
+
+
+</body></html>
